@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./ERC20Base.sol";
 import "./WithPermitAndFixedDomain.sol";
 
-contract SimpleERC20 is ERC20Base, WithPermitAndFixedDomain {
+contract TDFToken is ERC20Base, WithPermitAndFixedDomain {
     constructor(address to, uint256 amount) WithPermitAndFixedDomain("1") {
         _mint(to, amount);
     }

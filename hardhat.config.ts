@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
       localhost: 1,
       hardhat: 1,
     },
-    simpleERC20Beneficiary: {
+    TDFTokenBeneficiary: {
       default: 1,
       localhost: 1,
       hardhat: 1,
