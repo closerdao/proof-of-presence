@@ -10,6 +10,9 @@ export function node_url(networkName: string): string {
 
   if (networkName === 'localhost') {
     // do not use ETH_NODE_URI
+    if (process.env.LOCALHOST_PORT) {
+      return `http://localhost:${process.env.LOCALHOST_PORT}`;
+    }
     return 'http://localhost:8545';
   }
 
