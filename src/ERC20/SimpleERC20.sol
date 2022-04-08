@@ -10,9 +10,9 @@ contract TDFToken is ERC20Base, WithPermitAndFixedDomain {
         _mint(to, amount);
     }
 
-    string public constant symbol = "SIMPLE";
+    string public constant symbol = "TDF";
 
     function name() public pure override returns (string memory) {
-        return "Simple ERC20";
+        return "TDF token";
     }
 }
