@@ -63,10 +63,12 @@ export async function getInactiveContract(name: string): Promise<Contract> {
 
   switch (name) {
     // Example:
-    // case 'ContractName': {
-    //   await deployments.deploy('ContractName', {from: deployer, args: ['uniswap_v3_router']});
-    //   return ethers.getContract('ContractName', deployer);
-    // }
+    case 'TDFSale': {
+      const {weth, TDFTokenBeneficiary} = accounts;
+      const TDFToken = await ethers.getContract('TDFToken');
+      await deployments.deploy('TDFSale', {from: deployer, args: [TDFToken.address, weth, TDFTokenBeneficiary, 1]});
+      return ethers.getContract('TDFSale', deployer);
+    }
     default: {
       throw 'Contact not listed';
     }
@@ -88,10 +90,10 @@ export async function topUpFunds(name: string, to: string, amount?: string) {
       break;
     }
     case 'mint_weth': {
-      const {deployer, wrapped} = accounts;
-      const signer = await ethers.getSigner(deployer);
+      const {weth} = accounts;
+      const signer = await ethers.getSigner(to);
       defAmount = amount || '10.0';
-      await signer.sendTransaction({from: deployer, value: parseUnits(defAmount, 18), to: wrapped});
+      await signer.sendTransaction({from: to, value: parseUnits(defAmount, 18), to: weth});
       break;
     }
     case 'send_value': {
