@@ -25,7 +25,7 @@ const setup = deployments.createFixture(async (hre) => {
   };
 });
 
-describe('TDFToken', () => {
+describe('TDFSale', () => {
   it('WETH 1:1 Sale', async () => {
     const {users, TDFSale, TDFTokenBeneficiary} = await setup();
     const seller = TDFTokenBeneficiary;
