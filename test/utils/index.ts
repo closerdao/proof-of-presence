@@ -57,7 +57,7 @@ export async function getActiveContract(name: string): Promise<Contract> {
   }
 }
 
-export async function getInactiveContract(name: string): Promise<Contract> {
+export async function getInactiveContract(name: string, args?: []): Promise<Contract> {
   const accounts = await getNamedAccounts();
   const {deployer} = accounts;
 
@@ -66,7 +66,7 @@ export async function getInactiveContract(name: string): Promise<Contract> {
     case 'TDFSale': {
       const {weth, TDFTokenBeneficiary} = accounts;
       const TDFToken = await ethers.getContract('TDFToken');
-      await deployments.deploy('TDFSale', {from: deployer, args: [TDFToken.address, weth, TDFTokenBeneficiary, 1]});
+      await deployments.deploy('TDFSale', {from: deployer, args: [TDFToken.address, weth, TDFTokenBeneficiary, 1, 1]});
       return ethers.getContract('TDFSale', deployer);
     }
     default: {
