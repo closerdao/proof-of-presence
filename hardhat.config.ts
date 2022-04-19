@@ -67,13 +67,16 @@ const config: HardhatUserConfig = {
       polygon: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
       mainnet: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
     },
+    ust: {
+      polygon: '0x692597b009d13c4049a947cab2239b7d6517875f',
+    },
     usdc_whale: {
       polygon: '0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8',
       mainnet: '0xbe0eb53f46cd790cd13851d5eff43d12404d33e8',
     },
     weth_whale: {
-      polygon: '0x0298B2eCdef68BC139B098461217a5B3161B69C8',
-      mainnet: '0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8',
+      polygon: '0x72a53cdbbcc1b9efa39c834a540550e23463aacb',
+      mainnet: '0xbe0eb53f46cd790cd13851d5eff43d12404d33e8',
     },
     wmatic_whale: {
       polygon: '0xFffbCD322cEace527C8ec6Da8de2461C6D9d4e6e',
