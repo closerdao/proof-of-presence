@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "hardhat/console.sol";
 
 contract TDFSale is Context, ReentrancyGuard {
     using SafeMath for uint256;
@@ -70,7 +71,7 @@ contract TDFSale is Context, ReentrancyGuard {
      * 1 ETH = 1000000000000000000 Wei
      */
     function buy(uint256 weiAmount) public nonReentrant {
-        _buyFrom(_msgSender(), weiAmount);
+        _buyFor(_msgSender(), weiAmount);
     }
 
     /**
@@ -80,8 +81,8 @@ contract TDFSale is Context, ReentrancyGuard {
      * example:
      * 1 ETH = 1000000000000000000 Wei
      */
-    function buyFrom(address beneficiary, uint256 weiAmount) public nonReentrant {
-        _buyFrom(beneficiary, weiAmount);
+    function buyFor(address beneficiary, uint256 weiAmount) public nonReentrant {
+        _buyFor(beneficiary, weiAmount);
     }
 
     /**
@@ -92,19 +93,19 @@ contract TDFSale is Context, ReentrancyGuard {
         return Math.min(token.balanceOf(wallet), token.allowance(wallet, address(this)));
     }
 
-    function _buyFrom(address beneficiary, uint256 weiAmount) private {
-        // calculate token amount to be bought
-        uint256 tokens = _getTokenAmount(weiAmount);
+    function _buyFor(address beneficiary, uint256 weiAmount) private {
+        // calculate the cost
+        uint256 weiCost = _getCost(weiAmount);
 
-        _preValidatePurchase(beneficiary, tokens);
+        _preValidatePurchase(beneficiary, weiAmount);
 
         // update state
-        weiRaised = weiRaised.add(weiAmount);
+        weiRaised = weiRaised.add(weiCost);
 
-        _forwardFunds(weiAmount);
-        _deliverTokens(beneficiary, tokens);
+        _forwardFunds(weiCost);
+        _deliverTokens(beneficiary, weiAmount);
 
-        emit TokensPurchased(beneficiary, _msgSender(), weiAmount, tokens);
+        emit TokensPurchased(beneficiary, _msgSender(), weiAmount, weiCost);
 
         _postValidatePurchase(beneficiary, weiAmount);
     }
@@ -112,17 +113,17 @@ contract TDFSale is Context, ReentrancyGuard {
     /**
      * @dev Sends Tokens to buyer
      * @param beneficiary Token purchaser
-     * @param tokenAmount Amount of tokens purchased
+     * @param weiAmount Amount of tokens purchased
      */
-    function _deliverTokens(address beneficiary, uint256 tokenAmount) internal {
-        token.safeTransferFrom(wallet, beneficiary, tokenAmount);
+    function _deliverTokens(address beneficiary, uint256 weiAmount) internal {
+        token.safeTransferFrom(wallet, beneficiary, weiAmount);
     }
 
     /**
      * @dev Sends buying tokens to wallet.
      */
-    function _forwardFunds(uint256 weiAmount) internal {
-        quote.safeTransferFrom(_msgSender(), wallet, weiAmount);
+    function _forwardFunds(uint256 weiCost) internal {
+        quote.safeTransferFrom(_msgSender(), wallet, weiCost);
     }
 
     /**
@@ -155,7 +156,7 @@ contract TDFSale is Context, ReentrancyGuard {
      * @param weiAmount Value in wei to be converted into tokens
      * @return Number of tokens that can be purchased with the specified _weiAmount
      */
-    function _getTokenAmount(uint256 weiAmount) internal view returns (uint256) {
-        return weiAmount.mul(rate);
+    function _getCost(uint256 weiAmount) internal view returns (uint256) {
+        return (rate / 10**2).mul(weiAmount / 10**16);
     }
 }
