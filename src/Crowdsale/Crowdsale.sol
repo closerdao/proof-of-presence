@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "hardhat/console.sol";
 
-contract TDFSale is Context, ReentrancyGuard {
+contract Crowdsale is Context, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -24,11 +24,8 @@ contract TDFSale is Context, ReentrancyGuard {
     IERC20 public quote;
     // Wallet holding the token
     address payable public wallet;
-    // How many token units a buyer gets per wei.
-    // The rate is the conversion between wei and the smallest and indivisible token unit.
-    // So, if you are using a rate of 1 with a ERC20Detailed token with 3 decimals called TOK
-    // 1 wei will give you 1 unit, or 0.001 TOK.
-    uint256 public rate;
+    // price in wei of single whole unit of token.
+    uint256 public price;
 
     // Minimum token purchase to make a buy
     // To limit small amounts of token sale
@@ -51,16 +48,18 @@ contract TDFSale is Context, ReentrancyGuard {
         address _token,
         address _quote,
         address payable _wallet,
-        uint256 _rate,
+        uint256 _price,
         uint256 _minTokenBuyAmount
     ) {
-        require(_rate > 0, "Crowdsale: rate is 0");
+        require(_price > 0, "Crowdsale: price is 0");
         require(_wallet != ZERO_ADDRESS, "Crowdsale: wallet is the zero address");
         require(address(_token) != ZERO_ADDRESS, "Crowdsale: token is the zero address");
         token = IERC20(_token);
         quote = IERC20(_quote);
         wallet = _wallet;
-        rate = _rate;
+        price = _price;
+        // TODO: review and check if we need to do a minimum divisible amount
+        // or remove it completely
         minTokenBuyAmount = _minTokenBuyAmount;
     }
 
@@ -137,6 +136,7 @@ contract TDFSale is Context, ReentrancyGuard {
      */
     function _preValidatePurchase(address beneficiary, uint256 weiTokens) internal view {
         require(beneficiary != ZERO_ADDRESS, "Crowdsale: beneficiary is the zero address");
+        // TODO: review
         require(weiTokens >= minTokenBuyAmount, "Crowdsale: minimun amount to buy required");
         this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
     }
@@ -157,6 +157,6 @@ contract TDFSale is Context, ReentrancyGuard {
      * @return Number of tokens that can be purchased with the specified _weiAmount
      */
     function _getCost(uint256 weiAmount) internal view returns (uint256) {
-        return (rate / 10**2).mul(weiAmount / 10**16);
+        return (price / 10**2).mul(weiAmount / 10**16);
     }
 }
