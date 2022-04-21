@@ -70,7 +70,7 @@ describe('Crowdsale', () => {
     // SETUP
     const config = await setup();
     const {users, TDFTokenBeneficiary} = config;
-    const {saleUsers} = await deploySale(config, '350', '1');
+    const {saleUsers, Sale} = await deploySale(config, '350', '1');
 
     // Balances
     const tdfBal = await TDFTokenBeneficiary.TDFToken.balanceOf(TDFTokenBeneficiary.address);
