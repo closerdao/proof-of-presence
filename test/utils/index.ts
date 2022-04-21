@@ -56,7 +56,7 @@ export async function getActiveContract(name: string): Promise<Contract> {
     }
   }
 }
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function getInactiveContract(name: string, args?: []): Promise<Contract> {
   const accounts = await getNamedAccounts();
   const {deployer} = accounts;
@@ -97,7 +97,7 @@ export async function topUpFunds(name: string, to: string, amount?: string) {
       break;
     }
     case 'send_value': {
-      const {deployer, wrapped} = accounts;
+      const {deployer} = accounts;
       const signer = await ethers.getSigner(deployer);
       defAmount = amount || '10.0';
       await signer.sendTransaction({from: deployer, value: parseUnits(defAmount, 18), to: to});

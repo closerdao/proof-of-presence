@@ -5,12 +5,13 @@ import {setupUser, setupUsers} from './utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
   await deployments.deploy(name, {from: deployer, args: args});
   return ethers.getContract(name, deployer);
 }
-
-async function deploySale(setup: any, price: string, minbuy: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function deploySale(setup: Record<string, any>, price: string, minbuy: string) {
   const {TDFTokenBeneficiary, FakeEURToken, TDFToken, deployer} = setup;
   const addresses = await getUnnamedAccounts();
 
@@ -96,7 +97,7 @@ describe('Crowdsale', () => {
     // SETUP
     const config = await setup();
     const {TDFTokenBeneficiary, TDFToken, FakeEURToken} = config;
-    const {saleUsers, Sale} = await deploySale(config, '350', '1');
+    const {saleUsers} = await deploySale(config, '350', '1');
     const user = saleUsers[0];
 
     expect(await user.Sale.token()).to.eq(TDFToken.address);
