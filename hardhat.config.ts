@@ -9,11 +9,10 @@ import 'hardhat-deploy-tenderly';
 import {task} from 'hardhat/config';
 import {node_url, accounts, addForkConfiguration} from './utils/network';
 
-const defaultNetwork = 'hardhat';
-const mnemonicPath = "m/44'/52752'/0'/0"; // derivation path used by Celo
+// const mnemonicPath = "m/44'/52752'/0'/0"; // derivation path used by Celo
 
 // This is the mnemonic used by celo-devchain
-const DEVCHAIN_MNEMONIC = 'concert load couple harbor equip island argue ramp clarify fence smart topic';
+const DEVCHAIN_MNEMONIC = 'myth like bonus scare over problem client lizard pioneer submit female collect';
 
 const getAccounts = (
   def: [string] | {mnemonic: string} | undefined = undefined
@@ -33,7 +32,7 @@ const namedAccounts = {
     hardhat: 1,
   },
   TDFTokenBeneficiary: {
-    default: 1,
+    default: 0,
     localhost: 1,
     hardhat: 1,
   },
@@ -54,7 +53,7 @@ const config: HardhatUserConfig = {
     ],
   },
   namedAccounts: namedAccounts,
-  defaultNetwork,
+  defaultNetwork: 'hardhat',
   networks: addForkConfiguration({
     hardhat: {
       initialBaseFeePerGas: 0, // to fix : https://github.com/sc-forks/solidity-coverage/issues/652, see https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
@@ -73,6 +72,7 @@ const config: HardhatUserConfig = {
       url: 'http://127.0.0.1:8545',
       accounts: {
         mnemonic: DEVCHAIN_MNEMONIC,
+        // path: mnemonicPath,
       },
     },
   }),
