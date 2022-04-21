@@ -8,8 +8,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "hardhat/console.sol";
 
-contract TDFSale is Context, ReentrancyGuard {
+contract Crowdsale is Context, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -23,11 +24,8 @@ contract TDFSale is Context, ReentrancyGuard {
     IERC20 public quote;
     // Wallet holding the token
     address payable public wallet;
-    // How many token units a buyer gets per wei.
-    // The rate is the conversion between wei and the smallest and indivisible token unit.
-    // So, if you are using a rate of 1 with a ERC20Detailed token with 3 decimals called TOK
-    // 1 wei will give you 1 unit, or 0.001 TOK.
-    uint256 public rate;
+    // price in wei of single whole unit of token.
+    uint256 public price;
 
     // Minimum token purchase to make a buy
     // To limit small amounts of token sale
@@ -50,16 +48,18 @@ contract TDFSale is Context, ReentrancyGuard {
         address _token,
         address _quote,
         address payable _wallet,
-        uint256 _rate,
+        uint256 _price,
         uint256 _minTokenBuyAmount
     ) {
-        require(_rate > 0, "Crowdsale: rate is 0");
+        require(_price > 0, "Crowdsale: price is 0");
         require(_wallet != ZERO_ADDRESS, "Crowdsale: wallet is the zero address");
         require(address(_token) != ZERO_ADDRESS, "Crowdsale: token is the zero address");
         token = IERC20(_token);
         quote = IERC20(_quote);
         wallet = _wallet;
-        rate = _rate;
+        price = _price;
+        // TODO: review and check if we need to do a minimum divisible amount
+        // or remove it completely
         minTokenBuyAmount = _minTokenBuyAmount;
     }
 
@@ -70,7 +70,7 @@ contract TDFSale is Context, ReentrancyGuard {
      * 1 ETH = 1000000000000000000 Wei
      */
     function buy(uint256 weiAmount) public nonReentrant {
-        _buyFrom(_msgSender(), weiAmount);
+        _buyFor(_msgSender(), weiAmount);
     }
 
     /**
@@ -80,8 +80,8 @@ contract TDFSale is Context, ReentrancyGuard {
      * example:
      * 1 ETH = 1000000000000000000 Wei
      */
-    function buyFrom(address beneficiary, uint256 weiAmount) public nonReentrant {
-        _buyFrom(beneficiary, weiAmount);
+    function buyFor(address beneficiary, uint256 weiAmount) public nonReentrant {
+        _buyFor(beneficiary, weiAmount);
     }
 
     /**
@@ -92,19 +92,19 @@ contract TDFSale is Context, ReentrancyGuard {
         return Math.min(token.balanceOf(wallet), token.allowance(wallet, address(this)));
     }
 
-    function _buyFrom(address beneficiary, uint256 weiAmount) private {
-        // calculate token amount to be bought
-        uint256 tokens = _getTokenAmount(weiAmount);
+    function _buyFor(address beneficiary, uint256 weiAmount) private {
+        // calculate the cost
+        uint256 weiCost = _getCost(weiAmount);
 
-        _preValidatePurchase(beneficiary, tokens);
+        _preValidatePurchase(beneficiary, weiAmount);
 
         // update state
-        weiRaised = weiRaised.add(weiAmount);
+        weiRaised = weiRaised.add(weiCost);
 
-        _forwardFunds(weiAmount);
-        _deliverTokens(beneficiary, tokens);
+        _forwardFunds(weiCost);
+        _deliverTokens(beneficiary, weiAmount);
 
-        emit TokensPurchased(beneficiary, _msgSender(), weiAmount, tokens);
+        emit TokensPurchased(beneficiary, _msgSender(), weiAmount, weiCost);
 
         _postValidatePurchase(beneficiary, weiAmount);
     }
@@ -112,17 +112,17 @@ contract TDFSale is Context, ReentrancyGuard {
     /**
      * @dev Sends Tokens to buyer
      * @param beneficiary Token purchaser
-     * @param tokenAmount Amount of tokens purchased
+     * @param weiAmount Amount of tokens purchased
      */
-    function _deliverTokens(address beneficiary, uint256 tokenAmount) internal {
-        token.safeTransferFrom(wallet, beneficiary, tokenAmount);
+    function _deliverTokens(address beneficiary, uint256 weiAmount) internal {
+        token.safeTransferFrom(wallet, beneficiary, weiAmount);
     }
 
     /**
      * @dev Sends buying tokens to wallet.
      */
-    function _forwardFunds(uint256 weiAmount) internal {
-        quote.safeTransferFrom(_msgSender(), wallet, weiAmount);
+    function _forwardFunds(uint256 weiCost) internal {
+        quote.safeTransferFrom(_msgSender(), wallet, weiCost);
     }
 
     /**
@@ -136,6 +136,7 @@ contract TDFSale is Context, ReentrancyGuard {
      */
     function _preValidatePurchase(address beneficiary, uint256 weiTokens) internal view {
         require(beneficiary != ZERO_ADDRESS, "Crowdsale: beneficiary is the zero address");
+        // TODO: review
         require(weiTokens >= minTokenBuyAmount, "Crowdsale: minimun amount to buy required");
         this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
     }
@@ -155,7 +156,7 @@ contract TDFSale is Context, ReentrancyGuard {
      * @param weiAmount Value in wei to be converted into tokens
      * @return Number of tokens that can be purchased with the specified _weiAmount
      */
-    function _getTokenAmount(uint256 weiAmount) internal view returns (uint256) {
-        return weiAmount.mul(rate);
+    function _getCost(uint256 weiAmount) internal view returns (uint256) {
+        return (price / 10**2).mul(weiAmount / 10**16);
     }
 }
