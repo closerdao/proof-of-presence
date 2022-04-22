@@ -112,29 +112,33 @@ describe('Crowdsale', () => {
   it('ownable', async () => {
     // SETUP
     const config = await setup();
-    const {TDFTokenBeneficiary, TDFToken, FakeEURToken} = config;
     const {saleUsers, saleDeployer, Sale} = await deploySale(config, '150', '1');
     const user = saleUsers[0];
     const deployer = saleDeployer;
 
-    await expect(user.Sale.setPrice(parseEther('340'))).to.be.revertedWith('Ownable: caller is not the owner');
-    expect(await user.Sale.paused()).to.be.false;
-    await expect(user.Sale.pause()).to.be.revertedWith('Ownable: caller is not the owner');
-    expect(await user.Sale.paused()).to.be.false;
+    // Set Price
     await expect(deployer.Sale.setPrice(parseEther('1'))).to.be.revertedWith('Price to low');
     await expect(deployer.Sale.setPrice(parseEther('350')))
       .to.emit(Sale, 'PriceChanged')
       .withArgs(parseEther('150'), parseEther('350'));
     expect(await user.Sale.price()).to.eq(parseEther('350'));
+    await expect(user.Sale.setPrice(parseEther('340'))).to.be.revertedWith('Ownable: caller is not the owner');
+
+    // Pause
+    expect(await user.Sale.paused()).to.be.false;
+    await expect(user.Sale.pause()).to.be.revertedWith('Ownable: caller is not the owner');
+    expect(await user.Sale.paused()).to.be.false;
     await expect(deployer.Sale.pause()).to.emit(Sale, 'Paused');
     expect(await user.Sale.paused()).to.be.true;
     await expect(user.Sale.unpause()).to.be.revertedWith('Ownable: caller is not the owner');
 
+    // TransferOwnership
     expect(await deployer.Sale.owner()).to.eq(deployer.address);
     await expect(deployer.Sale.transferOwnership(user.address))
       .to.emit(Sale, 'OwnershipTransferred')
       .withArgs(deployer.address, user.address);
     expect(await user.Sale.owner()).to.eq(user.address);
+    await expect(user.Sale.unpause()).to.emit(Sale, 'Unpaused');
   });
 
   it('pausable', async () => {

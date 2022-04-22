@@ -46,8 +46,25 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
      */
     event TokensPurchased(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
+    /**
+     * Event for price change logging
+     * @param prevPrice price before the change
+     * @param newPrice current set price
+     */
     event PriceChanged(uint256 prevPrice, uint256 newPrice);
 
+    /**
+     * Constructor
+     * @param _token Token to sell
+     * @param _quote token to buy
+     * @param _wallet wallet holding the tokens to sell, must approve this contract to move the funds
+     * @param _price price in wei for a unit (ether)
+     * @param _minTokenBuyAmount min allowed buy
+     *
+     * Initializes:
+     * - Ownable: setting owner to the deployer
+     * - Pausable: initial setting to not paused
+     */
     constructor(
         address _token,
         address _quote,
@@ -69,8 +86,10 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
     /**
      * @dev Sender buys tokens to be paid from his wallet and sent to his wallet.
      * @param weiAmount amount of tokens to be bought with min unit of quote token
-     * example:
-     * 1 ETH = 1000000000000000000 Wei
+     *
+     * Requirements:
+     *
+     * - The contract must not be paused.
      */
     function buy(uint256 weiAmount) public nonReentrant whenNotPaused {
         _buyFor(_msgSender(), weiAmount);
@@ -80,30 +99,47 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
      * @dev Sender buys tokens to be sent to another wallet.
      * @param beneficiary address to deliver the tokens
      * @param weiAmount amount of tokens to be bought with min unit of quote token
-     * example:
-     * 1 ETH = 1000000000000000000 Wei
+     *
+     * Requirements:
+     *
+     * - The contract must not be paused.
      */
     function buyFor(address beneficiary, uint256 weiAmount) public nonReentrant whenNotPaused {
         _buyFor(beneficiary, weiAmount);
     }
 
+    /**
+     * @dev Changes the price.
+     * @param _price new Price in wei
+     *
+     * Requirements:
+     *
+     * - Only Owner.
+     */
     function setPrice(uint256 _price) public onlyOwner {
         _setPrice(_price);
     }
 
+    /**
+     * @dev Pause buys.
+     *
+     * Requirements:
+     *
+     * - Only Owner.
+     */
     function pause() public onlyOwner {
         _pause();
     }
 
+    /**
+     * @dev Unpause buys.
+     *
+     * Requirements:
+     *
+     * - Only Owner.
+     */
     function unpause() public onlyOwner {
         _unpause();
-    }
-
-    function _setPrice(uint256 _price) internal {
-        require(_price >= 128 ether, "Price to low");
-        uint256 prevPrice = price;
-        price = _price;
-        emit PriceChanged(prevPrice, _price);
     }
 
     /**
@@ -180,5 +216,21 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
      */
     function _getCost(uint256 weiAmount) internal view returns (uint256) {
         return (price / 10**2).mul(weiAmount / 10**16);
+    }
+
+    /**
+     * @dev internal _setPrice function.
+     * @param _price the new price
+     *
+     * Requirements:
+     *
+     * - Price must be bigger than minimum price or 128 ether
+     */
+    function _setPrice(uint256 _price) internal {
+        // TODO: Review this price
+        require(_price >= 128 ether, "Price to low");
+        uint256 prevPrice = price;
+        price = _price;
+        emit PriceChanged(prevPrice, _price);
     }
 }
