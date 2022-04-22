@@ -8,9 +8,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "hardhat/console.sol";
 
-contract Crowdsale is Context, ReentrancyGuard {
+contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -44,20 +46,21 @@ contract Crowdsale is Context, ReentrancyGuard {
      */
     event TokensPurchased(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
+    event PriceChanged(uint256 prevPrice, uint256 newPrice);
+
     constructor(
         address _token,
         address _quote,
         address payable _wallet,
         uint256 _price,
         uint256 _minTokenBuyAmount
-    ) {
-        require(_price > 0, "Crowdsale: price is 0");
+    ) Ownable() Pausable() {
         require(_wallet != ZERO_ADDRESS, "Crowdsale: wallet is the zero address");
         require(address(_token) != ZERO_ADDRESS, "Crowdsale: token is the zero address");
         token = IERC20(_token);
         quote = IERC20(_quote);
         wallet = _wallet;
-        price = _price;
+        _setPrice(_price);
         // TODO: review and check if we need to do a minimum divisible amount
         // or remove it completely
         minTokenBuyAmount = _minTokenBuyAmount;
@@ -69,7 +72,7 @@ contract Crowdsale is Context, ReentrancyGuard {
      * example:
      * 1 ETH = 1000000000000000000 Wei
      */
-    function buy(uint256 weiAmount) public nonReentrant {
+    function buy(uint256 weiAmount) public nonReentrant whenNotPaused {
         _buyFor(_msgSender(), weiAmount);
     }
 
@@ -80,8 +83,27 @@ contract Crowdsale is Context, ReentrancyGuard {
      * example:
      * 1 ETH = 1000000000000000000 Wei
      */
-    function buyFor(address beneficiary, uint256 weiAmount) public nonReentrant {
+    function buyFor(address beneficiary, uint256 weiAmount) public nonReentrant whenNotPaused {
         _buyFor(beneficiary, weiAmount);
+    }
+
+    function setPrice(uint256 _price) public onlyOwner {
+        _setPrice(_price);
+    }
+
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+
+    function _setPrice(uint256 _price) internal {
+        require(_price >= 128 ether, "Price to low");
+        uint256 prevPrice = price;
+        price = _price;
+        emit PriceChanged(prevPrice, _price);
     }
 
     /**

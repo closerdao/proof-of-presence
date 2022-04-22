@@ -35,6 +35,7 @@ async function deploySale(setup: Record<string, any>, price: string, minbuy: str
   await TDFTokenBeneficiary.TDFToken.approve(c.address, allowance);
   return {
     saleUsers: await setupUsers(addresses, {Sale: c}),
+    saleDeployer: await setupUser(deployer.address, {Sale: c}),
     Sale: c,
   };
 }
@@ -82,7 +83,9 @@ describe('Crowdsale', () => {
     await users[0].FakeEURToken.approve(Sale.address, parseEther('542.5'));
 
     // BUY -------------------------
-    await saleUsers[0].Sale.buy(parseEther('1.55'));
+    await expect(saleUsers[0].Sale.buy(parseEther('1.55')))
+      .to.emit(Sale, 'TokensPurchased')
+      .withArgs(saleUsers[0].address, saleUsers[0].address, parseEther('1.55'), parseEther('542.5'));
 
     // Check results
     expect(await users[0].TDFToken.balanceOf(users[0].address)).to.eq(parseEther('1.55'));
@@ -104,5 +107,60 @@ describe('Crowdsale', () => {
     expect(await user.Sale.quote()).to.eq(FakeEURToken.address);
     expect(await user.Sale.wallet()).to.eq(TDFTokenBeneficiary.address);
     expect(await user.Sale.price()).to.eq(parseEther('350'));
+  });
+
+  it('ownable', async () => {
+    // SETUP
+    const config = await setup();
+    const {TDFTokenBeneficiary, TDFToken, FakeEURToken} = config;
+    const {saleUsers, saleDeployer, Sale} = await deploySale(config, '150', '1');
+    const user = saleUsers[0];
+    const deployer = saleDeployer;
+
+    await expect(user.Sale.setPrice(parseEther('340'))).to.be.revertedWith('Ownable: caller is not the owner');
+    expect(await user.Sale.paused()).to.be.false;
+    await expect(user.Sale.pause()).to.be.revertedWith('Ownable: caller is not the owner');
+    expect(await user.Sale.paused()).to.be.false;
+    await expect(deployer.Sale.setPrice(parseEther('1'))).to.be.revertedWith('Price to low');
+    await expect(deployer.Sale.setPrice(parseEther('350')))
+      .to.emit(Sale, 'PriceChanged')
+      .withArgs(parseEther('150'), parseEther('350'));
+    expect(await user.Sale.price()).to.eq(parseEther('350'));
+    await expect(deployer.Sale.pause()).to.emit(Sale, 'Paused');
+    expect(await user.Sale.paused()).to.be.true;
+    await expect(user.Sale.unpause()).to.be.revertedWith('Ownable: caller is not the owner');
+
+    expect(await deployer.Sale.owner()).to.eq(deployer.address);
+    await expect(deployer.Sale.transferOwnership(user.address))
+      .to.emit(Sale, 'OwnershipTransferred')
+      .withArgs(deployer.address, user.address);
+    expect(await user.Sale.owner()).to.eq(user.address);
+  });
+
+  it('pausable', async () => {
+    // SETUP
+    const config = await setup();
+    const {users} = config;
+    const {saleUsers, saleDeployer, Sale} = await deploySale(config, '350', '1');
+    const user = saleUsers[0];
+    const deployer = saleDeployer;
+
+    // Approve
+    await users[0].FakeEURToken.approve(Sale.address, parseEther('350'));
+
+    // Pause the contract
+    await expect(deployer.Sale.pause()).to.emit(Sale, 'Paused');
+
+    // BUY Reverted -------------
+    await expect(user.Sale.buy(parseEther('1'))).to.be.revertedWith('Pausable: paused');
+    await expect(deployer.Sale.buy(parseEther('1'))).to.be.revertedWith('Pausable: paused');
+
+    // Unpause the contract
+    await expect(deployer.Sale.unpause()).to.emit(Sale, 'Unpaused');
+
+    // BUY -------------------------
+    await expect(user.Sale.buy(parseEther('1')))
+      .to.emit(Sale, 'TokensPurchased')
+      .withArgs(user.address, user.address, parseEther('1'), parseEther('350'));
   });
 });
