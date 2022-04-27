@@ -28,6 +28,8 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
     address payable public immutable wallet;
     // price in wei of single whole unit of token.
     uint256 public price;
+    // minimum price allowed, safety messure
+    uint256 internal immutable minPriceAllowed = 128 ether;
 
     // Minimum token purchase to make a buy
     // To limit small amounts of token sale
@@ -234,8 +236,7 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
      * - Price must be bigger than minimum price or 128 ether
      */
     function _setPrice(uint256 _price) internal {
-        // TODO: Review this price
-        require(_price >= 128 ether, "Price to low");
+        require(_price >= minPriceAllowed, "Price to low");
         uint256 prevPrice = price;
         price = _price;
         emit PriceChanged(prevPrice, _price);
