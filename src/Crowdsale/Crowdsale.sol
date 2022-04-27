@@ -5,12 +5,12 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "hardhat/console.sol";
 
 contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
     using SafeMath for uint256;
@@ -21,11 +21,11 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
     address internal constant ZERO_ADDRESS = address(0);
 
     // The token been sold
-    IERC20 public token;
+    IERC20 public immutable token;
     // Token to buy with
-    IERC20 public quote;
+    IERC20 public immutable quote;
     // Wallet holding the token
-    address payable public wallet;
+    address payable public immutable wallet;
     // price in wei of single whole unit of token.
     uint256 public price;
 
@@ -64,6 +64,9 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
      * Initializes:
      * - Ownable: setting owner to the deployer
      * - Pausable: initial setting to not paused
+     *
+     * Requires:
+     * - Both token and quote ERC20s to have 18 decimals
      */
     constructor(
         address _token,
@@ -76,6 +79,10 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
         require(address(_token) != ZERO_ADDRESS, "Crowdsale: token is the zero address");
         token = IERC20(_token);
         quote = IERC20(_quote);
+
+        _requireDecimals(token, 18);
+        _requireDecimals(quote, 18);
+
         wallet = _wallet;
         _setPrice(_price);
         // TODO: review and check if we need to do a minimum divisible amount
@@ -232,5 +239,23 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
         uint256 prevPrice = price;
         price = _price;
         emit PriceChanged(prevPrice, _price);
+    }
+
+    /**
+     * @dev validates decimals for token reverting if unable.
+     * @param elem ERC20
+     * @param decimals that token should have
+     *
+     * Reverts:
+     *
+     * - if does not have decimals
+     * - if call to decimals() fails
+     */
+    function _requireDecimals(IERC20 elem, uint8 decimals) internal view {
+        try IERC20Metadata(address(elem)).decimals() returns (uint8 value) {
+            require(value == decimals, "Wrong number of decimals for token");
+        } catch {
+            revert("Unable to guarantee token decimals");
+        }
     }
 }
