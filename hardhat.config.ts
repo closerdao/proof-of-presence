@@ -33,8 +33,13 @@ const namedAccounts = {
   },
   TDFTokenBeneficiary: {
     default: 0,
+    // alfajores: '0xDa037704F51AA75f4E3893957dB0D0B996331c0e',
     localhost: 1,
     hardhat: 1,
+  },
+  TDFDevMultisig: {
+    default: 0,
+    // alfajores: '0xDa037704F51AA75f4E3893957dB0D0B996331c0e',
   },
 };
 

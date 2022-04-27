@@ -96,6 +96,7 @@ describe('Crowdsale', () => {
     expect(await TDFTokenBeneficiary.TDFToken.balanceOf(TDFTokenBeneficiary.address)).to.lt(tdfBal);
     expect(await users[0].FakeEURToken.balanceOf(users[0].address)).to.lt(eurBal);
   });
+
   it('getters', async () => {
     // SETUP
     const config = await setup();
