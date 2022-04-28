@@ -44,8 +44,16 @@ contract StakedTDF is Context, ReentrancyGuard {
         RedeemtionState memory result = _calculateRedeem(_msgSender());
 
         if (result.redeemable > 0) {
+            uint256 unReL = result.unRedeemable.length;
             // Change the state
-            _staked[_msgSender()] = result.unRedeemable;
+
+            _staked[_msgSender()] = new StakedUnit[](unReL);
+            for (uint256 i = 0; i < unReL; i++) {
+                StakedUnit memory unit = result.unRedeemable[i];
+                _staked[_msgSender()].push(StakedUnit(unit.timestamp, unit.amount));
+            }
+
+            // _staked[_msgSender()] = result.unRedeemable;
             _balances[_msgSender()] = result.remainingBalance;
             token.safeTransfer(_msgSender(), result.redeemable);
         }
