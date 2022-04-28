@@ -44,16 +44,13 @@ contract StakedTDF is Context, ReentrancyGuard {
         RedeemtionState memory result = _calculateRedeem(_msgSender());
 
         if (result.redeemable > 0) {
-            uint256 unReL = result.unRedeemable.length;
             // Change the state
 
-            _staked[_msgSender()] = new StakedUnit[](unReL);
-            for (uint256 i = 0; i < unReL; i++) {
-                StakedUnit memory unit = result.unRedeemable[i];
-                _staked[_msgSender()].push(StakedUnit(unit.timestamp, unit.amount));
+            delete _staked[_msgSender()];
+            for (uint256 i = 0; i < result.unRedeemable.length; i++) {
+                _staked[_msgSender()].push(result.unRedeemable[i]);
             }
 
-            // _staked[_msgSender()] = result.unRedeemable;
             _balances[_msgSender()] = result.remainingBalance;
             token.safeTransfer(_msgSender(), result.redeemable);
         }
@@ -91,11 +88,13 @@ contract StakedTDF is Context, ReentrancyGuard {
 
     function _addUnit(StakedUnit[] memory acc, StakedUnit memory unit) internal pure returns (StakedUnit[] memory) {
         uint256 length = acc.length;
-
+        // creates new acc with one more slot
         StakedUnit[] memory newAcc = new StakedUnit[](length + 1);
         for (uint8 i = 0; i < length; i++) {
+            // copy previous array
             newAcc[i] = acc[i];
         }
+        // adds the new element
         newAcc[length] = unit;
         return newAcc;
     }
