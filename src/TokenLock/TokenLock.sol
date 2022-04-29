@@ -28,11 +28,15 @@ contract TokenLock is Context, ReentrancyGuard {
         uint256 amount;
     }
 
+    // TODO: rename is a little confusing the naming
     struct UnlockingResult {
         uint256 unlocked;
         uint256 remainingBalance;
         LockedUnit[] locked;
     }
+
+    event Locked(address account, uint256 amount);
+    event Unlocked(address account, uint256 amount);
 
     constructor(IERC20 _token, uint256 daysLocked) {
         token = _token;
@@ -43,7 +47,7 @@ contract TokenLock is Context, ReentrancyGuard {
         _staked[_msgSender()].push(LockedUnit(block.timestamp, amount));
         _balances[_msgSender()] += amount;
         token.safeTransferFrom(_msgSender(), address(this), amount);
-        // TODO: EMIT
+        emit Locked(_msgSender(), amount);
     }
 
     function unlockMax() public returns (uint256) {
@@ -57,7 +61,9 @@ contract TokenLock is Context, ReentrancyGuard {
 
     function unlock(uint256 desired) public returns (uint256) {
         require(_balances[_msgSender()] >= desired, "NOT_ENOUGHT_BALANCE");
-        // desired is passed by value
+        // `desired` is passed as value and not by reference because is a basic type
+        // https://docs.soliditylang.org/en/v0.8.9/types.html#value-types
+        // It will not be modified by `_calculateRelease()`
         UnlockingResult memory result = _calculateRelease(_msgSender(), desired);
         require(result.unlocked == desired, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
         // Change the state
@@ -76,7 +82,7 @@ contract TokenLock is Context, ReentrancyGuard {
 
             _balances[account] = result.remainingBalance;
             token.safeTransfer(account, result.unlocked);
-            // TODO: EMIT
+            emit Unlocked(account, result.unlocked);
         }
     }
 
@@ -131,6 +137,10 @@ contract TokenLock is Context, ReentrancyGuard {
         return result;
     }
 
+    /**
+     * @dev Can not modify (push) elements to memory array. The only way is to create a new
+     * copy the previous elements and add one
+     */
     function _addUnit(LockedUnit[] memory acc, LockedUnit memory unit) internal pure returns (LockedUnit[] memory) {
         uint256 length = acc.length;
         // creates new acc with one more slot
