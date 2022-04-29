@@ -18,6 +18,10 @@ contract TokenLock is Context, ReentrancyGuard {
     mapping(address => uint256) internal _balances;
     mapping(address => LockedUnit[]) internal _staked;
     uint256 public lockingPeriod;
+    // Max number in uint256
+    // same result can be achieved with: `uint256 MAX_INT = 2**256 - 1`
+    // Pasted the literal here for cheaper deployment
+    uint256 private constant MAX_INT = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
 
     struct LockedUnit {
         uint256 timestamp;
@@ -39,30 +43,45 @@ contract TokenLock is Context, ReentrancyGuard {
         _staked[_msgSender()].push(LockedUnit(block.timestamp, amount));
         _balances[_msgSender()] += amount;
         token.safeTransferFrom(_msgSender(), address(this), amount);
-        // Emit
+        // TODO: EMIT
     }
 
-    function unlock() public returns (uint256) {
+    function unlockMax() public returns (uint256) {
         require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
-        UnlockingResult memory result = _calculateRelease(_msgSender());
-        // Change the state
-        if (result.unlocked > 0) {
-            // crear previous stake
-            delete _staked[_msgSender()];
-            for (uint256 i = 0; i < result.locked.length; i++) {
-                // add the reminder stakes
-                _staked[_msgSender()].push(result.locked[i]);
-            }
+        UnlockingResult memory result = _calculateRelease(_msgSender(), MAX_INT);
 
-            _balances[_msgSender()] = result.remainingBalance;
-            token.safeTransfer(_msgSender(), result.unlocked);
-            // EMIT
-        }
+        // Change the state
+        _storeUnlock(_msgSender(), result);
         return result.unlocked;
     }
 
+    function unlock(uint256 desired) public returns (uint256) {
+        require(_balances[_msgSender()] >= desired, "NOT_ENOUGHT_BALANCE");
+        // desired is passed by value
+        UnlockingResult memory result = _calculateRelease(_msgSender(), desired);
+        require(result.unlocked == desired, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
+        // Change the state
+        _storeUnlock(_msgSender(), result);
+        return result.unlocked;
+    }
+
+    function _storeUnlock(address account, UnlockingResult memory result) internal {
+        if (result.unlocked > 0) {
+            // crear previous stake
+            delete _staked[account];
+            for (uint256 i = 0; i < result.locked.length; i++) {
+                // add the reminder stakes
+                _staked[account].push(result.locked[i]);
+            }
+
+            _balances[account] = result.remainingBalance;
+            token.safeTransfer(account, result.unlocked);
+            // TODO: EMIT
+        }
+    }
+
     function unlockedAmount(address account) public view returns (uint256) {
-        UnlockingResult memory result = _calculateRelease(account);
+        UnlockingResult memory result = _calculateRelease(account, MAX_INT);
         return result.unlocked;
     }
 
@@ -70,7 +89,7 @@ contract TokenLock is Context, ReentrancyGuard {
         return _balances[account];
     }
 
-    function _calculateRelease(address account) internal view returns (UnlockingResult memory) {
+    function _calculateRelease(address account, uint256 desired) internal view returns (UnlockingResult memory) {
         LockedUnit[] memory stakedFunds = _staked[account];
         UnlockingResult memory result = UnlockingResult(0, 0, new LockedUnit[](0));
         if (stakedFunds.length == 0) {
@@ -79,9 +98,32 @@ contract TokenLock is Context, ReentrancyGuard {
 
         for (uint8 i = 0; i < stakedFunds.length; i++) {
             LockedUnit memory elem = stakedFunds[i];
-            if (_isReleasable(elem)) {
-                result.unlocked += elem.amount;
+            if (_isReleasable(elem) && desired > 0) {
+                // Example:
+                // desired: 0.25 < elem.amount: 1 = true
+                if (desired < elem.amount) {
+                    // rest: 0.75
+                    uint256 rest = elem.amount - desired;
+                    // put back the remainder in user balance
+                    elem.amount = rest;
+                    // Add to unlocking result the desired
+                    // + 0.25
+                    result.unlocked += desired;
+                    // The reminder gets in to the result
+                    result.remainingBalance += rest;
+                    // push the pocket in to the reminder balances
+                    // without modifying the timestamp
+                    result.locked = _addUnit(result.locked, elem);
+                    // Set de desired to not substract more balance
+                    desired = 0;
+                } else {
+                    // Substract the current amount to continue the countdown
+                    desired -= elem.amount;
+                    // Add to the locable amount
+                    result.unlocked += elem.amount;
+                }
             } else {
+                // Recollect the renaining balances
                 result.remainingBalance += elem.amount;
                 result.locked = _addUnit(result.locked, elem);
             }

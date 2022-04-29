@@ -70,7 +70,7 @@ async function incDays(days: number) {
 }
 
 describe('TokenLock', () => {
-  it('lock and unlock funds', async () => {
+  it('lock and unlockMax', async () => {
     const {users, TokenLock, TDFToken} = await setup();
 
     const testBalances = async (TK: string, tkU: string, u: string) => {
@@ -89,20 +89,97 @@ describe('TokenLock', () => {
     await testBalances('1', '1', '9999');
 
     // TODO test the response
-    await user.TokenLock.unlock();
+    await user.TokenLock.unlockMax();
     await testBalances('1', '1', '9999');
 
     await incDays(1);
     await user.TokenLock.lock(parseEther('1'));
     await testBalances('2', '2', '9998');
-    await user.TokenLock.unlock();
+    await user.TokenLock.unlockMax();
     await testBalances('1', '1', '9999');
 
     await incDays(1);
-    await user.TokenLock.unlock();
+    await user.TokenLock.unlockMax();
     await testBalances('0', '0', '10000');
 
-    await expect(user.TokenLock.unlock()).to.be.revertedWith('NOT_ENOUGHT_BALANCE');
+    await expect(user.TokenLock.unlockMax()).to.be.revertedWith('NOT_ENOUGHT_BALANCE');
+  });
+  it('lock and unlock', async () => {
+    const {users, TokenLock, TDFToken} = await setup();
+
+    const testBalances = async (TK: string, tkU: string, u: string) => {
+      expect(await TDFToken.balanceOf(TokenLock.address)).to.eq(parseEther(TK));
+      expect(await TokenLock.balanceOf(user.address)).to.eq(parseEther(tkU));
+      expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther(u));
+    };
+
+    const user = users[0];
+
+    expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
+    await testBalances('0', '0', '10000');
+
+    await user.TDFToken.approve(user.TokenLock.address, parseEther('10'));
+
+    ///////////////////////////////////////////////
+    //                DAY 0
+    // ------------------------------------------
+    // Before: NOTHING
+    // During:
+    //     - lock 1 token
+    // After:
+    //     - 1 token unlockable
+    ///////////////////////////////////////////////
+    await user.TokenLock.lock(parseEther('1'));
+    await testBalances('1', '1', '9999');
+
+    await expect(user.TokenLock.unlock(parseEther('0.5'))).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
+    // Does not change the balances, nothing to unlock
+    await testBalances('1', '1', '9999');
+
+    await incDays(1);
+    ///////////////////////////////////////////////
+    //  DAY 1
+    ///////////////////////////////////////////////
+    await user.TokenLock.lock(parseEther('1'));
+    await testBalances('2', '2', '9998');
+
+    expect(await TokenLock.unlockedAmount(user.address)).to.eq(parseEther('1'));
+    // we only have available 1
+    // we are not able to redeem more than 1
+    // So trying to remove more will be reverted
+    await expect(user.TokenLock.unlock(parseEther('1.5'))).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
+    // With the balances unchaded
+    await testBalances('2', '2', '9998');
+    // remove in lower bound of pocket
+    await user.TokenLock.unlock(parseEther('0.5'));
+    await testBalances('1.5', '1.5', '9998.5');
+
+    await incDays(1);
+    ///////////////////////////////////////////////
+    //  DAY 2
+    ///////////////////////////////////////////////
+    // Now we have two buckets
+    // 1) with 0.5
+    // 2) with 1
+    // remove in the upper bound
+    // 0.5 + 0.75 = 1.25
+    // reminder of 0.25
+    await user.TokenLock.unlock(parseEther('1.25'));
+    await testBalances('0.25', '0.25', '9999.75');
+    // Add more balance to stress test
+    await user.TokenLock.lock(parseEther('1.5'));
+    await testBalances('1.75', '1.75', '9998.25');
+    await user.TokenLock.unlockMax();
+    await testBalances('1.5', '1.5', '9998.50');
+    await incDays(1);
+    ///////////////////////////////////////////////
+    //  DAY 3
+    // Unlock all
+    ///////////////////////////////////////////////
+    await user.TokenLock.unlock(parseEther('1.3'));
+    await testBalances('0.2', '0.2', '9999.8');
+    await user.TokenLock.unlockMax();
+    await testBalances('0', '0', '10000');
   });
 
   it('getters', async () => {});
