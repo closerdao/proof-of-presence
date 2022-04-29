@@ -42,7 +42,7 @@ const setup = deployments.createFixture(async (hre) => {
   const token: TDFToken = await ethers.getContract('TDFToken', deployer);
   const contracts = {
     TDFToken: token,
-    TokenLock: <TokenLock>await getMock('TokenLock', deployer, [token.address]),
+    TokenLock: <TokenLock>await getMock('TokenLock', deployer, [token.address, 1]),
   };
 
   const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);
@@ -70,34 +70,38 @@ async function incDays(days: number) {
 }
 
 describe('TokenLock', () => {
-  it('lock and reddem funds', async () => {
+  it('lock and unlock funds', async () => {
     const {users, TokenLock, TDFToken} = await setup();
+
+    const testBalances = async (TK: string, tkU: string, u: string) => {
+      expect(await TDFToken.balanceOf(TokenLock.address)).to.eq(parseEther(TK));
+      expect(await TokenLock.balanceOf(user.address)).to.eq(parseEther(tkU));
+      expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther(u));
+    };
 
     const user = users[0];
 
+    expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
+    await testBalances('0', '0', '10000');
+
     await user.TDFToken.approve(user.TokenLock.address, parseEther('10'));
-    // await expect(user.TDFToken.transfer(users[1].address, parseEther('1'))).to.emit(TDFToken, 'Transfer');
     await user.TokenLock.lock(parseEther('1'));
-    expect(await TDFToken.balanceOf(TokenLock.address)).to.eq(parseEther('1'));
-    expect(await TokenLock.balanceOf(user.address)).to.eq(parseEther('1'));
+    await testBalances('1', '1', '9999');
+
     // TODO test the response
     await user.TokenLock.unlock();
-    // expect(await user.TokenLock.unlock()).to.eq(parseEther('0'));
-    expect(await TDFToken.balanceOf(TokenLock.address)).to.eq(parseEther('1'));
-    expect(await user.TokenLock.balanceOf(user.address)).to.eq(parseEther('1'));
-    // expect(await user.TokenLock.unlock()).to.eq(parseEther('0'));
+    await testBalances('1', '1', '9999');
+
     await incDays(1);
     await user.TokenLock.lock(parseEther('1'));
-    expect(await TDFToken.balanceOf(TokenLock.address)).to.eq(parseEther('2'));
-    expect(await user.TokenLock.balanceOf(user.address)).to.eq(parseEther('2'));
-
+    await testBalances('2', '2', '9998');
     await user.TokenLock.unlock();
-    expect(await TDFToken.balanceOf(TokenLock.address)).to.eq(parseEther('1'));
-    expect(await user.TokenLock.balanceOf(user.address)).to.eq(parseEther('1'));
+    await testBalances('1', '1', '9999');
+
     await incDays(1);
     await user.TokenLock.unlock();
-    expect(await TDFToken.balanceOf(TokenLock.address)).to.eq(parseEther('0'));
-    expect(await user.TokenLock.balanceOf(user.address)).to.eq(parseEther('0'));
+    await testBalances('0', '0', '10000');
+
     await expect(user.TokenLock.unlock()).to.be.revertedWith('NOT_ENOUGHT_BALANCE');
   });
 

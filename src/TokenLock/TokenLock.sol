@@ -17,7 +17,7 @@ contract TokenLock is Context, ReentrancyGuard {
     IERC20 public immutable token;
     mapping(address => uint256) internal _balances;
     mapping(address => LockedUnit[]) internal _staked;
-    uint256 public lockingPeriod = 1 * 86400; // one day for tests
+    uint256 public lockingPeriod;
 
     struct LockedUnit {
         uint256 timestamp;
@@ -30,8 +30,9 @@ contract TokenLock is Context, ReentrancyGuard {
         LockedUnit[] locked;
     }
 
-    constructor(IERC20 _token) {
+    constructor(IERC20 _token, uint256 daysLocked) {
         token = _token;
+        lockingPeriod = daysLocked * 86400; // there are 86400 seconds in a day
     }
 
     function lock(uint256 amount) public {
@@ -44,10 +45,6 @@ contract TokenLock is Context, ReentrancyGuard {
     function unlock() public returns (uint256) {
         require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         UnlockingResult memory result = _calculateRelease(_msgSender());
-        console.log("Unlocked:");
-        console.log(result.unlocked);
-        console.log("remainingBalance:");
-        console.log(result.remainingBalance);
         // Change the state
         if (result.unlocked > 0) {
             // crear previous stake
