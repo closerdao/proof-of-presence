@@ -28,7 +28,7 @@ contract TokenLock is Context, ReentrancyGuard {
         uint256 amount;
     }
 
-    // TODO: rename is a little confusing the naming
+    // TODO: rename. the current namming is confussing
     struct UnlockingResult {
         uint256 unlocked;
         uint256 remainingBalance;
@@ -112,20 +112,20 @@ contract TokenLock is Context, ReentrancyGuard {
                     uint256 rest = elem.amount - desired;
                     // put back the remainder in user balance
                     elem.amount = rest;
-                    // Add to unlocking result the desired
+                    // Add to unlocked result the desired reminder
                     // + 0.25
                     result.unlocked += desired;
-                    // The reminder gets in to the result
+                    // The reminder gets into the result
                     result.remainingBalance += rest;
-                    // push the pocket in to the reminder balances
+                    // push the pocket into the reminder balances
                     // without modifying the timestamp
                     result.locked = _addUnit(result.locked, elem);
-                    // Set de desired to not substract more balance
+                    // Set desired to not substract more balance
                     desired = 0;
                 } else {
                     // Substract the current amount to continue the countdown
                     desired -= elem.amount;
-                    // Add to the locable amount
+                    // Add to the unlockable amount
                     result.unlocked += elem.amount;
                 }
             } else {
@@ -139,7 +139,7 @@ contract TokenLock is Context, ReentrancyGuard {
 
     /**
      * @dev Can not modify (push) elements to memory array. The only way is to create a new
-     * copy the previous elements and add one
+     * one with +1 size,copy the previous elements and add the last one
      */
     function _addUnit(LockedUnit[] memory acc, LockedUnit memory unit) internal pure returns (LockedUnit[] memory) {
         uint256 length = acc.length;
