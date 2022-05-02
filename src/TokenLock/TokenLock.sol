@@ -16,122 +16,121 @@ contract TokenLock is Context, ReentrancyGuard {
 
     IERC20 public immutable token;
     mapping(address => uint256) internal _balances;
-    mapping(address => LockedUnit[]) internal _staked;
+    mapping(address => Deposit[]) internal _deposits;
     uint256 public lockingPeriod;
     // Max number in uint256
     // same result can be achieved with: `uint256 MAX_INT = 2**256 - 1`
     // Pasted the literal here for cheaper deployment
     uint256 private constant MAX_INT = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
 
-    struct LockedUnit {
+    struct Deposit {
         uint256 timestamp;
         uint256 amount;
     }
 
-    // TODO: rename. the current namming is confussing
     struct UnlockingResult {
-        uint256 unlocked;
+        uint256 untiedAmount;
         uint256 remainingBalance;
-        LockedUnit[] locked;
+        Deposit[] remainingDeposits;
     }
 
-    event Locked(address account, uint256 amount);
-    event Unlocked(address account, uint256 amount);
+    event DepositedTokens(address account, uint256 amount);
+    event WithdrawnTokens(address account, uint256 amount);
 
     constructor(IERC20 _token, uint256 daysLocked) {
         token = _token;
         lockingPeriod = daysLocked * 86400; // there are 86400 seconds in a day
     }
 
-    function lock(uint256 amount) public {
-        _staked[_msgSender()].push(LockedUnit(block.timestamp, amount));
+    function deposit(uint256 amount) public {
+        _deposits[_msgSender()].push(Deposit(block.timestamp, amount));
         _balances[_msgSender()] += amount;
         token.safeTransferFrom(_msgSender(), address(this), amount);
-        emit Locked(_msgSender(), amount);
+        emit DepositedTokens(_msgSender(), amount);
     }
 
-    function unlockMax() public returns (uint256) {
+    function withdrawMax() public returns (uint256) {
         require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
-        UnlockingResult memory result = _calculateRelease(_msgSender(), MAX_INT);
+        UnlockingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT);
 
         // Change the state
-        _storeUnlock(_msgSender(), result);
-        return result.unlocked;
+        _withdraw(_msgSender(), result);
+        return result.untiedAmount;
     }
 
-    function unlock(uint256 desired) public returns (uint256) {
-        require(_balances[_msgSender()] >= desired, "NOT_ENOUGHT_BALANCE");
-        // `desired` is passed as value and not by reference because is a basic type
+    function withdraw(uint256 requested) public returns (uint256) {
+        require(_balances[_msgSender()] >= requested, "NOT_ENOUGHT_BALANCE");
+        // `requested` is passed as value and not by reference because is a basic type
         // https://docs.soliditylang.org/en/v0.8.9/types.html#value-types
-        // It will not be modified by `_calculateRelease()`
-        UnlockingResult memory result = _calculateRelease(_msgSender(), desired);
-        require(result.unlocked == desired, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
+        // It will not be modified by `_calculateWithdraw()`
+        UnlockingResult memory result = _calculateWithdraw(_msgSender(), requested);
+        require(result.untiedAmount == requested, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
         // Change the state
-        _storeUnlock(_msgSender(), result);
-        return result.unlocked;
+        _withdraw(_msgSender(), result);
+        return result.untiedAmount;
     }
 
-    function _storeUnlock(address account, UnlockingResult memory result) internal {
-        if (result.unlocked > 0) {
+    function _withdraw(address account, UnlockingResult memory result) internal {
+        if (result.untiedAmount > 0) {
             // crear previous stake
-            delete _staked[account];
-            for (uint256 i = 0; i < result.locked.length; i++) {
+            delete _deposits[account];
+            for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
                 // add the reminder stakes
-                _staked[account].push(result.locked[i]);
+                _deposits[account].push(result.remainingDeposits[i]);
             }
 
             _balances[account] = result.remainingBalance;
-            token.safeTransfer(account, result.unlocked);
-            emit Unlocked(account, result.unlocked);
+            token.safeTransfer(account, result.untiedAmount);
+            emit WithdrawnTokens(account, result.untiedAmount);
         }
     }
 
     function unlockedAmount(address account) public view returns (uint256) {
-        UnlockingResult memory result = _calculateRelease(account, MAX_INT);
-        return result.unlocked;
+        UnlockingResult memory result = _calculateWithdraw(account, MAX_INT);
+        return result.untiedAmount;
     }
 
     function balanceOf(address account) public view returns (uint256) {
         return _balances[account];
     }
 
-    function _calculateRelease(address account, uint256 desired) internal view returns (UnlockingResult memory) {
-        LockedUnit[] memory stakedFunds = _staked[account];
-        UnlockingResult memory result = UnlockingResult(0, 0, new LockedUnit[](0));
+    function _calculateWithdraw(address account, uint256 requested) internal view returns (UnlockingResult memory) {
+        Deposit[] memory stakedFunds = _deposits[account];
+        UnlockingResult memory result = UnlockingResult(0, 0, new Deposit[](0));
         if (stakedFunds.length == 0) {
             return result;
         }
 
         for (uint8 i = 0; i < stakedFunds.length; i++) {
-            LockedUnit memory elem = stakedFunds[i];
-            if (_isReleasable(elem) && desired > 0) {
+            Deposit memory elem = stakedFunds[i];
+            if (_isReleasable(elem) && requested > 0) {
                 // Example:
-                // desired: 0.25 < elem.amount: 1 = true
-                if (desired < elem.amount) {
+                // requested: 0.25 < elem.amount: 1 = true
+                if (requested < elem.amount) {
                     // rest: 0.75
-                    uint256 rest = elem.amount - desired;
+                    uint256 rest = elem.amount - requested;
                     // put back the remainder in user balance
                     elem.amount = rest;
-                    // Add to unlocked result the desired reminder
+                    // Add to unlocked result the requested reminder
                     // + 0.25
-                    result.unlocked += desired;
+                    result.untiedAmount += requested;
                     // The reminder gets into the result
                     result.remainingBalance += rest;
                     // push the pocket into the reminder balances
                     // without modifying the timestamp
-                    result.locked = _addUnit(result.locked, elem);
-                    // Set desired to not substract more balance
-                    desired = 0;
+                    result.remainingDeposits = _pushDeposit(result.remainingDeposits, elem);
+                    // Set requested to not substract more balance
+                    requested = 0;
                 } else {
                     // Substract the current amount to continue the countdown
-                    desired -= elem.amount;
+                    requested -= elem.amount;
                     // Add to the unlockable amount
-                    result.unlocked += elem.amount;
+                    result.untiedAmount += elem.amount;
                 }
             } else {
                 // Recollect the renaining balances
                 result.remainingBalance += elem.amount;
-                result.locked = _addUnit(result.locked, elem);
+                result.remainingDeposits = _pushDeposit(result.remainingDeposits, elem);
             }
         }
         return result;
@@ -141,10 +140,10 @@ contract TokenLock is Context, ReentrancyGuard {
      * @dev Can not modify (push) elements to memory array. The only way is to create a new
      * one with +1 size,copy the previous elements and add the last one
      */
-    function _addUnit(LockedUnit[] memory acc, LockedUnit memory unit) internal pure returns (LockedUnit[] memory) {
+    function _pushDeposit(Deposit[] memory acc, Deposit memory unit) internal pure returns (Deposit[] memory) {
         uint256 length = acc.length;
         // creates new acc with one more slot
-        LockedUnit[] memory newAcc = new LockedUnit[](length + 1);
+        Deposit[] memory newAcc = new Deposit[](length + 1);
         // copy previous array
         for (uint8 i = 0; i < length; i++) {
             newAcc[i] = acc[i];
@@ -154,7 +153,7 @@ contract TokenLock is Context, ReentrancyGuard {
         return newAcc;
     }
 
-    function _isReleasable(LockedUnit memory unit) internal view returns (bool) {
+    function _isReleasable(Deposit memory unit) internal view returns (bool) {
         return (unit.timestamp + lockingPeriod) <= block.timestamp;
     }
 }
