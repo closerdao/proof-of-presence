@@ -28,7 +28,7 @@ contract TokenLock is Context, ReentrancyGuard {
         uint256 amount;
     }
 
-    struct UnlockingResult {
+    struct WithdrawingResult {
         uint256 untiedAmount;
         uint256 remainingBalance;
         Deposit[] remainingDeposits;
@@ -51,7 +51,7 @@ contract TokenLock is Context, ReentrancyGuard {
 
     function withdrawMax() public returns (uint256) {
         require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
-        UnlockingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT);
+        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT);
 
         // Change the state
         _withdraw(_msgSender(), result);
@@ -63,14 +63,14 @@ contract TokenLock is Context, ReentrancyGuard {
         // `requested` is passed as value and not by reference because is a basic type
         // https://docs.soliditylang.org/en/v0.8.9/types.html#value-types
         // It will not be modified by `_calculateWithdraw()`
-        UnlockingResult memory result = _calculateWithdraw(_msgSender(), requested);
+        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), requested);
         require(result.untiedAmount == requested, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
         // Change the state
         _withdraw(_msgSender(), result);
         return result.untiedAmount;
     }
 
-    function _withdraw(address account, UnlockingResult memory result) internal {
+    function _withdraw(address account, WithdrawingResult memory result) internal {
         if (result.untiedAmount > 0) {
             // crear previous stake
             delete _deposits[account];
@@ -86,7 +86,7 @@ contract TokenLock is Context, ReentrancyGuard {
     }
 
     function unlockedAmount(address account) public view returns (uint256) {
-        UnlockingResult memory result = _calculateWithdraw(account, MAX_INT);
+        WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT);
         return result.untiedAmount;
     }
 
@@ -94,9 +94,9 @@ contract TokenLock is Context, ReentrancyGuard {
         return _balances[account];
     }
 
-    function _calculateWithdraw(address account, uint256 requested) internal view returns (UnlockingResult memory) {
+    function _calculateWithdraw(address account, uint256 requested) internal view returns (WithdrawingResult memory) {
         Deposit[] memory stakedFunds = _deposits[account];
-        UnlockingResult memory result = UnlockingResult(0, 0, new Deposit[](0));
+        WithdrawingResult memory result = WithdrawingResult(0, 0, new Deposit[](0));
         if (stakedFunds.length == 0) {
             return result;
         }
