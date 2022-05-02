@@ -164,6 +164,76 @@ describe('TokenLock', () => {
     await testBalances('0', '0', '10000');
   });
 
+  it('restakeMax', async () => {
+    const {users, TokenLock, TDFToken} = await setup();
+    const user = users[0];
+
+    const testBalances = async (TK: string, tkU: string, u: string) => {
+      expect(await TDFToken.balanceOf(TokenLock.address)).to.eq(parseEther(TK));
+      expect(await TokenLock.balanceOf(user.address)).to.eq(parseEther(tkU));
+      expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther(u));
+    };
+
+    const testStake = async (locked: string, unlocked: string) => {
+      expect(await TokenLock.lockedAmount(user.address)).to.eq(parseEther(locked));
+      expect(await TokenLock.unlockedAmount(user.address)).to.eq(parseEther(unlocked));
+    };
+
+    expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
+    await testBalances('0', '0', '10000');
+
+    await user.TDFToken.approve(user.TokenLock.address, parseEther('10'));
+    await user.TokenLock.deposit(parseEther('1'));
+    await testBalances('1', '1', '9999');
+    await testStake('1', '0');
+    await incDays(1);
+    await user.TokenLock.deposit(parseEther('0.5'));
+    await testBalances('1.5', '1.5', '9998.5');
+    await testStake('0.5', '1');
+    await user.TokenLock.restakeMax();
+    await testBalances('1.5', '1.5', '9998.5');
+    await testStake('1.5', '0');
+    await incDays(1);
+    await user.TokenLock.withdrawMax();
+    await testBalances('0', '0', '10000');
+    await testStake('0', '0');
+  });
+  it('restake(uint256 amount)', async () => {
+    const {users, TokenLock, TDFToken} = await setup();
+    const user = users[0];
+
+    const testBalances = async (TK: string, tkU: string, u: string) => {
+      expect(await TDFToken.balanceOf(TokenLock.address)).to.eq(parseEther(TK));
+      expect(await TokenLock.balanceOf(user.address)).to.eq(parseEther(tkU));
+      expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther(u));
+    };
+
+    const testStake = async (locked: string, unlocked: string) => {
+      expect(await TokenLock.lockedAmount(user.address)).to.eq(parseEther(locked));
+      expect(await TokenLock.unlockedAmount(user.address)).to.eq(parseEther(unlocked));
+    };
+
+    expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
+    await testBalances('0', '0', '10000');
+
+    await user.TDFToken.approve(user.TokenLock.address, parseEther('10'));
+    await user.TokenLock.deposit(parseEther('1'));
+    await testBalances('1', '1', '9999');
+    await testStake('1', '0');
+    await incDays(1);
+    await user.TokenLock.deposit(parseEther('0.5'));
+    await testBalances('1.5', '1.5', '9998.5');
+    await testStake('0.5', '1');
+    await user.TokenLock.restake(parseEther('1.5'));
+    // CONTINUE HERE
+    await testBalances('1.5', '1.5', '9998.5');
+    await testStake('1.5', '0');
+    await incDays(1);
+    await user.TokenLock.withdrawMax();
+    await testBalances('0', '0', '10000');
+    await testStake('0', '0');
+  });
+
   it('getters', async () => {});
 
   it('ownable', async () => {});

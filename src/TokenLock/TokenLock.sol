@@ -73,16 +73,27 @@ contract TokenLock is Context, ReentrancyGuard {
     function restakeMax() public {
         require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT);
-        result.remainingDeposits = _pushDeposit(
-            result.remainingDeposits,
-            Deposit(block.timestamp, result.untiedAmount)
-        );
+        _restake(_msgSender(), result);
+    }
+
+    function restake(uint256 requestedAmount) public {
+        require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), requestedAmount);
+        require(result.untiedAmount == requestedAmount, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
+        _restake(_msgSender(), result);
+    }
+
+    function _restake(address account, WithdrawingResult memory result) internal {
         // crear previous deposits
-        _deposits[_msgSender()] = result.remainingDeposits;
-        // for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
-        //     // add the reminder deposits
-        //     _deposits[_msgSender()].push(result.remainingDeposits[i]);
-        // }
+        delete _deposits[account];
+        for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
+            // copy the deposits to storage
+            _deposits[account].push(result.remainingDeposits[i]);
+        }
+        // ReStake the withdrawable amount
+        _deposits[account].push(Deposit(block.timestamp, result.untiedAmount));
+        // EMIT ReStaked
+        // return amount
     }
 
     function _withdraw(address account, WithdrawingResult memory result) internal {
@@ -103,6 +114,11 @@ contract TokenLock is Context, ReentrancyGuard {
     function unlockedAmount(address account) public view returns (uint256) {
         WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT);
         return result.untiedAmount;
+    }
+
+    function lockedAmount(address account) public view returns (uint256) {
+        WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT);
+        return _balances[account] - result.untiedAmount;
     }
 
     function balanceOf(address account) public view returns (uint256) {
