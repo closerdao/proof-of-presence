@@ -70,12 +70,27 @@ contract TokenLock is Context, ReentrancyGuard {
         return result.untiedAmount;
     }
 
+    function restakeMax() public {
+        require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT);
+        result.remainingDeposits = _pushDeposit(
+            result.remainingDeposits,
+            Deposit(block.timestamp, result.untiedAmount)
+        );
+        // crear previous deposits
+        _deposits[_msgSender()] = result.remainingDeposits;
+        // for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
+        //     // add the reminder deposits
+        //     _deposits[_msgSender()].push(result.remainingDeposits[i]);
+        // }
+    }
+
     function _withdraw(address account, WithdrawingResult memory result) internal {
         if (result.untiedAmount > 0) {
-            // crear previous stake
+            // crear previous deposits
             delete _deposits[account];
             for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
-                // add the reminder stakes
+                // add the reminder deposits
                 _deposits[account].push(result.remainingDeposits[i]);
             }
 
