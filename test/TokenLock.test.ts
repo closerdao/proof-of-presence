@@ -67,7 +67,7 @@ describe('TokenLock', () => {
     await testBalances('0', '0', '10000');
 
     await user.TDFToken.approve(user.TokenLock.address, parseEther('10'));
-    await expect(await user.TokenLock.deposit(parseEther('1')))
+    await expect(user.TokenLock.deposit(parseEther('1')))
       .to.emit(TokenLock, 'DepositedTokens')
       .withArgs(user.address, parseEther('1'));
     await testBalances('1', '1', '9999');
@@ -77,7 +77,9 @@ describe('TokenLock', () => {
     await testBalances('1', '1', '9999');
 
     await incDays(1);
-    await user.TokenLock.deposit(parseEther('1'));
+    await expect(user.TokenLock.deposit(parseEther('1')))
+      .to.emit(TokenLock, 'DepositedTokens')
+      .withArgs(user.address, parseEther('1'));
     await testBalances('2', '2', '9998');
     await user.TokenLock.withdrawMax();
     await testBalances('1', '1', '9999');
@@ -113,7 +115,10 @@ describe('TokenLock', () => {
     // After:
     //     - 1 token unlockable
     ///////////////////////////////////////////////
-    await user.TokenLock.deposit(parseEther('1'));
+    await expect(user.TokenLock.deposit(parseEther('1')))
+      .to.emit(TokenLock, 'DepositedTokens')
+      .withArgs(user.address, parseEther('1'));
+
     await testBalances('1', '1', '9999');
 
     await expect(user.TokenLock.withdraw(parseEther('0.5'))).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
@@ -124,7 +129,10 @@ describe('TokenLock', () => {
     ///////////////////////////////////////////////
     //  DAY 1
     ///////////////////////////////////////////////
-    await user.TokenLock.deposit(parseEther('1'));
+    await expect(user.TokenLock.deposit(parseEther('1')))
+      .to.emit(TokenLock, 'DepositedTokens')
+      .withArgs(user.address, parseEther('1'));
+
     await testBalances('2', '2', '9998');
 
     expect(await TokenLock.unlockedAmount(user.address)).to.eq(parseEther('1'));
@@ -151,7 +159,10 @@ describe('TokenLock', () => {
     await user.TokenLock.withdraw(parseEther('1.25'));
     await testBalances('0.25', '0.25', '9999.75');
     // Add more balance to stress test
-    await user.TokenLock.deposit(parseEther('1.5'));
+    await expect(user.TokenLock.deposit(parseEther('1.5')))
+      .to.emit(TokenLock, 'DepositedTokens')
+      .withArgs(user.address, parseEther('1.5'));
+
     await testBalances('1.75', '1.75', '9998.25');
     await user.TokenLock.withdrawMax();
     await testBalances('1.5', '1.5', '9998.50');
@@ -185,11 +196,17 @@ describe('TokenLock', () => {
     await testBalances('0', '0', '10000');
 
     await user.TDFToken.approve(user.TokenLock.address, parseEther('10'));
-    await user.TokenLock.deposit(parseEther('1'));
+    await expect(user.TokenLock.deposit(parseEther('1')))
+      .to.emit(TokenLock, 'DepositedTokens')
+      .withArgs(user.address, parseEther('1'));
+
     await testBalances('1', '1', '9999');
     await testStake('1', '0');
     await incDays(1);
-    await user.TokenLock.deposit(parseEther('0.5'));
+    await expect(user.TokenLock.deposit(parseEther('0.5')))
+      .to.emit(TokenLock, 'DepositedTokens')
+      .withArgs(user.address, parseEther('0.5'));
+
     await testBalances('1.5', '1.5', '9998.5');
     await testStake('0.5', '1');
     await user.TokenLock.restakeMax();
@@ -222,7 +239,10 @@ describe('TokenLock', () => {
     ///////////////////////////////////////////////
     //                DAY 0
     ///////////////////////////////////////////////
-    await user.TokenLock.deposit(parseEther('1'));
+    await expect(user.TokenLock.deposit(parseEther('1')))
+      .to.emit(TokenLock, 'DepositedTokens')
+      .withArgs(user.address, parseEther('1'));
+
     await testBalances('1', '1', '9999');
     await testStake('1', '0');
     // Restake max without any untied amount
@@ -235,7 +255,10 @@ describe('TokenLock', () => {
     ///////////////////////////////////////////////
     //                DAY 1
     ///////////////////////////////////////////////
-    await user.TokenLock.deposit(parseEther('0.5'));
+    await expect(user.TokenLock.deposit(parseEther('0.5')))
+      .to.emit(TokenLock, 'DepositedTokens')
+      .withArgs(user.address, parseEther('0.5'));
+
     await testBalances('1.5', '1.5', '9998.5');
     await testStake('0.5', '1');
     // Trying to restake more than unlocked will revert
