@@ -67,7 +67,9 @@ describe('TokenLock', () => {
     await testBalances('0', '0', '10000');
 
     await user.TDFToken.approve(user.TokenLock.address, parseEther('10'));
-    await user.TokenLock.deposit(parseEther('1'));
+    await expect(await user.TokenLock.deposit(parseEther('1')))
+      .to.emit(TokenLock, 'DepositedTokens')
+      .withArgs(user.address, parseEther('1'));
     await testBalances('1', '1', '9999');
 
     // TODO test the response
