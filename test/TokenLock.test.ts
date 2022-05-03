@@ -217,17 +217,48 @@ describe('TokenLock', () => {
     await testBalances('0', '0', '10000');
 
     await user.TDFToken.approve(user.TokenLock.address, parseEther('10'));
+    ///////////////////////////////////////////////
+    //                DAY 0
+    ///////////////////////////////////////////////
     await user.TokenLock.deposit(parseEther('1'));
     await testBalances('1', '1', '9999');
     await testStake('1', '0');
+    // Restake max without any untied amount
+    await user.TokenLock.restakeMax();
+    // Results in nothing changes
+    await testBalances('1', '1', '9999');
+    await testStake('1', '0');
+
     await incDays(1);
+    ///////////////////////////////////////////////
+    //                DAY 1
+    ///////////////////////////////////////////////
     await user.TokenLock.deposit(parseEther('0.5'));
     await testBalances('1.5', '1.5', '9998.5');
     await testStake('0.5', '1');
-    await user.TokenLock.restake(parseEther('1.5'));
-    // CONTINUE HERE
+    // Trying to restake more than unlocked will revert
+    await expect(user.TokenLock.restake(parseEther('1.5'))).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
     await testBalances('1.5', '1.5', '9998.5');
-    await testStake('1.5', '0');
+    await testStake('0.5', '1');
+    await incDays(1);
+    ///////////////////////////////////////////////
+    //                DAY 2
+    ///////////////////////////////////////////////
+    await testBalances('1.5', '1.5', '9998.5');
+    await testStake('0', '1.5');
+
+    await user.TokenLock.restake(parseEther('0.5'));
+    await testBalances('1.5', '1.5', '9998.5');
+    await testStake('0.5', '1');
+    await user.TokenLock.withdraw(parseEther('0.25'));
+    await testBalances('1.25', '1.25', '9998.75');
+    await testStake('0.5', '0.75');
+    await user.TokenLock.withdrawMax();
+    await testBalances('0.5', '0.5', '9999.5');
+    await testStake('0.5', '0');
+    ///////////////////////////////////////////////
+    //                DAY 3
+    ///////////////////////////////////////////////
     await incDays(1);
     await user.TokenLock.withdrawMax();
     await testBalances('0', '0', '10000');
