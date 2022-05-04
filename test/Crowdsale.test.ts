@@ -70,13 +70,13 @@ describe('Crowdsale', () => {
   it('[buy] - price 350 - with two decimals', async () => {
     // SETUP
     const config = await setup();
-    const {users, TDFTokenBeneficiary} = config;
+    const {users, TDFTokenBeneficiary, FakeEURToken, TDFToken} = config;
     const {saleUsers, Sale} = await deploySale(config, '350', '1');
 
     // Balances
-    const tdfBal = await TDFTokenBeneficiary.TDFToken.balanceOf(TDFTokenBeneficiary.address);
-    const eurBal = await users[0].FakeEURToken.balanceOf(users[0].address);
-    const rem = await saleUsers[0].Sale.remainingTokens();
+    const tdfBal = await TDFToken.balanceOf(TDFTokenBeneficiary.address);
+    const eurBal = await FakeEURToken.balanceOf(users[0].address);
+    const rem = await Sale.remainingTokens();
     expect(rem).to.gt(parseEther('1'));
 
     // Approve
@@ -88,26 +88,25 @@ describe('Crowdsale', () => {
       .withArgs(saleUsers[0].address, saleUsers[0].address, parseEther('1.55'), parseEther('542.5'));
 
     // Check results
-    expect(await users[0].TDFToken.balanceOf(users[0].address)).to.eq(parseEther('1.55'));
-    expect(await TDFTokenBeneficiary.FakeEURToken.balanceOf(TDFTokenBeneficiary.address)).to.eq(parseEther('542.5'));
+    expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('1.55'));
+    expect(await FakeEURToken.balanceOf(TDFTokenBeneficiary.address)).to.eq(parseEther('542.5'));
     // wei raised
-    expect(await saleUsers[0].Sale.weiRaised()).to.eq(parseEther('542.5'));
+    expect(await Sale.weiRaised()).to.eq(parseEther('542.5'));
 
-    expect(await TDFTokenBeneficiary.TDFToken.balanceOf(TDFTokenBeneficiary.address)).to.lt(tdfBal);
-    expect(await users[0].FakeEURToken.balanceOf(users[0].address)).to.lt(eurBal);
+    expect(await TDFToken.balanceOf(TDFTokenBeneficiary.address)).to.lt(tdfBal);
+    expect(await FakeEURToken.balanceOf(users[0].address)).to.lt(eurBal);
   });
 
   it('getters', async () => {
     // SETUP
     const config = await setup();
     const {TDFTokenBeneficiary, TDFToken, FakeEURToken} = config;
-    const {saleUsers} = await deploySale(config, '350', '1');
-    const user = saleUsers[0];
+    const {Sale} = await deploySale(config, '350', '1');
 
-    expect(await user.Sale.token()).to.eq(TDFToken.address);
-    expect(await user.Sale.quote()).to.eq(FakeEURToken.address);
-    expect(await user.Sale.wallet()).to.eq(TDFTokenBeneficiary.address);
-    expect(await user.Sale.price()).to.eq(parseEther('350'));
+    expect(await Sale.token()).to.eq(TDFToken.address);
+    expect(await Sale.quote()).to.eq(FakeEURToken.address);
+    expect(await Sale.wallet()).to.eq(TDFTokenBeneficiary.address);
+    expect(await Sale.price()).to.eq(parseEther('350'));
   });
 
   it('ownable', async () => {
@@ -126,19 +125,19 @@ describe('Crowdsale', () => {
     await expect(user.Sale.setPrice(parseEther('340'))).to.be.revertedWith('Ownable: caller is not the owner');
 
     // Pause
-    expect(await user.Sale.paused()).to.be.false;
+    expect(await Sale.paused()).to.be.false;
     await expect(user.Sale.pause()).to.be.revertedWith('Ownable: caller is not the owner');
-    expect(await user.Sale.paused()).to.be.false;
+    expect(await Sale.paused()).to.be.false;
     await expect(deployer.Sale.pause()).to.emit(Sale, 'Paused');
-    expect(await user.Sale.paused()).to.be.true;
+    expect(await Sale.paused()).to.be.true;
     await expect(user.Sale.unpause()).to.be.revertedWith('Ownable: caller is not the owner');
 
     // TransferOwnership
-    expect(await deployer.Sale.owner()).to.eq(deployer.address);
+    expect(await Sale.owner()).to.eq(deployer.address);
     await expect(deployer.Sale.transferOwnership(user.address))
       .to.emit(Sale, 'OwnershipTransferred')
       .withArgs(deployer.address, user.address);
-    expect(await user.Sale.owner()).to.eq(user.address);
+    expect(await Sale.owner()).to.eq(user.address);
     await expect(user.Sale.unpause()).to.emit(Sale, 'Unpaused');
   });
 
