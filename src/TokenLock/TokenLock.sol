@@ -98,7 +98,7 @@ contract TokenLock is Context, ReentrancyGuard {
 
     function _withdraw(address account, WithdrawingResult memory result) internal {
         if (result.untiedAmount > 0) {
-            // crear previous deposits
+            // clear previous deposits
             delete _deposits[account];
             for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
                 // add the reminder deposits
@@ -136,21 +136,21 @@ contract TokenLock is Context, ReentrancyGuard {
             Deposit memory elem = stakedFunds[i];
             if (_isReleasable(elem) && requested > 0) {
                 // Example:
-                // requested: 0.25 < elem.amount: 1 = true
+                // requested: 25 < elem.amount: 100 = true
                 if (requested < elem.amount) {
-                    // rest: 0.75
+                    // rest: 75
                     uint256 rest = elem.amount - requested;
                     // put back the remainder in user balance
                     elem.amount = rest;
                     // Add to unlocked result the requested reminder
-                    // + 0.25
+                    // + 25
                     result.untiedAmount += requested;
                     // The reminder gets into the result
                     result.remainingBalance += rest;
                     // push the pocket into the reminder balances
                     // without modifying the timestamp
                     result.remainingDeposits = _pushDeposit(result.remainingDeposits, elem);
-                    // Set requested to not substract more balance
+                    // Set requested to 0 to stop substracting more balance
                     requested = 0;
                 } else {
                     // Substract the current amount to continue the countdown
@@ -159,7 +159,7 @@ contract TokenLock is Context, ReentrancyGuard {
                     result.untiedAmount += elem.amount;
                 }
             } else {
-                // Recollect the renaining balances
+                // Recollect the remaining balances
                 result.remainingBalance += elem.amount;
                 result.remainingDeposits = _pushDeposit(result.remainingDeposits, elem);
             }
@@ -179,7 +179,7 @@ contract TokenLock is Context, ReentrancyGuard {
         for (uint8 i = 0; i < length; i++) {
             newAcc[i] = acc[i];
         }
-        // adds the new element
+        // push the new element
         newAcc[length] = unit;
         return newAcc;
     }
