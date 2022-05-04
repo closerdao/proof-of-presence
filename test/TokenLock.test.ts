@@ -5,8 +5,6 @@ import {setupUser, setupUsers} from './utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
 
-const BN = ethers.BigNumber;
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
   await deployments.deploy(name, {from: deployer, args: args});
@@ -70,10 +68,11 @@ describe('TokenLock', () => {
     await expect(user.TokenLock.deposit(parseEther('1')))
       .to.emit(TokenLock, 'DepositedTokens')
       .withArgs(user.address, parseEther('1'));
+
     await testBalances('1', '1', '9999');
 
     // TODO test the response
-    await user.TokenLock.withdrawMax();
+    await expect(user.TokenLock.withdrawMax()).to.not.emit(TokenLock, 'WithdrawnTokens');
     await testBalances('1', '1', '9999');
 
     await incDays(1);
@@ -81,11 +80,15 @@ describe('TokenLock', () => {
       .to.emit(TokenLock, 'DepositedTokens')
       .withArgs(user.address, parseEther('1'));
     await testBalances('2', '2', '9998');
-    await user.TokenLock.withdrawMax();
+    await expect(user.TokenLock.withdrawMax())
+      .to.emit(TokenLock, 'WithdrawnTokens')
+      .withArgs(user.address, parseEther('1'));
     await testBalances('1', '1', '9999');
 
     await incDays(1);
-    await user.TokenLock.withdrawMax();
+    await expect(user.TokenLock.withdrawMax())
+      .to.emit(TokenLock, 'WithdrawnTokens')
+      .withArgs(user.address, parseEther('1'));
     await testBalances('0', '0', '10000');
 
     await expect(user.TokenLock.withdrawMax()).to.be.revertedWith('NOT_ENOUGHT_BALANCE');
@@ -125,10 +128,10 @@ describe('TokenLock', () => {
     // Does not change the balances, nothing to unlock
     await testBalances('1', '1', '9999');
 
-    await incDays(1);
     ///////////////////////////////////////////////
     //  DAY 1
     ///////////////////////////////////////////////
+    await incDays(1);
     await expect(user.TokenLock.deposit(parseEther('1')))
       .to.emit(TokenLock, 'DepositedTokens')
       .withArgs(user.address, parseEther('1'));
@@ -143,19 +146,22 @@ describe('TokenLock', () => {
     // With the balances unchaded
     await testBalances('2', '2', '9998');
     // remove in lower bound of pocket
-    await user.TokenLock.withdraw(parseEther('0.5'));
+    await expect(user.TokenLock.withdraw(parseEther('0.5')))
+      .to.emit(TokenLock, 'WithdrawnTokens')
+      .withArgs(user.address, parseEther('0.5'));
     await testBalances('1.5', '1.5', '9998.5');
 
-    await incDays(1);
     ///////////////////////////////////////////////
     //  DAY 2
-    ///////////////////////////////////////////////
+    // --------------------------------------------
     // Now we have two buckets
     // 1) with 0.5
     // 2) with 1
     // remove in the upper bound
     // 0.5 + 0.75 = 1.25
     // reminder of 0.25
+    ///////////////////////////////////////////////
+    await incDays(1);
     await user.TokenLock.withdraw(parseEther('1.25'));
     await testBalances('0.25', '0.25', '9999.75');
     // Add more balance to stress test
