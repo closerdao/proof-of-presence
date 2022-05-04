@@ -7,7 +7,7 @@ import '@typechain/hardhat';
 import 'solidity-coverage';
 import 'hardhat-deploy-tenderly';
 import {task} from 'hardhat/config';
-import {node_url, accounts, addForkConfiguration} from './utils/network';
+import {addForkConfiguration} from './utils/network';
 
 // const mnemonicPath = "m/44'/52752'/0'/0"; // derivation path used by Celo
 
@@ -40,6 +40,18 @@ const namedAccounts = {
   TDFDevMultisig: {
     default: 0,
     // alfajores: '0xDa037704F51AA75f4E3893957dB0D0B996331c0e',
+  },
+  julienFirst: {
+    default: 1,
+    alfajores: '0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716',
+  },
+  JulienSecond: {
+    default: 2,
+    alfajores: '0x346314781c4D1483bE27fAEA9d698074f7cBa1Be',
+  },
+  sam: {
+    default: 3,
+    alfajores: '0x630A5342b2cf4ffED9a366642482C7517b6379F1',
   },
 };
 
