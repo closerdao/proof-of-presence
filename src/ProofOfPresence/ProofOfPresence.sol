@@ -39,22 +39,22 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     }
 
     // TODO: optimize array iteration now is 3*n complexity: horrible performance
-    function cancel(uint256[] memory _dates) public {
-        for (uint256 i = 0; i < _dates.length; i++) {
-            require(_dates[i] > block.timestamp, "Can not cancel past booking");
+    function cancel(uint256[] memory _cancelDates) public {
+        for (uint256 i = 0; i < _cancelDates.length; i++) {
+            require(_cancelDates[i] > block.timestamp, "Can not cancel past booking");
             // check booking existance
-            require(_bookings[_msgSender()][_dates[i]].cost != uint256(0), "Booking does not exists");
+            require(_bookings[_msgSender()][_cancelDates[i]].cost != uint256(0), "Booking does not exists");
             // TODO: validate booking does not exists yet
-            delete _bookings[_msgSender()][_dates[i]];
+            delete _bookings[_msgSender()][_cancelDates[i]];
         }
         uint256[] memory _copyDates = dates[_msgSender()];
         delete dates[_msgSender()];
         for (uint256 i; i < _copyDates.length; i++) {
             bool keep = true;
-            for (uint256 o; o < _dates.length; o++) {
+            for (uint256 o; o < _cancelDates.length; o++) {
                 // TODO: use POP to not reiterate over the whole array
                 // uint256 localDate = _copyDates.pop();
-                if (_copyDates[i] == _dates[o]) {
+                if (_copyDates[i] == _cancelDates[o]) {
                     keep = false;
                     break;
                 }
