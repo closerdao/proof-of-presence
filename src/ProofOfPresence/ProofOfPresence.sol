@@ -40,39 +40,29 @@ contract ProofOfPresence is Context, ReentrancyGuard {
 
     // TODO: optimize array iteration now is 3*n complexity: horrible performance
     function cancel(uint256[] memory _cancelDates) public {
+        for (uint256 i = 0; i < _cancelDates.length; i++) {
+            require(_cancelDates[i] > block.timestamp, "Can not cancel past booking");
+            // check booking existance
+            require(_bookings[_msgSender()][_cancelDates[i]].cost != uint256(0), "Booking does not exists");
+            delete _bookings[_msgSender()][_cancelDates[i]];
+        }
         uint256[] memory _copyDates = dates[_msgSender()];
-
         delete dates[_msgSender()];
 
         for (uint256 i; i < _copyDates.length; i++) {
             bool keep = true;
-            for (uint256 o = 0; o < _cancelDates.length; o++) {
-                require(_cancelDates[o] > block.timestamp, "Can not cancel past booking");
-                // check booking existance
-                require(_bookings[_msgSender()][_cancelDates[o]].cost != uint256(0), "Booking does not exists");
-                // TODO: validate booking does not exists yet
-                delete _bookings[_msgSender()][_cancelDates[o]];
-                if (_copyDates[i] == _cancelDates[o]) {
-                    keep = false;
-                    break;
+            if (_copyDates[i] > block.timestamp) {
+                for (uint256 o; o < _cancelDates.length; o++) {
+                    // TODO: use POP to not reiterate over the whole array
+                    // uint256 localDate = _copyDates.pop();
+                    if (_copyDates[i] == _cancelDates[o]) {
+                        keep = false;
+                        break;
+                    }
                 }
             }
             if (keep) dates[_msgSender()].push(_copyDates[i]);
         }
-
-        // for (uint256 i; i < _copyDates.length; i++) {
-        //     bool keep = true;
-        //     for (uint256 o; o < _cancelDates.length; o++) {
-        //         // TODO: use POP to not reiterate over the whole array
-        //         // uint256 localDate = _copyDates.pop();
-        //         if (_copyDates[i] == _cancelDates[o]) {
-        //             keep = false;
-        //             break;
-        //         }
-        //     }
-        //     if (keep) dates[_msgSender()].push(_copyDates[i]);
-        // }
-
         token.safeTransfer(_msgSender(), (_copyDates.length - dates[_msgSender()].length) * 10**18);
     }
 
