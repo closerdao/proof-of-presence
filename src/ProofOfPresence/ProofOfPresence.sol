@@ -62,10 +62,15 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             }
             if (keep) dates[_msgSender()].push(_copyDates[i]);
         }
+        token.safeTransfer(_msgSender(), (_copyDates.length - dates[_msgSender()].length) * 10**18);
     }
 
     function balanceOf(address account) public view returns (uint256) {
         // TODO: really simplistic balance
         return dates[account].length * 10**18;
+    }
+
+    function getDates(address account) public view returns (uint256[] memory) {
+        return dates[account];
     }
 }

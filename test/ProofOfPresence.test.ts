@@ -85,6 +85,7 @@ describe('ProofOfPresence', () => {
     await testBalances('5', '5', '9995');
 
     await user.ProofOfPresence.cancel(dates);
+    console.log(await ProofOfPresence.getDates(user.address));
     await testBalances('0', '0', '10000');
   });
 
