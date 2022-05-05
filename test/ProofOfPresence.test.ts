@@ -83,6 +83,11 @@ describe('ProofOfPresence', () => {
     const dates = buildDates(init, 5);
     await user.ProofOfPresence.book(dates);
     await testBalances('5', '5', '9995');
+    // await Promise.all(
+    //   dates.map(async (e) => {
+    //     return expect(await ProofOfPresence.getBooking(user, e)).to.eq([e, parseEther('2')]);
+    //   })
+    // );
 
     await user.ProofOfPresence.cancel(dates);
     expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
