@@ -45,7 +45,6 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             // check booking existance
             require(_bookings[_msgSender()][_dates[i]].cost != uint256(0), "Booking does not exists");
             // TODO: validate booking does not exists yet
-            // dates[_msgSender()].push(_dates[i]);
             delete _bookings[_msgSender()][_dates[i]];
         }
         uint256[] memory _copyDates = dates[_msgSender()];
