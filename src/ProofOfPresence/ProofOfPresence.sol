@@ -16,26 +16,45 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     struct Booking {
         uint256 cost;
     }
+    struct Year {
+        uint16 number;
+        uint256 start;
+        uint256 end;
+    }
 
     IERC20 public immutable token;
 
     // TODO: think in year buckets to reduce 1+n complexity
-    mapping(address => uint256[]) public dates;
+    mapping(address => mapping(uint16 => uint256[])) public dates;
     mapping(address => mapping(uint256 => Booking)) internal _bookings;
+    // mapping(uint16 => uint256[2]) internal _years;
+    Year[] internal _years;
 
     constructor(address _token) {
         token = IERC20(_token);
+        _years.push(Year(2022, block.timestamp, 1672531199));
+        _years.push(Year(2023, 1672531200, 1704067199));
+        _years.push(Year(2024, 1704067200, 1735689599));
     }
 
     function book(uint256[] memory _dates) public {
         for (uint256 i = 0; i < _dates.length; i++) {
             require(_dates[i] > block.timestamp, "date should be in the future");
             require(_bookings[_msgSender()][_dates[i]].cost == uint256(0), "Booking already exists");
-            dates[_msgSender()].push(_dates[i]);
+            uint16 year = getYear(_dates[i]);
+            require(year > uint16(2021), "booking not allowed for requested date");
+            dates[_msgSender()][year].push(_dates[i]);
             _bookings[_msgSender()][_dates[i]] = Booking(1 ether);
         }
         // Really simplistic pricing
         token.safeTransferFrom(_msgSender(), address(this), _dates.length * 10**18);
+    }
+
+    function getYear(uint256 tm) internal view returns (uint16) {
+        for (uint16 i; i < _years.length; i++) {
+            if (_years[i].start <= tm && _years[i].end >= tm) return _years[i].number;
+        }
+        return uint16(0);
     }
 
     // TODO: optimize array iteration now is 3*n complexity: horrible performance
