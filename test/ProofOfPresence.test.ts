@@ -1,6 +1,6 @@
 import {expect} from './chai-setup';
 import {deployments, getUnnamedAccounts, ethers, network} from 'hardhat';
-import {TDFToken, ProofOfPresence} from '../typechain';
+import {TDFToken, ProofOfPresence, TokenLock} from '../typechain';
 import {setupUser, setupUsers} from './utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
@@ -26,10 +26,12 @@ const setup = deployments.createFixture(async (hre) => {
   const {deployer, TDFTokenBeneficiary} = accounts;
 
   const token: TDFToken = await ethers.getContract('TDFToken', deployer);
-  const pOP = await getMock('ProofOfPresence', deployer, [token.address]);
+  const stakeContract = await getMock('TokenLock', deployer, [token.address, 1]);
+  const pOP = await getMock('ProofOfPresence', deployer, [token.address, stakeContract.address]);
   const contracts = {
     TDFToken: token,
     ProofOfPresence: pOP,
+    TokenLock: stakeContract,
   };
 
   const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);
@@ -60,7 +62,7 @@ const buildDates = (initDate: Date, amount: number) => {
 
 describe('ProofOfPresence', () => {
   it('book', async () => {
-    const {users, ProofOfPresence, TDFToken} = await setup();
+    const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
 
     const testBalances = async (TK: string, tkU: string, u: string) => {
       expect(await TDFToken.balanceOf(ProofOfPresence.address)).to.eq(parseEther(TK));
@@ -68,7 +70,7 @@ describe('ProofOfPresence', () => {
       expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther(u));
     };
     const user = users[0];
-    await user.TDFToken.approve(ProofOfPresence.address, parseEther('10'));
+    await user.TDFToken.approve(TokenLock.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
     await user.ProofOfPresence.book(dates);

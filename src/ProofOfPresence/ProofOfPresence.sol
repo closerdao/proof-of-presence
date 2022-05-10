@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "hardhat/console.sol";
+import "./ITokenLock.sol";
 
 contract ProofOfPresence is Context, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -18,24 +19,33 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     }
 
     IERC20 public immutable token;
+    ITokenLock public immutable wallet;
 
     // TODO: think in year buckets to reduce 1+n complexity
     mapping(address => uint256[]) public dates;
     mapping(address => mapping(uint256 => Booking)) internal _bookings;
 
-    constructor(address _token) {
+    constructor(address _token, address _wallet) {
         token = IERC20(_token);
+        wallet = ITokenLock(_wallet);
     }
 
     function book(uint256[] memory _dates) public {
+        uint256 lastDate;
+        uint256 totalPrice;
         for (uint256 i = 0; i < _dates.length; i++) {
             require(_dates[i] > block.timestamp, "date should be in the future");
             require(_bookings[_msgSender()][_dates[i]].cost == uint256(0), "Booking already exists");
+            uint256 price = 1 ether;
             dates[_msgSender()].push(_dates[i]);
-            _bookings[_msgSender()][_dates[i]] = Booking(1 ether);
+            _bookings[_msgSender()][_dates[i]] = Booking(price);
+
+            if (lastDate < _dates[i]) lastDate = _dates[i];
+            totalPrice += price;
         }
         // Really simplistic pricing
-        token.safeTransferFrom(_msgSender(), address(this), _dates.length * 10**18);
+        wallet.restakeOrDepositAtFor(_msgSender(), totalPrice, lastDate);
+        // token.safeTransferFrom(_msgSender(), address(this), _dates.length * 10**18);
     }
 
     // TODO: optimize array iteration now is 3*n complexity: horrible performance
