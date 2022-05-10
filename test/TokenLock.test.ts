@@ -95,6 +95,31 @@ const setupHelpers = ({
         expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
       }
     },
+    deposit: async (amount: string) => {
+      await expect(user.TokenLock.deposit(parseEther(amount)))
+        .to.emit(stakeContract, 'DepositedTokens')
+        .withArgs(user.address, parseEther(amount));
+    },
+    withdrawMax: {
+      success: async (amount: string) => {
+        await expect(user.TokenLock.withdrawMax())
+          .to.emit(stakeContract, 'WithdrawnTokens')
+          .withArgs(user.address, parseEther(amount));
+      },
+      none: async () => {
+        await expect(user.TokenLock.withdrawMax()).to.not.emit(stakeContract, 'WithdrawnTokens');
+      },
+    },
+    withdraw: {
+      success: async (amount: string) => {
+        await expect(user.TokenLock.withdraw(parseEther(amount)))
+          .to.emit(stakeContract, 'WithdrawnTokens')
+          .withArgs(user.address, parseEther(amount));
+      },
+      reverted: async (amount: string) => {
+        await expect(user.TokenLock.withdraw(parseEther(amount))).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
+      },
+    },
     allowed: {
       deposit: async (amount: string) => {
         await expect(user.TokenLock.deposit(parseEther(amount)))
