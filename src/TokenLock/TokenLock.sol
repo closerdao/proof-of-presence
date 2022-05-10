@@ -43,15 +43,23 @@ contract TokenLock is Context, ReentrancyGuard {
     }
 
     function deposit(uint256 amount) public {
-        _deposits[_msgSender()].push(Deposit(block.timestamp, amount));
-        _balances[_msgSender()] += amount;
-        token.safeTransferFrom(_msgSender(), address(this), amount);
-        emit DepositedTokens(_msgSender(), amount);
+        _deposit(_msgSender(), amount, block.timestamp);
+    }
+
+    function _deposit(
+        address account,
+        uint256 amount,
+        uint256 depositTm
+    ) internal {
+        _deposits[account].push(Deposit(depositTm, amount));
+        _balances[account] += amount;
+        token.safeTransferFrom(account, address(this), amount);
+        emit DepositedTokens(account, amount);
     }
 
     function withdrawMax() public returns (uint256) {
         require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
-        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT);
+        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT, block.timestamp);
 
         // Change the state
         _withdraw(_msgSender(), result);
@@ -63,7 +71,7 @@ contract TokenLock is Context, ReentrancyGuard {
         // `requested` is passed as value and not by reference because is a basic type
         // https://docs.soliditylang.org/en/v0.8.9/types.html#value-types
         // It will not be modified by `_calculateWithdraw()`
-        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), requested);
+        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), requested, block.timestamp);
         require(result.untiedAmount == requested, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
         // Change the state
         _withdraw(_msgSender(), result);
@@ -72,18 +80,45 @@ contract TokenLock is Context, ReentrancyGuard {
 
     function restakeMax() public {
         require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
-        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT);
-        _restake(_msgSender(), result);
+        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT, block.timestamp);
+        _restake(_msgSender(), result, block.timestamp);
     }
 
     function restake(uint256 requestedAmount) public {
         require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
-        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), requestedAmount);
+        WithdrawingResult memory result = _calculateWithdraw(_msgSender(), requestedAmount, block.timestamp);
         require(result.untiedAmount == requestedAmount, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
-        _restake(_msgSender(), result);
+        _restake(_msgSender(), result, block.timestamp);
     }
 
-    function _restake(address account, WithdrawingResult memory result) internal {
+    function restakeOrDepositAtFor(
+        address account,
+        uint256 amount,
+        uint256 initLockingTm
+    ) public {
+        require(initLockingTm >= block.timestamp, "Unable to stake to the pass");
+        uint256 stake = _balances[account];
+        uint256 tBalance = token.balanceOf(account);
+        require(stake + tBalance >= amount, "NOT_ENOUGHT_BALANCE");
+        if (stake == 0) {
+            _deposit(account, amount, initLockingTm);
+        } else {
+            WithdrawingResult memory result = _calculateWithdraw(account, amount, MAX_INT);
+
+            _restake(account, result, initLockingTm);
+
+            if (amount > result.untiedAmount) {
+                uint256 toTransfer = amount - result.untiedAmount;
+                _deposit(account, toTransfer, initLockingTm);
+            }
+        }
+    }
+
+    function _restake(
+        address account,
+        WithdrawingResult memory result,
+        uint256 lockingInitTm
+    ) internal {
         // crear previous deposits
         delete _deposits[account];
         for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
@@ -91,7 +126,7 @@ contract TokenLock is Context, ReentrancyGuard {
             _deposits[account].push(result.remainingDeposits[i]);
         }
         // ReStake the withdrawable amount
-        _deposits[account].push(Deposit(block.timestamp, result.untiedAmount));
+        _deposits[account].push(Deposit(lockingInitTm, result.untiedAmount));
         // EMIT ReStaked
         // return amount
     }
@@ -112,12 +147,12 @@ contract TokenLock is Context, ReentrancyGuard {
     }
 
     function unlockedAmount(address account) public view returns (uint256) {
-        WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT);
+        WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT, block.timestamp);
         return result.untiedAmount;
     }
 
     function lockedAmount(address account) public view returns (uint256) {
-        WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT);
+        WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT, block.timestamp);
         return _balances[account] - result.untiedAmount;
     }
 
@@ -125,7 +160,15 @@ contract TokenLock is Context, ReentrancyGuard {
         return _balances[account];
     }
 
-    function _calculateWithdraw(address account, uint256 requested) internal view returns (WithdrawingResult memory) {
+    function depositsFor(address account) public view returns (Deposit[] memory) {
+        return _deposits[account];
+    }
+
+    function _calculateWithdraw(
+        address account,
+        uint256 requested,
+        uint256 lockedUntil
+    ) internal view returns (WithdrawingResult memory) {
         Deposit[] memory stakedFunds = _deposits[account];
         WithdrawingResult memory result = WithdrawingResult(0, 0, new Deposit[](0));
         if (stakedFunds.length == 0) {
@@ -134,7 +177,7 @@ contract TokenLock is Context, ReentrancyGuard {
 
         for (uint8 i = 0; i < stakedFunds.length; i++) {
             Deposit memory elem = stakedFunds[i];
-            if (_isReleasable(elem) && requested > 0) {
+            if (_isReleasable(elem, lockedUntil) && requested > 0) {
                 // Example:
                 // requested: 25 < elem.amount: 100 = true
                 if (requested < elem.amount) {
@@ -184,7 +227,7 @@ contract TokenLock is Context, ReentrancyGuard {
         return newAcc;
     }
 
-    function _isReleasable(Deposit memory unit) internal view returns (bool) {
-        return (unit.timestamp + lockingPeriod) <= block.timestamp;
+    function _isReleasable(Deposit memory unit, uint256 lockedUntil) internal view returns (bool) {
+        return (unit.timestamp + lockingPeriod) <= lockedUntil;
     }
 }

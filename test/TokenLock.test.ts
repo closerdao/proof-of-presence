@@ -4,6 +4,9 @@ import {TDFToken, TokenLock} from '../typechain';
 import {setupUser, setupUsers} from './utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
+import {addDays, getUnixTime} from 'date-fns';
+import {parse} from 'path';
+const BN = ethers.BigNumber;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
@@ -43,11 +46,28 @@ const setup = deployments.createFixture(async (hre) => {
   return conf;
 });
 
-async function incDays(days: number) {
+const incDays = async (days: number) => {
   // suppose the current block has a timestamp of 01:00 PM
   await network.provider.send('evm_increaseTime', [days * 86400]);
   await network.provider.send('evm_mine');
-}
+};
+
+const buildDates = (initDate: Date, amount: number) => {
+  const acc = [];
+  for (let i = 0; i < amount; i++) {
+    acc.push(getUnixTime(addDays(initDate, i)));
+  }
+  return acc;
+};
+const buildDate = (offset: number) => {
+  const initDate = Date.now();
+  return getUnixTime(addDays(initDate, offset));
+};
+
+const timeTravelTo = async (time: number) => {
+  await network.provider.send('evm_setNextBlockTimestamp', [time]);
+  await network.provider.send('evm_mine');
+};
 
 describe('TokenLock', () => {
   it('lock and unlockMax', async () => {
@@ -294,6 +314,101 @@ describe('TokenLock', () => {
     await user.TokenLock.withdrawMax();
     await testBalances('0', '0', '10000');
     await testStake('0', '0');
+  });
+
+  it('restakeOrDepositAt', async () => {
+    const {users, TokenLock, TDFToken, deployer} = await setup();
+    const user = users[0];
+
+    const testBalances = async (TK: string, tkU: string, u: string) => {
+      expect(await TDFToken.balanceOf(TokenLock.address)).to.eq(parseEther(TK));
+      expect(await TokenLock.balanceOf(user.address)).to.eq(parseEther(tkU));
+      expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther(u));
+    };
+
+    const testStake = async (locked: string, unlocked: string) => {
+      expect(await TokenLock.lockedAmount(user.address)).to.eq(parseEther(locked));
+      expect(await TokenLock.unlockedAmount(user.address)).to.eq(parseEther(unlocked));
+    };
+
+    const testDeposits = async (examples: [string, number][]) => {
+      const deposits = await TokenLock.depositsFor(user.address);
+      for (let i = 0; i < deposits.length; i++) {
+        expect(deposits[i].amount).to.eq(parseEther(examples[i][0]));
+        expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
+      }
+      // const [rDate, rAmount] = await TokenLock.depositsFor(user.address);
+      // expect(rDate).to.eq(date);
+      // expect(rAmount).to.eq(parseEther(amount));
+    };
+    expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
+    await testBalances('0', '0', '10000');
+
+    // await user.TDFToken.approve(deployer.address, parseEther('10'));
+    await user.TDFToken.approve(TokenLock.address, parseEther('10'));
+
+    let initLockAt = buildDate(3);
+
+    ///////////////////////////////////////////////
+    //                DAY 0
+    // --------------------------------------------
+    // With 0 stake, restake transfers Token to contract
+    ///////////////////////////////////////////////
+    await deployer.TokenLock.restakeOrDepositAtFor(user.address, parseEther('1'), initLockAt);
+    await testBalances('1', '1', '9999');
+    await testDeposits([['1', initLockAt]]);
+    await testStake('1', '0');
+
+    ///////////////////////////////////////////////
+    //                DAY 1
+    // --------------------------------------------
+    // Can not unstake since we staked in the future
+    ///////////////////////////////////////////////
+    await incDays(1);
+    await expect(user.TokenLock.withdraw(parseEther('0.5'))).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
+    await testBalances('1', '1', '9999');
+    await testDeposits([['1', initLockAt]]);
+    await testStake('1', '0');
+    ///////////////////////////////////////////////
+    //                DAY 4
+    // --------------------------------------------
+    // Can withdraw 1
+    //
+    ///////////////////////////////////////////////
+    await incDays(4);
+
+    await user.TokenLock.withdraw(parseEther('0.5'));
+    await testBalances('0.5', '0.5', '9999.5');
+    await testDeposits([['0.5', initLockAt]]);
+    await testStake('0', '0.5');
+
+    // ------ Can reStake to the future current staked
+
+    initLockAt = buildDate(6);
+    await deployer.TokenLock.restakeOrDepositAtFor(user.address, parseEther('0.5'), initLockAt);
+
+    await testBalances('0.5', '0.5', '9999.5');
+    await testDeposits([['0.5', initLockAt]]);
+    await testStake('0.5', '0');
+    // can not unstake
+    await user.TokenLock.withdrawMax();
+    await testBalances('0.5', '0.5', '9999.5');
+    await testDeposits([['0.5', initLockAt]]);
+    await testStake('0.5', '0');
+    ///////////////////////////////////////////////
+    //                DAY 4 - CONT Restake locked
+    // --------------------------------------------
+    // mixed restake (token transfer, restake)
+    // locked 0.5
+    ///////////////////////////////////////////////
+    initLockAt = buildDate(8);
+    await deployer.TokenLock.restakeOrDepositAtFor(user.address, parseEther('1'), initLockAt);
+    await testBalances('1', '1', '9999');
+    await testStake('1', '0');
+    await testDeposits([
+      ['0.5', initLockAt],
+      ['0.5', initLockAt],
+    ]);
   });
 
   it('getters', async () => {});
