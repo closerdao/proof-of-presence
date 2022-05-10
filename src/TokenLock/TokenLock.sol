@@ -94,6 +94,7 @@ contract TokenLock is Context, ReentrancyGuard {
     function restakeOrDepositAtFor(
         address account,
         uint256 amount,
+        // TODO: initLocking time must be bigger that current timestamp
         uint256 initLockingTm
     ) public {
         require(initLockingTm >= block.timestamp, "Unable to stake to the pass");
@@ -117,6 +118,7 @@ contract TokenLock is Context, ReentrancyGuard {
     function _restake(
         address account,
         WithdrawingResult memory result,
+        // TODO: initLocking time must be bigger than current timestamp
         uint256 lockingInitTm
     ) internal {
         // crear previous deposits
@@ -180,6 +182,7 @@ contract TokenLock is Context, ReentrancyGuard {
             if (_isReleasable(elem, lockedUntil) && requested > 0) {
                 // Example:
                 // requested: 25 < elem.amount: 100 = true
+                // TODO: initLocking time must be bigger than current timestamp
                 if (requested < elem.amount) {
                     // rest: 75
                     uint256 rest = elem.amount - requested;
