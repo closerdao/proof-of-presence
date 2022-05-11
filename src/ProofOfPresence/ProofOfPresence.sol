@@ -18,15 +18,13 @@ contract ProofOfPresence is Context, ReentrancyGuard {
         uint256 cost;
     }
 
-    IERC20 public immutable token;
     ITokenLock public immutable wallet;
 
     // TODO: think in year buckets to reduce 1+n complexity
     mapping(address => uint256[]) public dates;
     mapping(address => mapping(uint256 => Booking)) internal _bookings;
 
-    constructor(address _token, address _wallet) {
-        token = IERC20(_token);
+    constructor(address _wallet) {
         wallet = ITokenLock(_wallet);
     }
 

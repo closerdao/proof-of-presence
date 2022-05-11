@@ -95,7 +95,7 @@ const setup = deployments.createFixture(async (hre) => {
 
   const token = <TDFToken>await ethers.getContract('TDFToken', deployer);
   const stakeContract = <TokenLock>await getMock('TokenLock', deployer, [token.address, 1]);
-  const pOP = <ProofOfPresence>await getMock('ProofOfPresence', deployer, [token.address, stakeContract.address]);
+  const pOP = <ProofOfPresence>await getMock('ProofOfPresence', deployer, [stakeContract.address]);
   const contracts = {
     TDFToken: token,
     ProofOfPresence: pOP,
