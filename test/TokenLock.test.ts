@@ -5,7 +5,6 @@ import {setupUser, setupUsers} from './utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays, getUnixTime} from 'date-fns';
-import {parse} from 'path';
 const BN = ethers.BigNumber;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
