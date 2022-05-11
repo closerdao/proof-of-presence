@@ -36,6 +36,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
         for (uint256 i = 0; i < _dates.length; i++) {
             require(_dates[i] > block.timestamp, "date should be in the future");
             require(_bookings[_msgSender()][_dates[i]].cost == uint256(0), "Booking already exists");
+            // Simplistic pricing
             uint256 price = 1 ether;
             dates[_msgSender()].push(_dates[i]);
             _bookings[_msgSender()][_dates[i]] = Booking(price);
@@ -43,9 +44,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             if (lastDate < _dates[i]) lastDate = _dates[i];
             totalPrice += price;
         }
-        // Really simplistic pricing
         wallet.restakeOrDepositAtFor(_msgSender(), totalPrice, lastDate);
-        // token.safeTransferFrom(_msgSender(), address(this), _dates.length * 10**18);
     }
 
     // TODO: optimize array iteration now is 3*n complexity: horrible performance
@@ -63,8 +62,6 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             bool keep = true;
             if (_copyDates[i] > block.timestamp) {
                 for (uint256 o; o < _cancelDates.length; o++) {
-                    // TODO: use POP to not reiterate over the whole array
-                    // uint256 localDate = _copyDates.pop();
                     if (_copyDates[i] == _cancelDates[o]) {
                         keep = false;
                         break;
@@ -73,7 +70,6 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             }
             if (keep) dates[_msgSender()].push(_copyDates[i]);
         }
-        token.safeTransfer(_msgSender(), (_copyDates.length - dates[_msgSender()].length) * 10**18);
     }
 
     function balanceOf(address account) public view returns (uint256) {
