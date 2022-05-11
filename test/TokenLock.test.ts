@@ -1,5 +1,5 @@
 import {expect} from './chai-setup';
-import {deployments, getUnnamedAccounts, ethers, network, getNamedAccounts} from 'hardhat';
+import {deployments, getUnnamedAccounts, ethers, network} from 'hardhat';
 import {TDFToken, TokenLock} from '../typechain';
 import {setupUser, setupUsers} from './utils';
 import {Contract} from 'ethers';
