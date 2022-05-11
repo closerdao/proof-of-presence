@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "hardhat/console.sol";
+import "./ITokenLock.sol";
 
 contract ProofOfPresence is Context, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -23,6 +24,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     }
 
     IERC20 public immutable token;
+    ITokenLock public immutable wallet;
 
     // TODO: think in year buckets to reduce 1+n complexity
     mapping(address => mapping(uint16 => uint256[])) public dates;
@@ -30,24 +32,31 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     // mapping(uint16 => uint256[2]) internal _years;
     Year[] internal _years;
 
-    constructor(address _token) {
+    constructor(address _token, address _wallet) {
         token = IERC20(_token);
         _years.push(Year(2022, block.timestamp, 1672531199));
         _years.push(Year(2023, 1672531200, 1704067199));
         _years.push(Year(2024, 1704067200, 1735689599));
+        wallet = ITokenLock(_wallet);
     }
 
     function book(uint256[] memory _dates) public {
+        uint256 lastDate;
+        uint256 totalPrice;
         for (uint256 i = 0; i < _dates.length; i++) {
             require(_dates[i] > block.timestamp, "date should be in the future");
             require(_bookings[_msgSender()][_dates[i]].cost == uint256(0), "Booking already exists");
+            // Simplistic pricing
+            uint256 price = 1 ether;
             uint16 year = getYear(_dates[i]);
             require(year > uint16(2021), "booking not allowed for requested date");
             dates[_msgSender()][year].push(_dates[i]);
-            _bookings[_msgSender()][_dates[i]] = Booking(1 ether);
+            _bookings[_msgSender()][_dates[i]] = Booking(price);
+
+            if (lastDate < _dates[i]) lastDate = _dates[i];
+            totalPrice += price;
         }
-        // Really simplistic pricing
-        token.safeTransferFrom(_msgSender(), address(this), _dates.length * 10**18);
+        wallet.restakeOrDepositAtFor(_msgSender(), totalPrice, lastDate);
     }
 
     function getYear(uint256 tm) internal view returns (uint16) {
@@ -72,8 +81,6 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             bool keep = true;
             if (_copyDates[i] > block.timestamp) {
                 for (uint256 o; o < _cancelDates.length; o++) {
-                    // TODO: use POP to not reiterate over the whole array
-                    // uint256 localDate = _copyDates.pop();
                     if (_copyDates[i] == _cancelDates[o]) {
                         keep = false;
                         break;
@@ -82,7 +89,6 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             }
             if (keep) dates[_msgSender()].push(_copyDates[i]);
         }
-        token.safeTransfer(_msgSender(), (_copyDates.length - dates[_msgSender()].length) * 10**18);
     }
 
     function balanceOf(address account) public view returns (uint256) {
