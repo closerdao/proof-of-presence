@@ -44,7 +44,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             if (lastDate < _dates[i]) lastDate = _dates[i];
             totalPrice += price;
         }
-        wallet.restakeOrDepositAtFor(_msgSender(), totalPrice, lastDate);
+        wallet.restakeOrDepositAtFor(_msgSender(), balanceOf(_msgSender()), lastDate);
     }
 
     // TODO: optimize array iteration now is 3*n complexity: horrible performance
