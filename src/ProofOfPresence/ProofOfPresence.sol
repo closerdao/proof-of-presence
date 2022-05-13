@@ -9,13 +9,16 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "hardhat/console.sol";
 import "./ITokenLock.sol";
 
 contract ProofOfPresence is Context, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.UintSet;
     struct Booking {
         uint256 cost;
+        bool active;
     }
     struct Year {
         uint16 number;
@@ -25,36 +28,35 @@ contract ProofOfPresence is Context, ReentrancyGuard {
 
     ITokenLock public immutable wallet;
 
-    // TODO: think in year buckets to reduce 1+n complexity
-    mapping(address => mapping(uint16 => uint256[])) public dates;
-    mapping(address => mapping(uint256 => Booking)) internal _bookings;
-    // mapping(uint16 => uint256[2]) internal _years;
+    mapping(address => mapping(uint16 => uint256)) internal _internalBalance;
+    mapping(address => mapping(uint16 => EnumerableSet.UintSet)) internal _internalDates;
+    mapping(address => mapping(uint16 => mapping(uint256 => Booking))) internal _bookings;
     Year[] internal _years;
 
     constructor(address _wallet) {
+        wallet = ITokenLock(_wallet);
         _years.push(Year(2022, block.timestamp, 1672531199));
         _years.push(Year(2023, 1672531200, 1704067199));
         _years.push(Year(2024, 1704067200, 1735689599));
-        wallet = ITokenLock(_wallet);
     }
 
-    function book(uint256[] memory _dates) public {
+    function book(uint256[] memory bookingDates) public {
         uint256 lastDate;
         uint256 totalPrice;
-        for (uint256 i = 0; i < _dates.length; i++) {
-            require(_dates[i] > block.timestamp, "date should be in the future");
-            require(_bookings[_msgSender()][_dates[i]].cost == uint256(0), "Booking already exists");
+        for (uint256 i = 0; i < bookingDates.length; i++) {
+            require(bookingDates[i] > block.timestamp, "date should be in the future");
+            uint16 year = getYear(bookingDates[i]);
+            require(year > uint16(0), "Reservations not yet allowed");
+            require(EnumerableSet.add(_internalDates[_msgSender()][year], bookingDates[i]), "Booking already exists");
             // Simplistic pricing
             uint256 price = 1 ether;
-            uint16 year = getYear(_dates[i]);
-            require(year > uint16(2021), "booking not allowed for requested date");
-            dates[_msgSender()][year].push(_dates[i]);
-            _bookings[_msgSender()][_dates[i]] = Booking(price);
+            _bookings[_msgSender()][year][bookingDates[i]] = Booking(price, true);
+            _internalBalance[_msgSender()][year] += price;
 
-            if (lastDate < _dates[i]) lastDate = _dates[i];
+            if (lastDate < bookingDates[i]) lastDate = bookingDates[i];
             totalPrice += price;
         }
-        wallet.restakeOrDepositAtFor(_msgSender(), balanceOf(_msgSender()), lastDate);
+        wallet.restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
     }
 
     function getYear(uint256 tm) internal view returns (uint16) {
@@ -64,42 +66,37 @@ contract ProofOfPresence is Context, ReentrancyGuard {
         return uint16(0);
     }
 
-    // TODO: optimize array iteration now is 3*n complexity: horrible performance
-    function cancel(uint256[] memory _cancelDates) public {
-        for (uint256 i = 0; i < _cancelDates.length; i++) {
-            require(_cancelDates[i] > block.timestamp, "Can not cancel past booking");
+    function cancel(uint256[] memory cancellingDates) public {
+        for (uint256 i = 0; i < cancellingDates.length; i++) {
+            require(cancellingDates[i] > block.timestamp, "Can not cancel past booking");
             // check booking existance
-            require(_bookings[_msgSender()][_cancelDates[i]].cost != uint256(0), "Booking does not exists");
-            delete _bookings[_msgSender()][_cancelDates[i]];
-        }
-        uint256[] memory _copyDates = dates[_msgSender()];
-        delete dates[_msgSender()];
+            uint16 year = getYear(cancellingDates[i]);
 
-        for (uint256 i; i < _copyDates.length; i++) {
-            bool keep = true;
-            if (_copyDates[i] > block.timestamp) {
-                for (uint256 o; o < _cancelDates.length; o++) {
-                    if (_copyDates[i] == _cancelDates[o]) {
-                        keep = false;
-                        break;
-                    }
-                }
-            }
-            if (keep) dates[_msgSender()].push(_copyDates[i]);
+            require(
+                EnumerableSet.remove(_internalDates[_msgSender()][year], cancellingDates[i]),
+                "Booking does not exists"
+            );
+            _internalBalance[_msgSender()][year] -= _bookings[_msgSender()][year][cancellingDates[i]].cost;
+            delete _bookings[_msgSender()][year][cancellingDates[i]];
         }
     }
 
-    function balanceOf(address account) public view returns (uint256) {
-        // TODO: really simplistic balance
-        return dates[account].length * 10**18;
+    function _expectedStaked(address account) internal view returns (uint256) {
+        uint256 max;
+        for (uint16 i = 0; i < _years.length; i++) {
+            if (_years[i].end < block.timestamp) continue;
+            uint256 amount = _internalBalance[account][_years[i].number];
+            if (amount > max) max = amount;
+        }
+        return max;
     }
 
     function getDates(address account) public view returns (uint256[] memory) {
-        return dates[account];
+        return EnumerableSet.values(_internalDates[account][getYear(block.timestamp)]);
     }
 
     function getBooking(address account, uint256 _date) public view returns (uint256, uint256) {
-        Booking storage booking = _bookings[account][_date];
+        Booking storage booking = _bookings[account][getYear(_date)][_date];
         return (_date, booking.cost);
     }
 }
