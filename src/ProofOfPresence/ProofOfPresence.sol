@@ -23,7 +23,6 @@ contract ProofOfPresence is Context, ReentrancyGuard {
         uint256 end;
     }
 
-    IERC20 public immutable token;
     ITokenLock public immutable wallet;
 
     // TODO: think in year buckets to reduce 1+n complexity
@@ -32,8 +31,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     // mapping(uint16 => uint256[2]) internal _years;
     Year[] internal _years;
 
-    constructor(address _token, address _wallet) {
-        token = IERC20(_token);
+    constructor(address _wallet) {
         _years.push(Year(2022, block.timestamp, 1672531199));
         _years.push(Year(2023, 1672531200, 1704067199));
         _years.push(Year(2024, 1704067200, 1735689599));
@@ -56,7 +54,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             if (lastDate < _dates[i]) lastDate = _dates[i];
             totalPrice += price;
         }
-        wallet.restakeOrDepositAtFor(_msgSender(), totalPrice, lastDate);
+        wallet.restakeOrDepositAtFor(_msgSender(), balanceOf(_msgSender()), lastDate);
     }
 
     function getYear(uint256 tm) internal view returns (uint16) {

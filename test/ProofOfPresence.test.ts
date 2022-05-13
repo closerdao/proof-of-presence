@@ -37,29 +37,50 @@ const setupHelpers = async ({
   admin?: setUser;
 }) => {
   return {
-    testBalances: async (TK: string, tkU: string, u: string) => {
-      expect(await tokenContract.balanceOf(stakeContract.address)).to.eq(parseEther(TK));
-      expect(await stakeContract.balanceOf(user.address)).to.eq(parseEther(tkU));
-      expect(await tokenContract.balanceOf(user.address)).to.eq(parseEther(u));
+    test: {
+      balances: async (TK: string, tkU: string, u: string) => {
+        expect(await tokenContract.balanceOf(stakeContract.address)).to.eq(parseEther(TK));
+        expect(await stakeContract.balanceOf(user.address)).to.eq(parseEther(tkU));
+        expect(await tokenContract.balanceOf(user.address)).to.eq(parseEther(u));
+      },
+      stake: async (locked: string, unlocked: string) => {
+        expect(await stakeContract.lockedAmount(user.address)).to.eq(parseEther(locked));
+        expect(await stakeContract.unlockedAmount(user.address)).to.eq(parseEther(unlocked));
+      },
+      deposits: async (examples: [string, number][]) => {
+        const deposits = await stakeContract.depositsFor(user.address);
+        for (let i = 0; i < deposits.length; i++) {
+          expect(deposits[i].amount).to.eq(parseEther(examples[i][0]));
+          expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
+        }
+      },
+      bookings: async (dates: number[], price: string) => {
+        await Promise.all(
+          dates.map(async (e) => {
+            const [d, c] = await bookingContract.getBooking(user.address, e);
+            return Promise.all([expect(d).to.eq(e), expect(c).to.eq(parseEther(price))]);
+          })
+        );
+      },
     },
-    testStake: async (locked: string, unlocked: string) => {
-      expect(await stakeContract.lockedAmount(user.address)).to.eq(parseEther(locked));
-      expect(await stakeContract.unlockedAmount(user.address)).to.eq(parseEther(unlocked));
-    },
-    testDeposits: async (examples: [string, number][]) => {
-      const deposits = await stakeContract.depositsFor(user.address);
-      for (let i = 0; i < deposits.length; i++) {
-        expect(deposits[i].amount).to.eq(parseEther(examples[i][0]));
-        expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
-      }
-    },
-    testBookings: async (dates: number[], price: string) => {
-      await Promise.all(
-        dates.map(async (e) => {
-          const [d, c] = await bookingContract.getBooking(user.address, e);
-          return Promise.all([expect(d).to.eq(e), expect(c).to.eq(parseEther(price))]);
-        })
-      );
+    // functions that modify state
+    send: {
+      book: async (dates: number[]) => {
+        await user.ProofOfPresence.book(dates);
+      },
+      cancel: {
+        success: async (dates: number[]) => {
+          await user.ProofOfPresence.cancel(dates);
+        },
+        reverted: {
+          noneExisting: async (dates: number[]) => {
+            await expect(user.ProofOfPresence.cancel(dates)).to.be.revertedWith('Booking does not exists');
+          },
+          inThepast: async (dates: number[]) => {
+            await expect(user.ProofOfPresence.cancel(dates)).to.be.revertedWith('Can not cancel past booking');
+          },
+        },
+      },
     },
   };
 };
@@ -74,7 +95,7 @@ const setup = deployments.createFixture(async (hre) => {
 
   const token = <TDFToken>await ethers.getContract('TDFToken', deployer);
   const stakeContract = <TokenLock>await getMock('TokenLock', deployer, [token.address, 1]);
-  const pOP = <ProofOfPresence>await getMock('ProofOfPresence', deployer, [token.address, stakeContract.address]);
+  const pOP = <ProofOfPresence>await getMock('ProofOfPresence', deployer, [stakeContract.address]);
   const contracts = {
     TDFToken: token,
     ProofOfPresence: pOP,
@@ -112,7 +133,7 @@ describe('ProofOfPresence', () => {
     const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
 
     const user = users[0];
-    const {testBalances} = await setupHelpers({
+    const {test, send} = await setupHelpers({
       stakeContract: TokenLock,
       tokenContract: TDFToken,
       bookingContract: ProofOfPresence,
@@ -122,14 +143,14 @@ describe('ProofOfPresence', () => {
     await user.TDFToken.approve(TokenLock.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
-    await user.ProofOfPresence.book(dates);
-    await testBalances('5', '5', '9995');
+    await send.book(dates);
+    await test.balances('5', '5', '9995');
   });
   it('book and cancel', async () => {
     const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
     const user = users[0];
 
-    const {testBalances, testBookings} = await setupHelpers({
+    const {test, send} = await setupHelpers({
       stakeContract: TokenLock,
       tokenContract: TDFToken,
       bookingContract: ProofOfPresence,
@@ -143,33 +164,31 @@ describe('ProofOfPresence', () => {
     // -------------------------------------------------------
     //  Book and cancel all the dates
     // -------------------------------------------------------
-    await user.ProofOfPresence.book(dates);
-    await testBalances('5', '5', '9995');
-    await testBookings(dates, '1');
+    await send.book(dates);
+    await test.balances('5', '5', '9995');
+    await test.bookings(dates, '1');
 
-    await user.ProofOfPresence.cancel(dates);
+    await send.cancel.success(dates);
     expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
-    await testBalances('5', '5', '9995');
-    await testBookings(dates, '0');
+    await test.balances('5', '5', '9995');
+    await test.bookings(dates, '0');
     // -------------------------------------------------------
     //  Book and cancel few dates
     // -------------------------------------------------------
-    await user.ProofOfPresence.book(dates);
-    await testBalances('5', '5', '9995');
-    await testBookings(dates, '1');
+    await send.book(dates);
+    await test.balances('5', '5', '9995');
+    await test.bookings(dates, '1');
 
     const cDates = [dates[0], dates[4]];
-    await user.ProofOfPresence.cancel(cDates);
+    await send.cancel.success(cDates);
     expect((await ProofOfPresence.getDates(user.address)).length).to.eq(3);
-    await testBalances('5', '5', '9995');
-    await testBookings(cDates, '0');
-    await testBookings([dates[1], dates[2], dates[3]], '1');
-    await expect(user.ProofOfPresence.cancel(cDates)).to.be.revertedWith('Booking does not exists');
+    await test.balances('5', '5', '9995');
+    await test.bookings(cDates, '0');
+    await test.bookings([dates[1], dates[2], dates[3]], '1');
+    await send.cancel.reverted.noneExisting(cDates);
 
     await timeTravelTo(dates[4] + 2 * 86400);
-    await expect(user.ProofOfPresence.cancel([dates[1], dates[2], dates[3]])).to.be.revertedWith(
-      'Can not cancel past booking'
-    );
+    await send.cancel.reverted.inThepast([dates[1], dates[2], dates[3]]);
   });
 
   it('getters', async () => {});
