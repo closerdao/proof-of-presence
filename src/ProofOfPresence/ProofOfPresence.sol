@@ -47,7 +47,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             require(bookingDates[i] > block.timestamp, "date should be in the future");
             uint16 year = getYear(bookingDates[i]);
             require(year > uint16(0), "Reservations not yet allowed");
-            require(EnumerableSet.add(_internalDates[_msgSender()][year], bookingDates[i]), "Booking already exists");
+            require(_internalDates[_msgSender()][year].add(bookingDates[i]), "Booking already exists");
             // Simplistic pricing
             uint256 price = 1 ether;
             _bookings[_msgSender()][year][bookingDates[i]] = Booking(price, true);
@@ -72,10 +72,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
             // check booking existance
             uint16 year = getYear(cancellingDates[i]);
 
-            require(
-                EnumerableSet.remove(_internalDates[_msgSender()][year], cancellingDates[i]),
-                "Booking does not exists"
-            );
+            require(_internalDates[_msgSender()][year].remove(cancellingDates[i]), "Booking does not exists");
             _internalBalance[_msgSender()][year] -= _bookings[_msgSender()][year][cancellingDates[i]].cost;
             delete _bookings[_msgSender()][year][cancellingDates[i]];
         }
@@ -84,6 +81,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     function _expectedStaked(address account) internal view returns (uint256) {
         uint256 max;
         for (uint16 i = 0; i < _years.length; i++) {
+            // TODO: should it be + 1 year?
             if (_years[i].end < block.timestamp) continue;
             uint256 amount = _internalBalance[account][_years[i].number];
             if (amount > max) max = amount;
@@ -92,7 +90,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     }
 
     function getDates(address account) public view returns (uint256[] memory) {
-        return EnumerableSet.values(_internalDates[account][getYear(block.timestamp)]);
+        return _internalDates[account][getYear(block.timestamp)].values();
     }
 
     function getBooking(address account, uint256 _date) public view returns (uint256, uint256) {
