@@ -22,6 +22,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     }
     struct Year {
         uint16 number;
+        bool leapYear;
         uint256 start;
         uint256 end;
     }
@@ -35,9 +36,10 @@ contract ProofOfPresence is Context, ReentrancyGuard {
 
     constructor(address _wallet) {
         wallet = ITokenLock(_wallet);
-        _years.push(Year(2022, block.timestamp, 1672531199));
-        _years.push(Year(2023, 1672531200, 1704067199));
-        _years.push(Year(2024, 1704067200, 1735689599));
+        _years.push(Year(2022, false, 1640995200, 1672531199));
+        _years.push(Year(2023, false, 1672531200, 1704067199));
+        _years.push(Year(2024, true, 1704067200, 1735689599));
+        _years.push(Year(2025, false, 1735689600, 1767225599));
     }
 
     function book(uint256[] memory bookingDates) public {
@@ -91,6 +93,30 @@ contract ProofOfPresence is Context, ReentrancyGuard {
 
     function getDates(address account) public view returns (uint256[] memory) {
         return _internalDates[account][getYear(block.timestamp)].values();
+    }
+
+    function buildTimestamp(uint16 yearNum, uint16 dayOfTheYear) public view returns (uint256) {
+        Year memory year = _getYear(yearNum);
+        uint256 day;
+
+        if (year.leapYear) {
+            day = (year.end - year.start) / 366;
+        } else {
+            day = (year.end - year.start) / 365;
+        }
+        return year.start + (day * (dayOfTheYear - 1)) + (day / 2);
+    }
+
+    function _getYear(uint16 number) internal view returns (Year memory) {
+        Year memory year;
+        for (uint8 i = 0; i < _years.length; i++) {
+            if (_years[i].number == number) {
+                year = _years[i];
+                break;
+            }
+        }
+        require(year.number == number && number > uint16(0), "year not found");
+        return year;
     }
 
     function getBooking(address account, uint256 _date) public view returns (uint256, uint256) {
