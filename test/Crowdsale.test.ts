@@ -1,15 +1,10 @@
 import {expect} from './chai-setup';
 import {deployments, getUnnamedAccounts, ethers} from 'hardhat';
 import {TDFToken} from '../typechain';
-import {setupUser, setupUsers} from './utils';
+import {setupUser, setupUsers, getMock} from './utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
-  await deployments.deploy(name, {from: deployer, args: args});
-  return ethers.getContract(name, deployer);
-}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function deploySale(setup: Record<string, any>, price: string, minbuy: string) {
   const {TDFTokenBeneficiary, FakeEURToken, TDFToken, deployer} = setup;
