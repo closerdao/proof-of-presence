@@ -110,11 +110,30 @@ library BookingMapLib {
         return (false, Year(0, false, 0, 0));
     }
 
-    // function remove
-    // function update
-    // function contains
+    function remove(YearsStore storage store, uint16 num) internal returns (bool) {
+        bytes32 k = _buildYearKey(num);
+        if (store._inner.remove(k)) {
+            delete store.elems[k];
+            return true;
+        }
+        return false;
+    }
+
+    function contains(YearsStore storage store, uint16 num) internal view returns (bool) {
+        bytes32 k = _buildYearKey(num);
+        return store._inner.contains(k);
+    }
+
+    function update(YearsStore storage store, Year memory _year) internal returns (bool) {
+        bytes32 k = _buildYearKey(_year.number);
+        if (store._inner.contains(k)) {
+            store.elems[k] = _year;
+            return true;
+        }
+        return false;
+    }
+
     // function length
-    // function values
 
     function _buildYearKey(uint16 num) internal pure returns (bytes32) {
         return bytes32(abi.encodePacked(num));

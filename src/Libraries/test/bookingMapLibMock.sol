@@ -6,6 +6,7 @@ import "../BookingMapLib.sol";
 
 contract BookingMapLibMock {
     using BookingMapLib for BookingMapLib.UserStore;
+    using BookingMapLib for BookingMapLib.YearsStore;
 
     mapping(address => BookingMapLib.UserStore) internal _bookings;
     BookingMapLib.YearsStore internal _years;
@@ -13,10 +14,10 @@ contract BookingMapLibMock {
     event OperationResult(bool success);
 
     constructor() {
-        // _years.list.push(BookingMapLib.Year(2022, false, 1640995200, 1672531199));
-        // _years.list.push(BookingMapLib.Year(2023, false, 1672531200, 1704067199));
-        // _years.list.push(BookingMapLib.Year(2024, true, 1704067200, 1735689599));
-        // _years.list.push(BookingMapLib.Year(2025, false, 1735689600, 1767225599));
+        _years.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199));
+        _years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199));
+        _years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599));
+        _years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599));
     }
 
     function book(
@@ -46,6 +47,43 @@ contract BookingMapLibMock {
         uint16 _dayOfYear
     ) public {
         (bool res, ) = _bookings[_user].remove(_year, _dayOfYear);
+        emit OperationResult(res);
+    }
+
+    function addYear(
+        uint16 number,
+        bool leapYear,
+        uint256 start,
+        uint256 end
+    ) public {
+        bool res = _years.add(BookingMapLib.Year(number, leapYear, start, end));
+        emit OperationResult(res);
+    }
+
+    function getYears() public view returns (BookingMapLib.Year[] memory) {
+        return _years.values();
+    }
+
+    function getYear(uint16 number) public view returns (bool, BookingMapLib.Year memory) {
+        return _years.get(number);
+    }
+
+    function removeYear(uint16 number) public {
+        bool res = _years.remove(number);
+        emit OperationResult(res);
+    }
+
+    function containsYear(uint16 number) public view returns (bool) {
+        return _years.contains(number);
+    }
+
+    function updateYear(
+        uint16 number,
+        bool leapYear,
+        uint256 start,
+        uint256 end
+    ) public {
+        bool res = _years.update(BookingMapLib.Year(number, leapYear, start, end));
         emit OperationResult(res);
     }
 }

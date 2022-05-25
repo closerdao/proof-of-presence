@@ -28,7 +28,7 @@ const setup = deployments.createFixture(async (hre) => {
 });
 
 describe('BookingMapLib', () => {
-  it('integration test', async () => {
+  it('Bookings test', async () => {
     const {users, BookingContract} = await setup();
     const user = users[0];
     await expect(user.BookingContract.book(user.address, 2023, 13))
@@ -53,5 +53,25 @@ describe('BookingMapLib', () => {
       .withArgs(true);
     data = await BookingContract.getBookings(user.address, 2023);
     expect(data.length).to.eq(0);
+  });
+
+  it('years integration test', async () => {
+    const {users, BookingContract} = await setup();
+    const user = users[0];
+    await expect(user.BookingContract.addYear(2027, false, 1640995200, 1672531199))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+    await expect(user.BookingContract.addYear(2027, true, 1640995200 + 100, 1672531199 + 100))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(false);
+
+    let result, data;
+
+    [result, data] = await BookingContract.getYear(2027);
+    expect(result).to.be.true;
+    expect(data.number).to.eq(2027);
+    expect(data.leapYear).to.eq(false);
+    expect(data.start).to.eq(1640995200);
+    expect(data.end).to.eq(1640995200);
   });
 });
