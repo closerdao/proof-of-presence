@@ -86,4 +86,10 @@ contract BookingMapLibMock {
         bool res = _years.update(BookingMapLib.Year(number, leapYear, start, end));
         emit OperationResult(res);
     }
+
+    function buildTimestamp(uint16 yearNum, uint16 dayOfTheYear) public view returns (uint256) {
+        (bool success, uint256 value) = _years.buildTimestamp(yearNum, dayOfTheYear);
+        require(success, "Unable to build Timestamp");
+        return value;
+    }
 }

@@ -4,8 +4,15 @@ import {BookingMapLibMock} from '../../typechain';
 import {setupUser, setupUsers, getMock} from '../utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
+import {addDays, getUnixTime, fromUnixTime, getDayOfYear} from 'date-fns';
 
 const BN = ethers.BigNumber;
+
+const yearData = () => {
+  return {
+    '2027': {number: 2027, LeapYear: false, start: 1798761600, end: 1830297599},
+  };
+};
 
 const setup = deployments.createFixture(async (hre) => {
   const {deployments, getNamedAccounts, ethers} = hre;
@@ -61,17 +68,74 @@ describe('BookingMapLib', () => {
     await expect(user.BookingContract.addYear(2027, false, 1640995200, 1672531199))
       .to.emit(BookingContract, 'OperationResult')
       .withArgs(true);
+
     await expect(user.BookingContract.addYear(2027, true, 1640995200 + 100, 1672531199 + 100))
       .to.emit(BookingContract, 'OperationResult')
       .withArgs(false);
 
     let result, data;
-
+    // Did not updated the year
     [result, data] = await BookingContract.getYear(2027);
     expect(result).to.be.true;
     expect(data.number).to.eq(2027);
     expect(data.leapYear).to.eq(false);
     expect(data.start).to.eq(1640995200);
-    expect(data.end).to.eq(1640995200);
+    expect(data.end).to.eq(1672531199);
+
+    // updateing the year
+    const year2027 = yearData()['2027'];
+    await expect(user.BookingContract.updateYear(2027, year2027.LeapYear, year2027.start, year2027.end))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+
+    [result, data] = await BookingContract.getYear(2027);
+    expect(result).to.be.true;
+    expect(data.number).to.eq(2027);
+    expect(data.leapYear).to.eq(year2027.LeapYear);
+    expect(data.start).to.eq(year2027.start);
+    expect(data.end).to.eq(year2027.end);
+
+    await expect(user.BookingContract.removeYear(2027)).to.emit(BookingContract, 'OperationResult').withArgs(true);
+    [result, data] = await BookingContract.getYear(2027);
+    expect(result).to.be.false;
+
+    data = await BookingContract.getYears();
+
+    expect(data.length).that.eq(4);
+    expect(data[0].number).to.eq(2022);
+    expect(data[0].leapYear).to.eq(false);
+    expect(data[0].start).to.eq(1640995200);
+    expect(data[0].end).to.eq(1672531199);
+
+    expect(await BookingContract.containsYear(2027)).to.be.false;
+    expect(await BookingContract.containsYear(2022)).to.be.true;
+  });
+
+  it('buildTimestamp', async () => {
+    const {BookingContract} = await setup();
+    const testTimestamp = async (year: number, month: number, day: number) => {
+      const date = new Date(year, month - 1, day);
+      const dayOY = getDayOfYear(date);
+      const res = await BookingContract.buildTimestamp(year, dayOY);
+      const d = fromUnixTime(res.toNumber());
+      expect(d.getUTCDate()).to.eq(day);
+      expect(d.getUTCMonth() + 1).to.eq(month);
+      expect(d.getUTCFullYear()).to.eq(year);
+      expect(getDayOfYear(d)).to.eq(dayOY);
+    };
+    await testTimestamp(2022, 5, 16);
+    await testTimestamp(2022, 8, 16);
+    await testTimestamp(2022, 12, 31);
+    await testTimestamp(2023, 8, 13);
+    await testTimestamp(2023, 8, 18);
+    await testTimestamp(2024, 1, 1);
+    await testTimestamp(2024, 2, 29);
+    await testTimestamp(2024, 12, 31);
+    await testTimestamp(2024, 10, 28);
+    await testTimestamp(2025, 1, 1);
+    await testTimestamp(2025, 2, 27);
+    await testTimestamp(2025, 12, 31);
+    await testTimestamp(2025, 10, 28);
+    await testTimestamp(2024, 12, 30);
   });
 });

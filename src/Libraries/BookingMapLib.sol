@@ -34,7 +34,7 @@ library BookingMapLib {
 
     function set(UserStore storage store, Booking memory booking) internal returns (bool) {
         bytes32 key = _buildKey(booking.year, booking.dayOfYear);
-        if (store.dates[booking.year].set(_buildKey(booking.year, booking.dayOfYear), booking.timestamp)) {
+        if (store.dates[booking.year].set(key, booking.timestamp)) {
             store.balance[booking.year] += booking.price;
             store.bookings[key] = booking; //Booking(booking.price, booking.timestamp);
             return true;
@@ -139,38 +139,29 @@ library BookingMapLib {
         return bytes32(abi.encodePacked(num));
     }
 
-    // function _buildTimestamp(
-    //     YearsStore storage _years,
-    //     uint16 yearNum,
-    //     uint16 dayOfTheYear
-    // ) internal view returns (uint256) {
-    //     Year memory year = _getYear(_years, yearNum);
-    //     uint256 day;
+    function buildTimestamp(
+        YearsStore storage _years,
+        uint16 yearNum,
+        uint16 dayOfTheYear
+    ) internal view returns (bool, uint256) {
+        (bool found, Year memory year) = get(_years, yearNum);
+        if (found) {
+            uint256 day;
 
-    //     if (year.leapYear) {
-    //         day = (year.end - year.start) / 366;
-    //     } else {
-    //         day = (year.end - year.start) / 365;
-    //     }
-    //     return year.start + (day * (dayOfTheYear - 1)) + (day / 2);
-    // }
+            if (year.leapYear) {
+                day = (year.end - year.start) / 366;
+            } else {
+                day = (year.end - year.start) / 365;
+            }
+            return (true, year.start + (day * (dayOfTheYear - 1)) + (day / 2));
+        }
+        return (false, uint256(0));
+    }
 
     // function _getYearFromTm(YearsStore storage _years, uint256 tm) internal view returns (uint16) {
     //     for (uint16 i; i < _years.list.length; i++) {
     //         if (_years.list[i].start <= tm && _years.list[i].end >= tm) return _years.list[i].number;
     //     }
     //     return uint16(0);
-    // }
-
-    // function _getYear(YearsStore storage _years, uint16 number) internal view returns (Year memory) {
-    //     Year memory year;
-    //     for (uint8 i = 0; i < _years.list.length; i++) {
-    //         if (_years.list[i].number == number) {
-    //             year = _years.list[i];
-    //             break;
-    //         }
-    //     }
-    //     require(year.number == number && number > uint16(0), "year not found");
-    //     return year;
     // }
 }
