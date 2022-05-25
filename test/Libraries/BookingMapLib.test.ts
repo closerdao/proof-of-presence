@@ -1,12 +1,9 @@
 import {expect} from '../chai-setup';
-import {deployments, getUnnamedAccounts, ethers} from 'hardhat';
+import {deployments, getUnnamedAccounts} from 'hardhat';
 import {BookingMapLibMock} from '../../typechain';
 import {setupUser, setupUsers, getMock} from '../utils';
-import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
-import {addDays, getUnixTime, fromUnixTime, getDayOfYear} from 'date-fns';
-
-const BN = ethers.BigNumber;
+import {fromUnixTime, getDayOfYear} from 'date-fns';
 
 const yearData = () => {
   return {
@@ -137,5 +134,7 @@ describe('BookingMapLib', () => {
     await testTimestamp(2025, 12, 31);
     await testTimestamp(2025, 10, 28);
     await testTimestamp(2024, 12, 30);
+
+    await expect(BookingContract.buildTimestamp(2029, 10)).to.be.revertedWith('Unable to build Timestamp');
   });
 });
