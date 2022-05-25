@@ -1,0 +1,164 @@
+import {expect} from '../chai-setup';
+import {deployments, getUnnamedAccounts} from 'hardhat';
+import {BookingMapLibMock} from '../../typechain';
+import {setupUser, setupUsers, getMock} from '../utils';
+import {parseEther} from 'ethers/lib/utils';
+import {fromUnixTime, getDayOfYear} from 'date-fns';
+
+const yearData = () => {
+  return {
+    '2027': {number: 2027, LeapYear: false, start: 1798761600, end: 1830297599},
+  };
+};
+
+const setup = deployments.createFixture(async (hre) => {
+  const {deployments, getNamedAccounts, ethers} = hre;
+  await deployments.fixture();
+
+  const accounts = await getNamedAccounts();
+  const users = await getUnnamedAccounts();
+  const {deployer} = accounts;
+
+  const contracts = {
+    BookingContract: <BookingMapLibMock>await getMock('BookingMapLibMock', deployer, []),
+  };
+
+  return {
+    ...contracts,
+    users: await setupUsers(users, contracts),
+    deployer: await setupUser(deployer, contracts),
+    accounts,
+  };
+});
+
+describe('BookingMapLib', () => {
+  it('Bookings test', async () => {
+    const {users, BookingContract} = await setup();
+    const user = users[0];
+    await expect(user.BookingContract.book(user.address, 2023, 13))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+
+    let result, data;
+    [result, data] = await BookingContract.getBooking(user.address, 2023, 13);
+    expect(result).to.be.true;
+    expect(data.price).to.eq(parseEther('1'));
+    [result, data] = await BookingContract.getBooking(user.address, 2023, 234);
+    expect(result).to.be.false;
+
+    data = await BookingContract.getBookings(user.address, 2023);
+    expect(data[0].year).to.eq(2023);
+    expect(data[0].dayOfYear).to.eq(13);
+    expect(data[0].price).to.eq(parseEther('1'));
+    expect(data.length).to.eq(1);
+
+    await expect(user.BookingContract.remove(user.address, 2023, 13))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+    data = await BookingContract.getBookings(user.address, 2023);
+    expect(data.length).to.eq(0);
+  });
+
+  it('years integration test', async () => {
+    const {users, BookingContract} = await setup();
+    const user = users[0];
+    await expect(user.BookingContract.addYear(2027, false, 1640995200, 1672531199))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+
+    await expect(user.BookingContract.addYear(2027, true, 1640995200 + 100, 1672531199 + 100))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(false);
+
+    let result, data;
+    // Did not updated the year
+    [result, data] = await BookingContract.getYear(2027);
+    expect(result).to.be.true;
+    expect(data.number).to.eq(2027);
+    expect(data.leapYear).to.eq(false);
+    expect(data.start).to.eq(1640995200);
+    expect(data.end).to.eq(1672531199);
+
+    // updateing the year
+    const year2027 = yearData()['2027'];
+    await expect(user.BookingContract.updateYear(2027, year2027.LeapYear, year2027.start, year2027.end))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+
+    [result, data] = await BookingContract.getYear(2027);
+    expect(result).to.be.true;
+    expect(data.number).to.eq(2027);
+    expect(data.leapYear).to.eq(year2027.LeapYear);
+    expect(data.start).to.eq(year2027.start);
+    expect(data.end).to.eq(year2027.end);
+
+    await expect(user.BookingContract.removeYear(2027)).to.emit(BookingContract, 'OperationResult').withArgs(true);
+    [result, data] = await BookingContract.getYear(2027);
+    expect(result).to.be.false;
+
+    data = await BookingContract.getYears();
+
+    expect(data.length).that.eq(4);
+    expect(data[0].number).to.eq(2022);
+    expect(data[0].leapYear).to.eq(false);
+    expect(data[0].start).to.eq(1640995200);
+    expect(data[0].end).to.eq(1672531199);
+
+    expect(await BookingContract.containsYear(2027)).to.be.false;
+    expect(await BookingContract.containsYear(2022)).to.be.true;
+  });
+
+  it('buildTimestamp', async () => {
+    const {BookingContract} = await setup();
+    const testTimestamp = async (year: number, month: number, day: number) => {
+      const date = new Date(year, month - 1, day);
+      const dayOY = getDayOfYear(date);
+      const res = await BookingContract.buildTimestamp(year, dayOY);
+      const d = fromUnixTime(res.toNumber());
+      expect(d.getUTCDate()).to.eq(day);
+      expect(d.getUTCMonth() + 1).to.eq(month);
+      expect(d.getUTCFullYear()).to.eq(year);
+      expect(getDayOfYear(d)).to.eq(dayOY);
+    };
+    await testTimestamp(2022, 5, 16);
+    await testTimestamp(2022, 8, 16);
+    await testTimestamp(2022, 12, 31);
+    await testTimestamp(2023, 8, 13);
+    await testTimestamp(2023, 8, 18);
+    await testTimestamp(2024, 1, 1);
+    await testTimestamp(2024, 2, 29);
+    await testTimestamp(2024, 12, 31);
+    await testTimestamp(2024, 10, 28);
+    await testTimestamp(2025, 1, 1);
+    await testTimestamp(2025, 2, 27);
+    await testTimestamp(2025, 12, 31);
+    await testTimestamp(2025, 10, 28);
+    await testTimestamp(2024, 12, 30);
+
+    await expect(BookingContract.buildTimestamp(2029, 10)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(2021, 10)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(2028, 34)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(2029, 366)).to.be.revertedWith('Unable to build Timestamp');
+  });
+
+  it('buildBooking', async () => {
+    const {BookingContract} = await setup();
+    let result;
+    result = await BookingContract.buildBooking(2022, 16, parseEther('1'));
+    expect(result.year).to.eq(2022);
+    expect(result.dayOfYear).to.eq(16);
+    expect(result.price).to.eq(parseEther('1'));
+    // expect(result.timestamp).to.be.greaterThan(1640995200);
+    result = await BookingContract.buildBooking(2024, 366, parseEther('2'));
+    expect(result.year).to.eq(2024);
+    expect(result.dayOfYear).to.eq(366);
+    expect(result.price).to.eq(parseEther('2'));
+    // expect(result.timestamp).to.be.greaterThan(1640995200);
+    await expect(BookingContract.buildBooking(2030, 366, parseEther('2'))).to.be.revertedWith(
+      'Unable to build Booking'
+    );
+    await expect(BookingContract.buildBooking(2021, 366, parseEther('2'))).to.be.revertedWith(
+      'Unable to build Booking'
+    );
+  });
+});

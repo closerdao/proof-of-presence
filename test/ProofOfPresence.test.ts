@@ -4,7 +4,7 @@ import {TDFToken, ProofOfPresence, TokenLock} from '../typechain';
 import {setupUser, setupUsers} from './utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
-import {addDays, getUnixTime} from 'date-fns';
+import {addDays, getUnixTime, fromUnixTime, getDayOfYear} from 'date-fns';
 const BN = ethers.BigNumber;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,7 +129,7 @@ const buildDates = (initDate: Date, amount: number) => {
 };
 
 describe('ProofOfPresence', () => {
-  it('book', async () => {
+  xit('book', async () => {
     const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
 
     const user = users[0];
@@ -146,7 +146,7 @@ describe('ProofOfPresence', () => {
     await send.book(dates);
     await test.balances('5', '5', '9995');
   });
-  it('book and cancel', async () => {
+  xit('book and cancel', async () => {
     const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
     const user = users[0];
 
@@ -189,6 +189,36 @@ describe('ProofOfPresence', () => {
 
     await timeTravelTo(dates[4] + 2 * 86400);
     await send.cancel.reverted.inThepast([dates[1], dates[2], dates[3]]);
+  });
+
+  it('buildTimestamp', async () => {
+    const {ProofOfPresence} = await setup();
+    const testTimestamp = async (year: number, month: number, day: number) => {
+      const date = new Date(year, month - 1, day);
+      const dayOY = getDayOfYear(date);
+      const res = await ProofOfPresence.buildTimestamp(year, dayOY);
+      const d = fromUnixTime(res.toNumber());
+      console.log('input:', date);
+      console.log('response:', d);
+      expect(d.getUTCDate()).to.eq(day);
+      expect(d.getUTCMonth() + 1).to.eq(month);
+      expect(d.getUTCFullYear()).to.eq(year);
+      expect(getDayOfYear(d)).to.eq(dayOY);
+    };
+    await testTimestamp(2022, 5, 16);
+    await testTimestamp(2022, 8, 16);
+    await testTimestamp(2022, 12, 31);
+    await testTimestamp(2023, 8, 13);
+    await testTimestamp(2023, 8, 18);
+    await testTimestamp(2024, 1, 1);
+    await testTimestamp(2024, 2, 29);
+    await testTimestamp(2024, 12, 31);
+    await testTimestamp(2024, 10, 28);
+    await testTimestamp(2025, 1, 1);
+    await testTimestamp(2025, 2, 27);
+    await testTimestamp(2025, 12, 31);
+    await testTimestamp(2025, 10, 28);
+    await testTimestamp(2024, 12, 30);
   });
 
   it('getters', async () => {});

@@ -75,6 +75,12 @@ export async function getInactiveContract(name: string, args?: []): Promise<Cont
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
+  await deployments.deploy(name, {from: deployer, args: args});
+  return ethers.getContract(name, deployer);
+}
+
 export async function topUpFunds(name: string, to: string, amount?: string) {
   const accounts = await getNamedAccounts();
   let defAmount: string;

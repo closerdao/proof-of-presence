@@ -104,6 +104,7 @@ contract TokenLock is Context, ReentrancyGuard {
         if (stake == 0) {
             _deposit(account, amount, initLockingTm);
         } else {
+            // TODO: the restake should account for bigger TM as staked and update the smaller TM only
             WithdrawingResult memory result = _calculateWithdraw(account, amount, MAX_INT);
 
             _restake(account, result, initLockingTm);
