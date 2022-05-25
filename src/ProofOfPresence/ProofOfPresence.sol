@@ -80,7 +80,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
         for (uint16 i = 0; i < _yearList.length; i++) {
             // TODO: should it be + 1 year?
             if (_yearList[i].end < block.timestamp) continue;
-            uint256 amount = _bookings[account].balance[_yearList[i].number];
+            uint256 amount = _bookings[account].getBalance(_yearList[i].number);
             if (amount > max) max = amount;
         }
         return max;
@@ -93,13 +93,4 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     ) public view returns (bool, BookingMapLib.Booking memory) {
         return _bookings[account].get(yearNum, dayOfYear);
     }
-
-    // function getDates(address account) public view returns (uint256[] memory) {
-    //     return _internalDates[account][getYear(block.timestamp)].values();
-    // }
-
-    // function getBooking(address account, uint256 _date) public view returns (uint256, uint256) {
-    //     Booking storage booking = _bookings[account][getYear(_date)][_date];
-    //     return (_date, booking.cost);
-    // }
 }

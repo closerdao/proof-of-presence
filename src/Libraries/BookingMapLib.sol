@@ -54,6 +54,10 @@ library BookingMapLib {
         return (false, Booking(0, 0, 0, 0));
     }
 
+    function getBalance(UserStore storage store, uint16 _year) internal view returns (uint256) {
+        return store.balance[_year];
+    }
+
     function list(UserStore storage store, uint16 _year) internal view returns (Booking[] memory) {
         Booking[] memory bookings = new Booking[](store.dates[_year].length());
         for (uint256 i; i < store.dates[_year].length(); i++) {
