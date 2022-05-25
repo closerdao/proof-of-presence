@@ -92,4 +92,15 @@ contract BookingMapLibMock {
         require(success, "Unable to build Timestamp");
         return value;
     }
+
+    function buildBooking(
+        uint16 yearNum,
+        uint16 dayOfTheYear,
+        uint256 price
+    ) public view returns (BookingMapLib.Booking memory) {
+        (bool success, BookingMapLib.Booking memory value) = _years.buildBooking(yearNum, dayOfTheYear, price);
+        require(success, "Unable to build Booking");
+
+        return value;
+    }
 }

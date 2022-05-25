@@ -136,5 +136,29 @@ describe('BookingMapLib', () => {
     await testTimestamp(2024, 12, 30);
 
     await expect(BookingContract.buildTimestamp(2029, 10)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(2021, 10)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(2028, 34)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(2029, 366)).to.be.revertedWith('Unable to build Timestamp');
+  });
+
+  it('buildBooking', async () => {
+    const {BookingContract} = await setup();
+    let result;
+    result = await BookingContract.buildBooking(2022, 16, parseEther('1'));
+    expect(result.year).to.eq(2022);
+    expect(result.dayOfYear).to.eq(16);
+    expect(result.price).to.eq(parseEther('1'));
+    // expect(result.timestamp).to.be.greaterThan(1640995200);
+    result = await BookingContract.buildBooking(2024, 366, parseEther('2'));
+    expect(result.year).to.eq(2024);
+    expect(result.dayOfYear).to.eq(366);
+    expect(result.price).to.eq(parseEther('2'));
+    // expect(result.timestamp).to.be.greaterThan(1640995200);
+    await expect(BookingContract.buildBooking(2030, 366, parseEther('2'))).to.be.revertedWith(
+      'Unable to build Booking'
+    );
+    await expect(BookingContract.buildBooking(2021, 366, parseEther('2'))).to.be.revertedWith(
+      'Unable to build Booking'
+    );
   });
 });

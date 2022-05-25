@@ -158,6 +158,19 @@ library BookingMapLib {
         return (false, uint256(0));
     }
 
+    function buildBooking(
+        YearsStore storage _years,
+        uint16 yearNum,
+        uint16 dayOfTheYear,
+        uint256 price
+    ) internal view returns (bool, Booking memory) {
+        (bool success, uint256 tm) = buildTimestamp(_years, yearNum, dayOfTheYear);
+        if (success) {
+            return (true, Booking(yearNum, dayOfTheYear, price, tm));
+        }
+        return (false, Booking(0, 0, 0, 0));
+    }
+
     // function _getYearFromTm(YearsStore storage _years, uint256 tm) internal view returns (uint16) {
     //     for (uint16 i; i < _years.list.length; i++) {
     //         if (_years.list[i].start <= tm && _years.list[i].end >= tm) return _years.list[i].number;
