@@ -170,11 +170,4 @@ library BookingMapLib {
         }
         return (false, Booking(0, 0, 0, 0));
     }
-
-    // function _getYearFromTm(YearsStore storage _years, uint256 tm) internal view returns (uint16) {
-    //     for (uint16 i; i < _years.list.length; i++) {
-    //         if (_years.list[i].start <= tm && _years.list[i].end >= tm) return _years.list[i].number;
-    //     }
-    //     return uint16(0);
-    // }
 }
