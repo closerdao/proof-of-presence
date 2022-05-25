@@ -7,6 +7,45 @@ import {parseEther} from 'ethers/lib/utils';
 import {addDays, getUnixTime, fromUnixTime, getDayOfYear} from 'date-fns';
 const BN = ethers.BigNumber;
 
+type DateInputs = [number, number][];
+interface setUser {
+  address: string;
+  TokenLock: TokenLock;
+  TDFToken: TDFToken;
+  ProofOfPresence: ProofOfPresence;
+}
+interface DateMetadata {
+  year: number;
+  day: number;
+  unix: number;
+}
+interface DatesTestData {
+  data: DateMetadata[];
+  inputs: DateInputs;
+}
+const buildDates = (initDate: Date, amount: number): DatesTestData => {
+  const acc: DatesTestData = {data: [], inputs: []};
+  for (let i = 0; i < amount; i++) {
+    const nDate = addDays(initDate, i);
+    acc.data.push({
+      year: nDate.getUTCFullYear(),
+      day: getDayOfYear(nDate),
+      unix: getUnixTime(nDate),
+    });
+    acc.inputs.push([nDate.getUTCFullYear(), getDayOfYear(nDate)]);
+  }
+  return acc;
+};
+
+const collectDates = (dates: DatesTestData, indexes: number[]): DatesTestData => {
+  const acc: DatesTestData = {data: [], inputs: []};
+  indexes.forEach((i) => {
+    acc.data.push(dates.data[i]);
+    acc.inputs.push(dates.inputs[i]);
+  });
+  return acc;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
   await deployments.deploy(name, {from: deployer, args: args});
@@ -17,12 +56,7 @@ const timeTravelTo = async (time: number) => {
   await network.provider.send('evm_setNextBlockTimestamp', [time]);
   await network.provider.send('evm_mine');
 };
-interface setUser {
-  address: string;
-  TokenLock: TokenLock;
-  TDFToken: TDFToken;
-  ProofOfPresence: ProofOfPresence;
-}
+
 const setupHelpers = async ({
   stakeContract,
   tokenContract,
@@ -54,29 +88,34 @@ const setupHelpers = async ({
           expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
         }
       },
-      bookings: async (dates: number[], price: string) => {
+      bookings: async (dates: DatesTestData, price: string) => {
         await Promise.all(
-          dates.map(async (e) => {
-            const [d, c] = await bookingContract.getBooking(user.address, e);
-            return Promise.all([expect(d).to.eq(e), expect(c).to.eq(parseEther(price))]);
+          dates.data.map(async (e) => {
+            const [success, booking] = await bookingContract.getBooking(user.address, e.year, e.day);
+            return Promise.all([
+              expect(booking.price).to.eq(parseEther(price)),
+              expect(booking.year).to.eq(e.year),
+              expect(booking.dayOfYear).to.eq(e.day),
+              expect(success).to.be.true,
+            ]);
           })
         );
       },
     },
     // functions that modify state
     send: {
-      book: async (dates: number[]) => {
+      book: async (dates: DateInputs) => {
         await user.ProofOfPresence.book(dates);
       },
       cancel: {
-        success: async (dates: number[]) => {
+        success: async (dates: DateInputs) => {
           await user.ProofOfPresence.cancel(dates);
         },
         reverted: {
-          noneExisting: async (dates: number[]) => {
+          noneExisting: async (dates: DateInputs) => {
             await expect(user.ProofOfPresence.cancel(dates)).to.be.revertedWith('Booking does not exists');
           },
-          inThepast: async (dates: number[]) => {
+          inThepast: async (dates: DateInputs) => {
             await expect(user.ProofOfPresence.cancel(dates)).to.be.revertedWith('Can not cancel past booking');
           },
         },
@@ -120,16 +159,8 @@ const setup = deployments.createFixture(async (hre) => {
   return conf;
 });
 
-const buildDates = (initDate: Date, amount: number) => {
-  const acc = [];
-  for (let i = 0; i < amount; i++) {
-    acc.push(getUnixTime(addDays(initDate, i)));
-  }
-  return acc;
-};
-
 describe('ProofOfPresence', () => {
-  xit('book', async () => {
+  it('book', async () => {
     const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
 
     const user = users[0];
@@ -143,10 +174,10 @@ describe('ProofOfPresence', () => {
     await user.TDFToken.approve(TokenLock.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
-    await send.book(dates);
+    await send.book(dates.inputs);
     await test.balances('5', '5', '9995');
   });
-  xit('book and cancel', async () => {
+  it('book and cancel', async () => {
     const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
     const user = users[0];
 
@@ -164,61 +195,34 @@ describe('ProofOfPresence', () => {
     // -------------------------------------------------------
     //  Book and cancel all the dates
     // -------------------------------------------------------
-    await send.book(dates);
+    await send.book(dates.inputs);
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
 
-    await send.cancel.success(dates);
-    expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
+    await send.cancel.success(dates.inputs);
+    // TODO:
+    // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
     await test.balances('5', '5', '9995');
-    await test.bookings(dates, '0');
     // -------------------------------------------------------
     //  Book and cancel few dates
     // -------------------------------------------------------
-    await send.book(dates);
+    await send.book(dates.inputs);
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
 
-    const cDates = [dates[0], dates[4]];
-    await send.cancel.success(cDates);
-    expect((await ProofOfPresence.getDates(user.address)).length).to.eq(3);
+    const cDates = collectDates(dates, [0, 4]);
+    await send.cancel.success(cDates.inputs);
+    // TODO:
+    // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(3);
     await test.balances('5', '5', '9995');
-    await test.bookings(cDates, '0');
-    await test.bookings([dates[1], dates[2], dates[3]], '1');
-    await send.cancel.reverted.noneExisting(cDates);
+    const restcDates = collectDates(dates, [1, 2, 3]);
 
-    await timeTravelTo(dates[4] + 2 * 86400);
-    await send.cancel.reverted.inThepast([dates[1], dates[2], dates[3]]);
-  });
+    await test.bookings(restcDates, '1');
+    await send.cancel.reverted.noneExisting(cDates.inputs);
 
-  it('buildTimestamp', async () => {
-    const {ProofOfPresence} = await setup();
-    const testTimestamp = async (year: number, month: number, day: number) => {
-      const date = new Date(year, month - 1, day);
-      const dayOY = getDayOfYear(date);
-      const res = await ProofOfPresence.buildTimestamp(year, dayOY);
-      const d = fromUnixTime(res.toNumber());
-      console.log('input:', date);
-      console.log('response:', d);
-      expect(d.getUTCDate()).to.eq(day);
-      expect(d.getUTCMonth() + 1).to.eq(month);
-      expect(d.getUTCFullYear()).to.eq(year);
-      expect(getDayOfYear(d)).to.eq(dayOY);
-    };
-    await testTimestamp(2022, 5, 16);
-    await testTimestamp(2022, 8, 16);
-    await testTimestamp(2022, 12, 31);
-    await testTimestamp(2023, 8, 13);
-    await testTimestamp(2023, 8, 18);
-    await testTimestamp(2024, 1, 1);
-    await testTimestamp(2024, 2, 29);
-    await testTimestamp(2024, 12, 31);
-    await testTimestamp(2024, 10, 28);
-    await testTimestamp(2025, 1, 1);
-    await testTimestamp(2025, 2, 27);
-    await testTimestamp(2025, 12, 31);
-    await testTimestamp(2025, 10, 28);
-    await testTimestamp(2024, 12, 30);
+    await timeTravelTo(dates.data[4].unix + 2 * 86400);
+
+    await send.cancel.reverted.inThepast(collectDates(dates, [1, 2, 3]).inputs);
   });
 
   it('getters', async () => {});

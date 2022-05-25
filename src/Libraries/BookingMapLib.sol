@@ -32,7 +32,7 @@ library BookingMapLib {
         mapping(bytes32 => Year) elems;
     }
 
-    function set(UserStore storage store, Booking memory booking) internal returns (bool) {
+    function add(UserStore storage store, Booking memory booking) internal returns (bool) {
         bytes32 key = _buildKey(booking.year, booking.dayOfYear);
         if (store.dates[booking.year].set(key, booking.timestamp)) {
             store.balance[booking.year] += booking.price;

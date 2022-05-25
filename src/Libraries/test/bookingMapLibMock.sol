@@ -25,7 +25,7 @@ contract BookingMapLibMock {
         uint16 _year,
         uint16 _dayYear
     ) public {
-        bool result = _bookings[_user].set(BookingMapLib.Booking(_year, _dayYear, 1 ether, block.timestamp));
+        bool result = _bookings[_user].add(BookingMapLib.Booking(_year, _dayYear, 1 ether, block.timestamp));
         emit OperationResult(result);
     }
 
