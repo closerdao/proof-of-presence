@@ -198,6 +198,8 @@ describe('ProofOfPresence', () => {
     await send.book(dates.inputs);
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
+    const bookings = await ProofOfPresence.getBookings(user.address, 2022);
+    console.log(bookings);
 
     await send.cancel.success(dates.inputs);
     // TODO:

@@ -93,4 +93,8 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     ) public view returns (bool, BookingMapLib.Booking memory) {
         return _bookings[account].get(yearNum, dayOfYear);
     }
+
+    function getBookings(address account, uint16 _year) public view returns (BookingMapLib.Booking[] memory) {
+        return _bookings[account].list(_year);
+    }
 }
