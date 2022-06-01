@@ -119,7 +119,7 @@ const setupHelpers = async ({
         await Promise.all(
           _.map(years, async (yList) => {
             const bookings = await bookingContract.getBookings(user.address, yList[0].year);
-            await Promise.all([expect(yList.length).to.eq(bookings.length), await listTest(bookings, yList)]);
+            return Promise.all([expect(yList.length).to.eq(bookings.length), listTest(bookings, yList)]);
           })
         );
       },

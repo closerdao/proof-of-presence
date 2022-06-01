@@ -7,6 +7,7 @@ import {fromUnixTime, getDayOfYear} from 'date-fns';
 
 const yearData = () => {
   return {
+    '2024': {number: 2024, LeapYear: true, start: 1704067200, end: 1735689599},
     '2027': {number: 2027, LeapYear: false, start: 1798761600, end: 1830297599},
   };
 };
@@ -62,11 +63,11 @@ describe('BookingMapLib', () => {
   it('years integration test', async () => {
     const {users, BookingContract} = await setup();
     const user = users[0];
-    await expect(user.BookingContract.addYear(2027, false, 1640995200, 1672531199))
+    await expect(user.BookingContract.addYear(2027, false, 1640995200, 1672531199, true))
       .to.emit(BookingContract, 'OperationResult')
       .withArgs(true);
 
-    await expect(user.BookingContract.addYear(2027, true, 1640995200 + 100, 1672531199 + 100))
+    await expect(user.BookingContract.addYear(2027, true, 1640995200 + 100, 1672531199 + 100, true))
       .to.emit(BookingContract, 'OperationResult')
       .withArgs(false);
 
@@ -81,7 +82,7 @@ describe('BookingMapLib', () => {
 
     // updateing the year
     const year2027 = yearData()['2027'];
-    await expect(user.BookingContract.updateYear(2027, year2027.LeapYear, year2027.start, year2027.end))
+    await expect(user.BookingContract.updateYear(2027, year2027.LeapYear, year2027.start, year2027.end, true))
       .to.emit(BookingContract, 'OperationResult')
       .withArgs(true);
 
@@ -109,7 +110,8 @@ describe('BookingMapLib', () => {
   });
 
   it('buildTimestamp', async () => {
-    const {BookingContract} = await setup();
+    const {BookingContract, users} = await setup();
+    const user = users[0];
     const testTimestamp = async (year: number, month: number, day: number) => {
       const date = new Date(year, month - 1, day);
       const dayOY = getDayOfYear(date);
@@ -139,11 +141,26 @@ describe('BookingMapLib', () => {
     await expect(BookingContract.buildTimestamp(2021, 10)).to.be.revertedWith('Unable to build Timestamp');
     await expect(BookingContract.buildTimestamp(2028, 34)).to.be.revertedWith('Unable to build Timestamp');
     await expect(BookingContract.buildTimestamp(2029, 366)).to.be.revertedWith('Unable to build Timestamp');
+
+    // After disabling year. build timestamp should fail
+    const year2024 = yearData()['2024'];
+
+    await expect(user.BookingContract.updateYear(2024, year2024.LeapYear, year2024.start, year2024.end, false))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+    const [result, data] = await BookingContract.getYear(2024);
+    expect(result).to.be.true;
+    expect(data.enabled).to.be.false;
+
+    await expect(BookingContract.buildTimestamp(2024, 2)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(2024, 12)).to.be.revertedWith('Unable to build Timestamp');
   });
 
   it('buildBooking', async () => {
-    const {BookingContract} = await setup();
-    let result;
+    const {BookingContract, users} = await setup();
+    const user = users[0];
+    let result, data;
+
     result = await BookingContract.buildBooking(2022, 16, parseEther('1'));
     expect(result.year).to.eq(2022);
     expect(result.dayOfYear).to.eq(16);
@@ -160,5 +177,20 @@ describe('BookingMapLib', () => {
     await expect(BookingContract.buildBooking(2021, 366, parseEther('2'))).to.be.revertedWith(
       'Unable to build Booking'
     );
+
+    // After disabling year. build timestamp should fail
+    const year2024 = yearData()['2024'];
+    data = undefined;
+    await expect(user.BookingContract.updateYear(2024, year2024.LeapYear, year2024.start, year2024.end, false))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+    [result, data] = await BookingContract.getYear(2024);
+    expect(result).to.be.true;
+    expect(data.enabled).to.be.false;
+
+    await expect(BookingContract.buildBooking(2024, 366, parseEther('2'))).to.be.revertedWith(
+      'Unable to build Booking'
+    );
+    await expect(BookingContract.buildBooking(2024, 10, parseEther('2'))).to.be.revertedWith('Unable to build Booking');
   });
 });

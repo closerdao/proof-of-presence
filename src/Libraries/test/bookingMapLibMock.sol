@@ -14,10 +14,10 @@ contract BookingMapLibMock {
     event OperationResult(bool success);
 
     constructor() {
-        _years.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199));
-        _years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199));
-        _years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599));
-        _years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599));
+        _years.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199, true));
+        _years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
+        _years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
+        _years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
     }
 
     function book(
@@ -54,9 +54,10 @@ contract BookingMapLibMock {
         uint16 number,
         bool leapYear,
         uint256 start,
-        uint256 end
+        uint256 end,
+        bool enabled
     ) public {
-        bool res = _years.add(BookingMapLib.Year(number, leapYear, start, end));
+        bool res = _years.add(BookingMapLib.Year(number, leapYear, start, end, enabled));
         emit OperationResult(res);
     }
 
@@ -81,9 +82,10 @@ contract BookingMapLibMock {
         uint16 number,
         bool leapYear,
         uint256 start,
-        uint256 end
+        uint256 end,
+        bool enabled
     ) public {
-        bool res = _years.update(BookingMapLib.Year(number, leapYear, start, end));
+        bool res = _years.update(BookingMapLib.Year(number, leapYear, start, end, enabled));
         emit OperationResult(res);
     }
 

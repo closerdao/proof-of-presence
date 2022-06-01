@@ -25,10 +25,10 @@ contract ProofOfPresence is Context, ReentrancyGuard {
 
     constructor(address _wallet) {
         wallet = ITokenLock(_wallet);
-        _years.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199));
-        _years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199));
-        _years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599));
-        _years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599));
+        _years.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199, true));
+        _years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
+        _years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
+        _years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
     }
 
     function book(uint16[2][] memory dates) public {

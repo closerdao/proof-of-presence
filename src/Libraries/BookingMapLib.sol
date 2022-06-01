@@ -26,7 +26,9 @@ library BookingMapLib {
         bool leapYear;
         uint256 start;
         uint256 end;
+        bool enabled;
     }
+
     struct YearsStore {
         EnumerableSet.Bytes32Set _inner;
         mapping(bytes32 => Year) elems;
@@ -86,6 +88,38 @@ library BookingMapLib {
         return bytes32(abi.encodePacked(year, dayOfYear));
     }
 
+    function buildTimestamp(
+        YearsStore storage _years,
+        uint16 yearNum,
+        uint16 dayOfTheYear
+    ) internal view returns (bool, uint256) {
+        (bool found, Year memory year) = get(_years, yearNum);
+        if (found && year.enabled) {
+            uint256 day;
+
+            if (year.leapYear) {
+                day = (year.end - year.start) / 366;
+            } else {
+                day = (year.end - year.start) / 365;
+            }
+            return (true, year.start + (day * (dayOfTheYear - 1)) + (day / 2));
+        }
+        return (false, uint256(0));
+    }
+
+    function buildBooking(
+        YearsStore storage _years,
+        uint16 yearNum,
+        uint16 dayOfTheYear,
+        uint256 price
+    ) internal view returns (bool, Booking memory) {
+        (bool success, uint256 tm) = buildTimestamp(_years, yearNum, dayOfTheYear);
+        if (success) {
+            return (true, Booking(yearNum, dayOfTheYear, price, tm));
+        }
+        return (false, Booking(0, 0, 0, 0));
+    }
+
     /// YearsStore -------------------------------------------
 
     function add(YearsStore storage store, Year memory _year) internal returns (bool) {
@@ -111,7 +145,7 @@ library BookingMapLib {
         if (store._inner.contains(k)) {
             return (true, store.elems[k]);
         }
-        return (false, Year(0, false, 0, 0));
+        return (false, Year(0, false, 0, 0, false));
     }
 
     function remove(YearsStore storage store, uint16 num) internal returns (bool) {
@@ -141,37 +175,5 @@ library BookingMapLib {
 
     function _buildYearKey(uint16 num) internal pure returns (bytes32) {
         return bytes32(abi.encodePacked(num));
-    }
-
-    function buildTimestamp(
-        YearsStore storage _years,
-        uint16 yearNum,
-        uint16 dayOfTheYear
-    ) internal view returns (bool, uint256) {
-        (bool found, Year memory year) = get(_years, yearNum);
-        if (found) {
-            uint256 day;
-
-            if (year.leapYear) {
-                day = (year.end - year.start) / 366;
-            } else {
-                day = (year.end - year.start) / 365;
-            }
-            return (true, year.start + (day * (dayOfTheYear - 1)) + (day / 2));
-        }
-        return (false, uint256(0));
-    }
-
-    function buildBooking(
-        YearsStore storage _years,
-        uint16 yearNum,
-        uint16 dayOfTheYear,
-        uint256 price
-    ) internal view returns (bool, Booking memory) {
-        (bool success, uint256 tm) = buildTimestamp(_years, yearNum, dayOfTheYear);
-        if (success) {
-            return (true, Booking(yearNum, dayOfTheYear, price, tm));
-        }
-        return (false, Booking(0, 0, 0, 0));
     }
 }
