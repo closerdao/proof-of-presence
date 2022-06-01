@@ -1,11 +1,14 @@
 import {expect} from './chai-setup';
 import {deployments, getUnnamedAccounts, ethers, network} from 'hardhat';
 import {TDFToken, ProofOfPresence, TokenLock} from '../typechain';
+import {BookingMapLib} from '../typechain/ProofOfPresence';
+
 import {setupUser, setupUsers} from './utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays, getUnixTime, fromUnixTime, getDayOfYear} from 'date-fns';
 const BN = ethers.BigNumber;
+import * as _ from 'lodash';
 
 type DateInputs = [number, number][];
 interface setUser {
@@ -98,6 +101,25 @@ const setupHelpers = async ({
               expect(booking.dayOfYear).to.eq(e.day),
               expect(success).to.be.true,
             ]);
+          })
+        );
+      },
+    },
+    call: {
+      getBookings: async (dates: DatesTestData) => {
+        const years = _.groupBy(dates.data, (e) => e.year);
+        const listTest = async (bookings: BookingMapLib.BookingStruct[], datum: DateMetadata[]) => {
+          return Promise.all(
+            datum.map(async (e) => {
+              const found = bookings.find((val) => val.year == e.year && val.dayOfYear == e.day);
+              return Promise.all([expect(found).not.be.undefined]);
+            })
+          );
+        };
+        await Promise.all(
+          _.map(years, async (yList) => {
+            const bookings = await bookingContract.getBookings(user.address, yList[0].year);
+            await Promise.all([expect(yList.length).to.eq(bookings.length), await listTest(bookings, yList)]);
           })
         );
       },
@@ -198,8 +220,6 @@ describe('ProofOfPresence', () => {
     await send.book(dates.inputs);
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
-    const bookings = await ProofOfPresence.getBookings(user.address, 2022);
-    console.log(bookings);
 
     await send.cancel.success(dates.inputs);
     // TODO:
@@ -227,7 +247,29 @@ describe('ProofOfPresence', () => {
     await send.cancel.reverted.inThepast(collectDates(dates, [1, 2, 3]).inputs);
   });
 
-  it('getters', async () => {});
+  it('getters', async () => {
+    const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
+    const user = users[0];
+
+    const {test, send, call} = await setupHelpers({
+      stakeContract: TokenLock,
+      tokenContract: TDFToken,
+      bookingContract: ProofOfPresence,
+      user: user,
+    });
+
+    await user.TDFToken.approve(TokenLock.address, parseEther('10'));
+    const init = addDays(Date.now(), 10);
+    const dates = buildDates(init, 5);
+
+    // -------------------------------------------------------
+    //  Book and cancel all the dates
+    // -------------------------------------------------------
+    await send.book(dates.inputs);
+    await test.balances('5', '5', '9995');
+    await test.bookings(dates, '1');
+    await call.getBookings(dates);
+  });
 
   it('ownable', async () => {});
 
