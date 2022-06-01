@@ -19,12 +19,12 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
 
-    ITokenLock public immutable wallet;
+    ITokenLock public immutable tokenLock;
     mapping(address => BookingMapLib.UserStore) internal _bookings;
     BookingMapLib.YearsStore internal _years;
 
-    constructor(address _wallet) {
-        wallet = ITokenLock(_wallet);
+    constructor(address _tokenLock) {
+        tokenLock = ITokenLock(_tokenLock);
         _years.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199, true));
         _years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
         _years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
@@ -39,7 +39,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
 
             if (lastDate < value.timestamp) lastDate = value.timestamp;
         }
-        wallet.restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
+        tokenLock.restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
     }
 
     function _insertBooking(
@@ -97,4 +97,9 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     function getBookings(address account, uint16 _year) public view returns (BookingMapLib.Booking[] memory) {
         return _bookings[account].list(_year);
     }
+
+    // Admin functions
+
+    // - add year
+    // - update year
 }
