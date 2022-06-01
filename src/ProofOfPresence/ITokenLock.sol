@@ -3,9 +3,15 @@
 pragma solidity 0.8.9;
 
 interface ITokenLock {
-    function restakeOrDepositAtFor(
+    // function restakeOrDepositAtFor(
+    //     address account,
+    //     uint256 amount,
+    //     uint256 initLockingTm
+    // ) external;
+
+    function approveAndRestakeOrDepositAtFor(
         address account,
         uint256 amount,
         uint256 initLockingTm
-    ) external;
+    ) external returns (bool);
 }

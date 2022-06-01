@@ -171,7 +171,7 @@ describe('ProofOfPresence', () => {
       user: user,
     });
 
-    await user.TDFToken.approve(TokenLock.address, parseEther('10'));
+    // await user.TDFToken.approve(TokenLock.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
     await send.book(dates.inputs);
@@ -188,7 +188,7 @@ describe('ProofOfPresence', () => {
       user: user,
     });
 
-    await user.TDFToken.approve(TokenLock.address, parseEther('10'));
+    // await user.TDFToken.approve(TokenLock.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
 

@@ -39,7 +39,7 @@ contract ProofOfPresence is Context, ReentrancyGuard {
 
             if (lastDate < value.timestamp) lastDate = value.timestamp;
         }
-        wallet.restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
+        wallet.approveAndRestakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
     }
 
     function _insertBooking(

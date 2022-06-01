@@ -11,6 +11,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "hardhat/console.sol";
 
+interface IERC20ApproveAndCall {
+    function approveAndCall(
+        address spender,
+        uint256 amount,
+        bytes calldata data
+    ) external returns (bool);
+}
+
 contract TokenLock is Context, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -91,12 +99,39 @@ contract TokenLock is Context, ReentrancyGuard {
         _restake(_msgSender(), result, block.timestamp);
     }
 
+    struct ApprovalCallback {
+        uint256 timestamp;
+    }
+
+    function approveAndRestakeOrDepositAtFor(
+        address account,
+        uint256 amount,
+        uint256 initLockingTm
+    ) external returns (bool) {
+        console.log(address(this));
+        return
+            IERC20ApproveAndCall(address(token)).approveAndCall(
+                account,
+                amount,
+                abi.encode(ApprovalCallback(initLockingTm))
+            );
+    }
+
     function restakeOrDepositAtFor(
         address account,
         uint256 amount,
         // TODO: initLocking time must be bigger that current timestamp
         uint256 initLockingTm
     ) public {
+        _restakeOrDepositAtFor(account, amount, initLockingTm);
+    }
+
+    function _restakeOrDepositAtFor(
+        address account,
+        uint256 amount,
+        // TODO: initLocking time must be bigger that current timestamp
+        uint256 initLockingTm
+    ) private {
         require(initLockingTm >= block.timestamp, "Unable to stake to the pass");
         uint256 stake = _balances[account];
         uint256 tBalance = token.balanceOf(account);
@@ -114,6 +149,16 @@ contract TokenLock is Context, ReentrancyGuard {
                 _deposit(account, toTransfer, initLockingTm);
             }
         }
+    }
+
+    function onTokenApproval(
+        address account,
+        uint256 amount,
+        bytes calldata data
+    ) external returns (bool) {
+        ApprovalCallback memory params = abi.decode(data, (ApprovalCallback));
+        _restakeOrDepositAtFor(account, amount, params.timestamp);
+        return true;
     }
 
     function _restake(
