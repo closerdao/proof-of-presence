@@ -138,7 +138,7 @@ const setupHelpers = async ({
     send: {
       book: {
         success: async (dates: DateInputs) => {
-          await user.ProofOfPresence.book(dates);
+          await expect(user.ProofOfPresence.book(dates)).to.emit(bookingContract, 'NewBookings');
         },
         reverted: {
           paused: async (dates: DateInputs) => {
@@ -148,7 +148,7 @@ const setupHelpers = async ({
       },
       cancel: {
         success: async (dates: DateInputs) => {
-          await user.ProofOfPresence.cancel(dates);
+          await expect(user.ProofOfPresence.cancel(dates)).to.emit(bookingContract, 'CanceledBookings');
         },
         reverted: {
           noneExisting: async (dates: DateInputs) => {

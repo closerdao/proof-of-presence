@@ -15,7 +15,8 @@ contract ProofOfPresence is Context, Ownable, Pausable {
     mapping(address => BookingMapLib.UserStore) internal _bookings;
     BookingMapLib.YearsStore internal _years;
 
-    // event NewBookings(address account)
+    event NewBookings(address account, uint16[2][] bookings);
+    event CanceledBookings(address account, uint16[2][] bookings);
 
     event YearAdded(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
     event YearRemoved(uint16 number);
@@ -38,6 +39,7 @@ contract ProofOfPresence is Context, Ownable, Pausable {
             if (lastDate < value.timestamp) lastDate = value.timestamp;
         }
         tokenLock.restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
+        emit NewBookings(_msgSender(), dates);
     }
 
     function _insertBooking(
@@ -58,6 +60,7 @@ contract ProofOfPresence is Context, Ownable, Pausable {
         for (uint256 i = 0; i < dates.length; i++) {
             _cancel(_msgSender(), dates[i][0], dates[i][1]);
         }
+        emit CanceledBookings(_msgSender(), dates);
     }
 
     function _cancel(
