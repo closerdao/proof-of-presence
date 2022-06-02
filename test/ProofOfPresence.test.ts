@@ -136,8 +136,15 @@ const setupHelpers = async ({
     },
     // functions that modify state
     send: {
-      book: async (dates: DateInputs) => {
-        await user.ProofOfPresence.book(dates);
+      book: {
+        success: async (dates: DateInputs) => {
+          await user.ProofOfPresence.book(dates);
+        },
+        reverted: {
+          paused: async (dates: DateInputs) => {
+            await expect(user.ProofOfPresence.book(dates)).to.be.revertedWith('Pausable: paused');
+          },
+        },
       },
       cancel: {
         success: async (dates: DateInputs) => {
@@ -149,6 +156,9 @@ const setupHelpers = async ({
           },
           inThepast: async (dates: DateInputs) => {
             await expect(user.ProofOfPresence.cancel(dates)).to.be.revertedWith('Can not cancel past booking');
+          },
+          paused: async (dates: DateInputs) => {
+            await expect(user.ProofOfPresence.cancel(dates)).to.be.revertedWith('Pausable: paused');
           },
         },
       },
@@ -218,6 +228,28 @@ const setupHelpers = async ({
           },
         },
       },
+      pause: {
+        success: async () => {
+          await expect(admin.ProofOfPresence.pause()).to.emit(bookingContract, 'Paused');
+          expect(await bookingContract.paused()).to.be.true;
+        },
+        reverted: {
+          onlyOwner: async () => {
+            await expect(user.ProofOfPresence.pause()).to.be.revertedWith('Ownable: caller is not the owner');
+          },
+        },
+      },
+      unpause: {
+        success: async () => {
+          await expect(admin.ProofOfPresence.unpause()).to.emit(bookingContract, 'Unpaused');
+          expect(await bookingContract.paused()).to.be.false;
+        },
+        reverted: {
+          onlyOwner: async () => {
+            await expect(user.ProofOfPresence.unpause()).to.be.revertedWith('Ownable: caller is not the owner');
+          },
+        },
+      },
     },
   };
 };
@@ -273,7 +305,7 @@ describe('ProofOfPresence', () => {
     await user.TDFToken.approve(TokenLock.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
-    await send.book(dates.inputs);
+    await send.book.success(dates.inputs);
     await test.balances('5', '5', '9995');
   });
   it('book and cancel', async () => {
@@ -295,7 +327,7 @@ describe('ProofOfPresence', () => {
     // -------------------------------------------------------
     //  Book and cancel all the dates
     // -------------------------------------------------------
-    await send.book(dates.inputs);
+    await send.book.success(dates.inputs);
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
 
@@ -306,7 +338,7 @@ describe('ProofOfPresence', () => {
     // -------------------------------------------------------
     //  Book and cancel few dates
     // -------------------------------------------------------
-    await send.book(dates.inputs);
+    await send.book.success(dates.inputs);
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
 
@@ -344,7 +376,7 @@ describe('ProofOfPresence', () => {
     // -------------------------------------------------------
     //  Book and cancel all the dates
     // -------------------------------------------------------
-    await send.book(dates.inputs);
+    await send.book.success(dates.inputs);
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
     await call.getBookings(dates);
@@ -372,7 +404,7 @@ describe('ProofOfPresence', () => {
     const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
 
     const user = users[0];
-    const {test, send} = await setupHelpers({
+    const {send} = await setupHelpers({
       stakeContract: TokenLock,
       tokenContract: TDFToken,
       bookingContract: ProofOfPresence,
@@ -399,7 +431,40 @@ describe('ProofOfPresence', () => {
     await send.enableYear.reverted.onlyOwner(2025, false);
     await send.enableYear.reverted.doesNotExists(3002, true);
     await send.enableYear.success(2027, false);
+    await send.pause.reverted.onlyOwner();
+    await send.pause.success();
+    await send.unpause.reverted.onlyOwner();
+    await send.unpause.success();
   });
 
-  it('pausable', async () => {});
+  it('pausable', async () => {
+    const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
+
+    const user = users[0];
+    const {send} = await setupHelpers({
+      stakeContract: TokenLock,
+      tokenContract: TDFToken,
+      bookingContract: ProofOfPresence,
+      user: user,
+      admin: deployer,
+    });
+    await user.TDFToken.approve(TokenLock.address, parseEther('10'));
+    const init = addDays(Date.now(), 10);
+    const dates = buildDates(init, 5);
+
+    // -------------------------------------------------------
+    //  Book and cancel enabled with  Unpaused
+    // -------------------------------------------------------
+    expect(await ProofOfPresence.paused()).to.be.false;
+    await send.book.success(dates.inputs);
+    await send.cancel.success(dates.inputs);
+    // -------------------------------------------------------
+    //  Book and cancel disabled with  Paused
+    // -------------------------------------------------------
+    await send.pause.success();
+    expect(await ProofOfPresence.paused()).to.be.true;
+
+    await send.book.reverted.paused(dates.inputs);
+    await send.cancel.reverted.paused(dates.inputs);
+  });
 });

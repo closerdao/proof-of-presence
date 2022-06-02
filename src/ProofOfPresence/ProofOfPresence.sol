@@ -14,7 +14,7 @@ import "./ITokenLock.sol";
 import "../Libraries/BookingMapLib.sol";
 import "hardhat/console.sol";
 
-contract ProofOfPresence is Context, ReentrancyGuard, Ownable {
+contract ProofOfPresence is Context, ReentrancyGuard, Ownable, Pausable {
     using SafeERC20 for IERC20;
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
@@ -35,7 +35,7 @@ contract ProofOfPresence is Context, ReentrancyGuard, Ownable {
         _years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
     }
 
-    function book(uint16[2][] memory dates) public {
+    function book(uint16[2][] memory dates) public whenNotPaused {
         uint256 lastDate;
         for (uint256 i = 0; i < dates.length; i++) {
             uint256 price = 1 ether;
@@ -60,7 +60,7 @@ contract ProofOfPresence is Context, ReentrancyGuard, Ownable {
         return value;
     }
 
-    function cancel(uint16[2][] memory dates) public {
+    function cancel(uint16[2][] memory dates) public whenNotPaused {
         for (uint256 i = 0; i < dates.length; i++) {
             _cancel(_msgSender(), dates[i][0], dates[i][1]);
         }
@@ -143,5 +143,27 @@ contract ProofOfPresence is Context, ReentrancyGuard, Ownable {
         y.enabled = enable;
         require(_years.update(y), "Unable to update year");
         emit YearUpdated(y.number, y.leapYear, y.start, y.end, y.enabled);
+    }
+
+    /**
+     * @dev Pause bookings.
+     *
+     * Requirements:
+     *
+     * - Only Owner.
+     */
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @dev Unpause bookings.
+     *
+     * Requirements:
+     *
+     * - Only Owner.
+     */
+    function unpause() public onlyOwner {
+        _unpause();
     }
 }
