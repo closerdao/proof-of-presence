@@ -2,26 +2,20 @@
 
 pragma solidity 0.8.9;
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./ITokenLock.sol";
 import "../Libraries/BookingMapLib.sol";
-import "hardhat/console.sol";
 
-contract ProofOfPresence is Context, ReentrancyGuard, Ownable, Pausable {
-    using SafeERC20 for IERC20;
+contract ProofOfPresence is Context, Ownable, Pausable {
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
 
     ITokenLock public immutable tokenLock;
     mapping(address => BookingMapLib.UserStore) internal _bookings;
     BookingMapLib.YearsStore internal _years;
+
+    // event NewBookings(address account)
 
     event YearAdded(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
     event YearRemoved(uint16 number);
