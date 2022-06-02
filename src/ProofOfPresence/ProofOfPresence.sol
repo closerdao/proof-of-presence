@@ -14,7 +14,7 @@ import "./ITokenLock.sol";
 import "../Libraries/BookingMapLib.sol";
 import "hardhat/console.sol";
 
-contract ProofOfPresence is Context, ReentrancyGuard {
+contract ProofOfPresence is Context, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
@@ -22,6 +22,10 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     ITokenLock public immutable tokenLock;
     mapping(address => BookingMapLib.UserStore) internal _bookings;
     BookingMapLib.YearsStore internal _years;
+
+    event YearAdded(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
+    event YearRemoved(uint16 number);
+    event YearUpdated(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
 
     constructor(address _tokenLock) {
         tokenLock = ITokenLock(_tokenLock);
@@ -99,7 +103,45 @@ contract ProofOfPresence is Context, ReentrancyGuard {
     }
 
     // Admin functions
+    function addYear(
+        uint16 number,
+        bool leapYear,
+        uint256 start,
+        uint256 end,
+        bool enabled
+    ) public onlyOwner {
+        require(_years.add(BookingMapLib.Year(number, leapYear, start, end, enabled)), "Unable to add year");
+        emit YearAdded(number, leapYear, start, end, enabled);
+    }
 
-    // - add year
-    // - update year
+    function getYears() public view returns (BookingMapLib.Year[] memory) {
+        return _years.values();
+    }
+
+    function getYear(uint16 number) public view returns (bool, BookingMapLib.Year memory) {
+        return _years.get(number);
+    }
+
+    function removeYear(uint16 number) public onlyOwner {
+        require(_years.remove(number), "Unable to remove Year");
+        emit YearRemoved(number);
+    }
+
+    function updateYear(
+        uint16 number,
+        bool leapYear,
+        uint256 start,
+        uint256 end,
+        bool enabled
+    ) public onlyOwner {
+        require(_years.update(BookingMapLib.Year(number, leapYear, start, end, enabled)), "Unable to update Year");
+        emit YearUpdated(number, leapYear, start, end, enabled);
+    }
+
+    function enableYear(uint16 number, bool enable) public onlyOwner {
+        (, BookingMapLib.Year memory y) = _years.get(number);
+        y.enabled = enable;
+        require(_years.update(y), "Unable to update year");
+        emit YearUpdated(y.number, y.leapYear, y.start, y.end, y.enabled);
+    }
 }

@@ -6,7 +6,7 @@ import {BookingMapLib} from '../typechain/ProofOfPresence';
 import {setupUser, setupUsers} from './utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
-import {addDays, getUnixTime, fromUnixTime, getDayOfYear} from 'date-fns';
+import {addDays, getUnixTime, fromUnixTime, getDayOfYear, yearsToMonths} from 'date-fns';
 const BN = ethers.BigNumber;
 import * as _ from 'lodash';
 
@@ -60,6 +60,16 @@ const timeTravelTo = async (time: number) => {
   await network.provider.send('evm_mine');
 };
 
+const yearData = () => {
+  return {
+    '2022': {number: 2022, leapYear: false, start: 1640995200, end: 1672531199},
+    '2023': {number: 2023, leapYear: false, start: 1672531200, end: 1704067199},
+    '2024': {number: 2024, leapYear: true, start: 1704067200, end: 1735689599},
+    '2025': {number: 2025, leapYear: false, start: 1735689600, end: 1767225599},
+    '2027': {number: 2027, leapYear: false, start: 1798761600, end: 1830297599},
+  };
+};
+
 const setupHelpers = async ({
   stakeContract,
   tokenContract,
@@ -71,7 +81,7 @@ const setupHelpers = async ({
   tokenContract: TDFToken;
   bookingContract: ProofOfPresence;
   user: setUser;
-  admin?: setUser;
+  admin: setUser;
 }) => {
   return {
     test: {
@@ -142,6 +152,72 @@ const setupHelpers = async ({
           },
         },
       },
+      addYear: {
+        success: async (year: BookingMapLib.YearStruct) => {
+          await expect(
+            admin.ProofOfPresence.addYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+          ).to.emit(bookingContract, 'YearAdded');
+        },
+        reverted: {
+          onlyOwner: async (year: BookingMapLib.YearStruct) => {
+            await expect(
+              user.ProofOfPresence.addYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+            ).to.be.revertedWith('Ownable: caller is not the owner');
+          },
+          alreadyExists: async (year: BookingMapLib.YearStruct) => {
+            await expect(
+              admin.ProofOfPresence.addYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+            ).to.be.revertedWith('Unable to add year');
+          },
+        },
+      },
+      removeYear: {
+        success: async (year: number) => {
+          await expect(admin.ProofOfPresence.removeYear(year)).to.emit(bookingContract, 'YearRemoved');
+        },
+        reverted: {
+          onlyOwner: async (year: number) => {
+            await expect(user.ProofOfPresence.removeYear(year)).to.be.revertedWith('Ownable: caller is not the owner');
+          },
+          doesNotExists: async (year: number) => {
+            await expect(admin.ProofOfPresence.removeYear(year)).to.be.revertedWith('Unable to remove Year');
+          },
+        },
+      },
+      enableYear: {
+        success: async (year: number, enable: boolean) => {
+          await expect(admin.ProofOfPresence.enableYear(year, enable)).to.emit(bookingContract, 'YearUpdated');
+        },
+        reverted: {
+          onlyOwner: async (year: number, enable: boolean) => {
+            await expect(user.ProofOfPresence.enableYear(year, enable)).to.be.revertedWith(
+              'Ownable: caller is not the owner'
+            );
+          },
+          doesNotExists: async (year: number, enable: boolean) => {
+            await expect(admin.ProofOfPresence.enableYear(year, enable)).to.be.revertedWith('Unable to update year');
+          },
+        },
+      },
+      updateYear: {
+        success: async (year: BookingMapLib.YearStruct) => {
+          await expect(
+            admin.ProofOfPresence.updateYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+          ).to.emit(bookingContract, 'YearUpdated');
+        },
+        reverted: {
+          onlyOwner: async (year: BookingMapLib.YearStruct) => {
+            await expect(
+              user.ProofOfPresence.updateYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+            ).to.be.revertedWith('Ownable: caller is not the owner');
+          },
+          doesNotExists: async (year: BookingMapLib.YearStruct) => {
+            await expect(
+              admin.ProofOfPresence.updateYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+            ).to.be.revertedWith('Unable to update Year');
+          },
+        },
+      },
     },
   };
 };
@@ -183,7 +259,7 @@ const setup = deployments.createFixture(async (hre) => {
 
 describe('ProofOfPresence', () => {
   it('book', async () => {
-    const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
+    const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
 
     const user = users[0];
     const {test, send} = await setupHelpers({
@@ -191,6 +267,7 @@ describe('ProofOfPresence', () => {
       tokenContract: TDFToken,
       bookingContract: ProofOfPresence,
       user: user,
+      admin: deployer,
     });
 
     await user.TDFToken.approve(TokenLock.address, parseEther('10'));
@@ -200,7 +277,7 @@ describe('ProofOfPresence', () => {
     await test.balances('5', '5', '9995');
   });
   it('book and cancel', async () => {
-    const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
+    const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
     const user = users[0];
 
     const {test, send} = await setupHelpers({
@@ -208,6 +285,7 @@ describe('ProofOfPresence', () => {
       tokenContract: TDFToken,
       bookingContract: ProofOfPresence,
       user: user,
+      admin: deployer,
     });
 
     await user.TDFToken.approve(TokenLock.address, parseEther('10'));
@@ -248,7 +326,7 @@ describe('ProofOfPresence', () => {
   });
 
   it('getters', async () => {
-    const {users, ProofOfPresence, TDFToken, TokenLock} = await setup();
+    const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
     const user = users[0];
 
     const {test, send, call} = await setupHelpers({
@@ -256,6 +334,7 @@ describe('ProofOfPresence', () => {
       tokenContract: TDFToken,
       bookingContract: ProofOfPresence,
       user: user,
+      admin: deployer,
     });
 
     await user.TDFToken.approve(TokenLock.address, parseEther('10'));
@@ -269,9 +348,58 @@ describe('ProofOfPresence', () => {
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
     await call.getBookings(dates);
+
+    const years = await ProofOfPresence.getYears();
+    expect(years.length).to.eq(4);
+    const y = years[0];
+    let eY = _.find(yearData(), (v) => v.number == y.number);
+    expect(eY).not.to.be.undefined;
+    if (eY) {
+      expect(eY.leapYear).to.eq(y.leapYear);
+      expect(eY.start).to.eq(y.start);
+      expect(eY.end).to.eq(y.end);
+    }
+
+    eY = yearData()['2024'];
+    const [success, res] = await ProofOfPresence.getYear(2024);
+    expect(success).to.be.true;
+    expect(res.leapYear).to.eq(eY.leapYear);
+    expect(res.start).to.eq(eY.start);
+    expect(res.end).to.eq(eY.end);
   });
 
-  it('ownable', async () => {});
+  it('ownable', async () => {
+    const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
+
+    const user = users[0];
+    const {test, send} = await setupHelpers({
+      stakeContract: TokenLock,
+      tokenContract: TDFToken,
+      bookingContract: ProofOfPresence,
+      user: user,
+      admin: deployer,
+    });
+    let yearAttrs;
+    yearAttrs = yearData()['2027'];
+    await send.addYear.reverted.onlyOwner({...yearAttrs, enabled: false});
+    await send.addYear.success({...yearAttrs, enabled: false});
+    yearAttrs = yearData()['2024'];
+    await send.addYear.reverted.alreadyExists({...yearAttrs, enabled: false});
+    let [stored] = await ProofOfPresence.getYear(2024);
+    expect(stored).to.be.true;
+    await send.removeYear.reverted.onlyOwner(2024);
+    [stored] = await ProofOfPresence.getYear(2024);
+    expect(stored).to.be.true;
+    await send.removeYear.reverted.doesNotExists(3000);
+    await send.removeYear.success(2023);
+
+    await send.updateYear.reverted.onlyOwner({...yearAttrs, enabled: false});
+    await send.updateYear.reverted.doesNotExists({...yearAttrs, number: 3002, enabled: false});
+    await send.updateYear.success({...yearAttrs, enabled: false});
+    await send.enableYear.reverted.onlyOwner(2025, false);
+    await send.enableYear.reverted.doesNotExists(3002, true);
+    await send.enableYear.success(2027, false);
+  });
 
   it('pausable', async () => {});
 });
