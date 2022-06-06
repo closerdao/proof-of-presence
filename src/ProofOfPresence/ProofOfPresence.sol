@@ -4,7 +4,7 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "./ITokenLock.sol";
+import "../Interfaces/ITokenLock.sol";
 import "../Libraries/BookingMapLib.sol";
 
 contract ProofOfPresence is Context, Ownable, Pausable {
