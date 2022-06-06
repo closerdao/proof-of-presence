@@ -30,7 +30,7 @@ contract ProofOfPresence is Context, Ownable, Pausable {
         _years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
     }
 
-    function book(uint16[2][] memory dates) public whenNotPaused {
+    function book(uint16[2][] calldata dates) public whenNotPaused {
         uint256 lastDate;
         for (uint256 i = 0; i < dates.length; i++) {
             uint256 price = 1 ether;
@@ -56,7 +56,7 @@ contract ProofOfPresence is Context, Ownable, Pausable {
         return value;
     }
 
-    function cancel(uint16[2][] memory dates) public whenNotPaused {
+    function cancel(uint16[2][] calldata dates) public whenNotPaused {
         for (uint256 i = 0; i < dates.length; i++) {
             _cancel(_msgSender(), dates[i][0], dates[i][1]);
         }
