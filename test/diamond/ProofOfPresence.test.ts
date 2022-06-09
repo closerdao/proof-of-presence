@@ -14,9 +14,9 @@ import {TDFDiamond, TokenLockFacet, ProofOfPresenceFacet} from '../../typechain'
 type DateInputs = [number, number][];
 interface setUser {
   address: string;
-  TokenLock: TokenLock;
+  TokenLock: TokenLockFacet | TokenLock;
   TDFToken: TDFToken;
-  ProofOfPresence: ProofOfPresence;
+  ProofOfPresence: ProofOfPresence | ProofOfPresenceFacet;
   TDFDiamond: TDFDiamond;
 }
 interface DateMetadata {
@@ -80,9 +80,9 @@ const setupHelpers = async ({
   user,
   admin,
 }: {
-  stakeContract: TokenLockFacet;
+  stakeContract: TokenLockFacet | TokenLock;
   tokenContract: TDFToken;
-  bookingContract: ProofOfPresenceFacet;
+  bookingContract: ProofOfPresenceFacet | ProofOfPresence;
   diamond: TDFDiamond;
   user: setUser;
   admin: setUser;
@@ -318,97 +318,97 @@ describe('ProofOfPresence', () => {
     await send.book.success(dates.inputs);
     await test.balances('5', '5', '9995');
   });
-  xit('book and cancel', async () => {
-    const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
-    const user = users[0];
+  // xit('book and cancel', async () => {
+  //   const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
+  //   const user = users[0];
 
-    const {test, send} = await setupHelpers({
-      stakeContract: TokenLock,
-      tokenContract: TDFToken,
-      bookingContract: ProofOfPresence,
-      user: user,
-      admin: deployer,
-    });
+  //   const {test, send} = await setupHelpers({
+  //     stakeContract: TokenLock,
+  //     tokenContract: TDFToken,
+  //     bookingContract: ProofOfPresence,
+  //     user: user,
+  //     admin: deployer,
+  //   });
 
-    await user.TDFToken.approve(TokenLock.address, parseEther('10'));
-    const init = addDays(Date.now(), 10);
-    const dates = buildDates(init, 5);
+  //   await user.TDFToken.approve(TokenLock.address, parseEther('10'));
+  //   const init = addDays(Date.now(), 10);
+  //   const dates = buildDates(init, 5);
 
-    // -------------------------------------------------------
-    //  Book and cancel all the dates
-    // -------------------------------------------------------
-    await send.book.success(dates.inputs);
-    await test.balances('5', '5', '9995');
-    await test.bookings(dates, '1');
+  //   // -------------------------------------------------------
+  //   //  Book and cancel all the dates
+  //   // -------------------------------------------------------
+  //   await send.book.success(dates.inputs);
+  //   await test.balances('5', '5', '9995');
+  //   await test.bookings(dates, '1');
 
-    await send.cancel.success(dates.inputs);
-    // TODO:
-    // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
-    await test.balances('5', '5', '9995');
-    // -------------------------------------------------------
-    //  Book and cancel few dates
-    // -------------------------------------------------------
-    await send.book.success(dates.inputs);
-    await test.balances('5', '5', '9995');
-    await test.bookings(dates, '1');
+  //   await send.cancel.success(dates.inputs);
+  //   // TODO:
+  //   // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
+  //   await test.balances('5', '5', '9995');
+  //   // -------------------------------------------------------
+  //   //  Book and cancel few dates
+  //   // -------------------------------------------------------
+  //   await send.book.success(dates.inputs);
+  //   await test.balances('5', '5', '9995');
+  //   await test.bookings(dates, '1');
 
-    const cDates = collectDates(dates, [0, 4]);
-    await send.cancel.success(cDates.inputs);
-    // TODO:
-    // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(3);
-    await test.balances('5', '5', '9995');
-    const restcDates = collectDates(dates, [1, 2, 3]);
+  //   const cDates = collectDates(dates, [0, 4]);
+  //   await send.cancel.success(cDates.inputs);
+  //   // TODO:
+  //   // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(3);
+  //   await test.balances('5', '5', '9995');
+  //   const restcDates = collectDates(dates, [1, 2, 3]);
 
-    await test.bookings(restcDates, '1');
-    await send.cancel.reverted.noneExisting(cDates.inputs);
+  //   await test.bookings(restcDates, '1');
+  //   await send.cancel.reverted.noneExisting(cDates.inputs);
 
-    await timeTravelTo(dates.data[4].unix + 2 * 86400);
+  //   await timeTravelTo(dates.data[4].unix + 2 * 86400);
 
-    await send.cancel.reverted.inThepast(collectDates(dates, [1, 2, 3]).inputs);
-  });
+  //   await send.cancel.reverted.inThepast(collectDates(dates, [1, 2, 3]).inputs);
+  // });
 
-  xit('getters', async () => {
-    const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
-    const user = users[0];
+  // xit('getters', async () => {
+  //   const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
+  //   const user = users[0];
 
-    const {test, send, call} = await setupHelpers({
-      stakeContract: TokenLock,
-      tokenContract: TDFToken,
-      bookingContract: ProofOfPresence,
-      user: user,
-      admin: deployer,
-    });
+  //   const {test, send, call} = await setupHelpers({
+  //     stakeContract: TokenLock,
+  //     tokenContract: TDFToken,
+  //     bookingContract: ProofOfPresence,
+  //     user: user,
+  //     admin: deployer,
+  //   });
 
-    await user.TDFToken.approve(TokenLock.address, parseEther('10'));
-    const init = addDays(Date.now(), 10);
-    const dates = buildDates(init, 5);
+  //   await user.TDFToken.approve(TokenLock.address, parseEther('10'));
+  //   const init = addDays(Date.now(), 10);
+  //   const dates = buildDates(init, 5);
 
-    // -------------------------------------------------------
-    //  Book and cancel all the dates
-    // -------------------------------------------------------
-    await send.book.success(dates.inputs);
-    await test.balances('5', '5', '9995');
-    await test.bookings(dates, '1');
-    await call.getBookings(dates);
+  //   // -------------------------------------------------------
+  //   //  Book and cancel all the dates
+  //   // -------------------------------------------------------
+  //   await send.book.success(dates.inputs);
+  //   await test.balances('5', '5', '9995');
+  //   await test.bookings(dates, '1');
+  //   await call.getBookings(dates);
 
-    const years = await ProofOfPresence.getYears();
-    expect(years.length).to.eq(4);
-    const y = years[0];
-    let eY = _.find(yearData(), (v) => v.number == y.number);
-    expect(eY).not.to.be.undefined;
-    if (eY) {
-      expect(eY.leapYear).to.eq(y.leapYear);
-      expect(eY.start).to.eq(y.start);
-      expect(eY.end).to.eq(y.end);
-    }
+  //   const years = await ProofOfPresence.getYears();
+  //   expect(years.length).to.eq(4);
+  //   const y = years[0];
+  //   let eY = _.find(yearData(), (v) => v.number == y.number);
+  //   expect(eY).not.to.be.undefined;
+  //   if (eY) {
+  //     expect(eY.leapYear).to.eq(y.leapYear);
+  //     expect(eY.start).to.eq(y.start);
+  //     expect(eY.end).to.eq(y.end);
+  //   }
 
-    eY = yearData()['2024'];
-    const [success, res] = await ProofOfPresence.getYear(2024);
-    expect(success).to.be.true;
-    expect(res.leapYear).to.eq(eY.leapYear);
-    expect(res.start).to.eq(eY.start);
-    expect(res.end).to.eq(eY.end);
-  });
+  //   eY = yearData()['2024'];
+  //   const [success, res] = await ProofOfPresence.getYear(2024);
+  //   expect(success).to.be.true;
+  //   expect(res.leapYear).to.eq(eY.leapYear);
+  //   expect(res.start).to.eq(eY.start);
+  //   expect(res.end).to.eq(eY.end);
+  // });
 
   // xit('ownable', async () => {
   //   const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
