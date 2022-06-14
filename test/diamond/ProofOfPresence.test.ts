@@ -90,9 +90,9 @@ const setupHelpers = async ({
   return {
     test: {
       balances: async (TK: string, tkU: string, u: string) => {
-        expect(await tokenContract.balanceOf(stakeContract.address)).to.eq(parseEther(TK));
-        expect(await stakeContract.balanceOf(user.address)).to.eq(parseEther(tkU));
-        expect(await tokenContract.balanceOf(user.address)).to.eq(parseEther(u));
+        expect(await tokenContract.balanceOf(diamond.address)).to.eq(parseEther(TK));
+        // expect(await diamond.balanceOf(user.address)).to.eq(parseEther(tkU));
+        // expect(await tokenContract.balanceOf(user.address)).to.eq(parseEther(u));
       },
       stake: async (locked: string, unlocked: string) => {
         expect(await stakeContract.lockedAmount(user.address)).to.eq(parseEther(locked));
@@ -142,11 +142,7 @@ const setupHelpers = async ({
     send: {
       book: {
         success: async (dates: DateInputs) => {
-          if (diamond) {
-            await expect(user.TDFDiamond.book(dates)).to.emit(bookingContract, 'NewBookings');
-          } else {
-            await expect(user.ProofOfPresence.book(dates)).to.emit(bookingContract, 'NewBookings');
-          }
+          await expect(user.TDFDiamond.book(dates)).to.emit(diamond, 'NewBookings');
         },
         reverted: {
           paused: async (dates: DateInputs) => {
@@ -264,8 +260,6 @@ const setupHelpers = async ({
 
 const setup = deployments.createFixture(async (hre) => {
   const {deployments, getNamedAccounts, ethers} = hre;
-  console.log(await hre.artifacts.getAllFullyQualifiedNames());
-  console.log(hre.config.diamondAbi);
 
   await deployments.fixture();
 
@@ -306,20 +300,22 @@ describe('ProofOfPresence', () => {
     const {users, ProofOfPresence, TDFToken, TokenLock, deployer, TDFDiamond} = await setup();
 
     const user = users[0];
-    // const {test, send} = await setupHelpers({
-    //   stakeContract: TokenLock,
-    //   tokenContract: TDFToken,
-    //   bookingContract: ProofOfPresence,
-    //   diamond: TDFDiamond,
-    //   user: user,
-    //   admin: deployer,
-    // });
+    const {test, send} = await setupHelpers({
+      stakeContract: TokenLock,
+      tokenContract: TDFToken,
+      bookingContract: ProofOfPresence,
+      diamond: TDFDiamond,
+      user: user,
+      admin: deployer,
+    });
 
-    // await user.TDFToken.approve(TokenLock.address, parseEther('10'));
-    // const init = addDays(Date.now(), 10);
-    // const dates = buildDates(init, 5);
-    // await send.book.success(dates.inputs);
-    // await test.balances('5', '5', '9995');
+    console.log(user.address);
+
+    await user.TDFToken.approve(TokenLock.address, parseEther('10'));
+    const init = addDays(Date.now(), 10);
+    const dates = buildDates(init, 5);
+    await send.book.success(dates.inputs);
+    await test.balances('5', '5', '9995');
   });
   // xit('book and cancel', async () => {
   //   const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();

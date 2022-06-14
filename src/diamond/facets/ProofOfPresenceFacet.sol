@@ -22,7 +22,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
     event YearRemoved(uint16 number);
     event YearUpdated(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
 
-    constructor() {
+    function ProofOfPresenceFacet_init() external {
         s._years.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199, true));
         s._years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
         s._years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
@@ -37,7 +37,9 @@ contract ProofOfPresenceFacet is Modifiers, Context {
 
             if (lastDate < value.timestamp) lastDate = value.timestamp;
         }
-        // tokenLock.restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
+        console.log(_msgSender());
+        ITokenLock(address(this)).restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
+        console.log("emitting");
         emit NewBookings(_msgSender(), dates);
     }
 
@@ -105,7 +107,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint256 start,
         uint256 end,
         bool enabled
-    ) public onlyOwner {
+    ) public {
         require(s._years.add(BookingMapLib.Year(number, leapYear, start, end, enabled)), "Unable to add year");
         emit YearAdded(number, leapYear, start, end, enabled);
     }

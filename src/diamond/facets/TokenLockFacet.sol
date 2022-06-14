@@ -89,7 +89,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         uint256 amount,
         // TODO: initLocking time must be bigger that current timestamp
         uint256 initLockingTm
-    ) public {
+    ) external {
         require(initLockingTm >= block.timestamp, "Unable to stake to the pass");
         uint256 stake = s._balances[account];
         uint256 tBalance = s.tdfToken.balanceOf(account);
