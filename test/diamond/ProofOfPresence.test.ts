@@ -1,6 +1,6 @@
 import {expect} from '../chai-setup';
 import {deployments, getUnnamedAccounts, ethers, network} from 'hardhat';
-import {TDFToken, ProofOfPresence, TokenLock} from '../../typechain';
+import {TDFToken, ProofOfPresence, TokenLock, TDFDiamond__factory} from '../../typechain';
 import {BookingMapLib} from '../../typechain/ProofOfPresence';
 
 import {setupUser, setupUsers} from '../utils';
@@ -91,15 +91,15 @@ const setupHelpers = async ({
     test: {
       balances: async (TK: string, tkU: string, u: string) => {
         expect(await tokenContract.balanceOf(diamond.address)).to.eq(parseEther(TK));
-        // expect(await diamond.balanceOf(user.address)).to.eq(parseEther(tkU));
-        // expect(await tokenContract.balanceOf(user.address)).to.eq(parseEther(u));
+        expect(await diamond.balanceOf(user.address)).to.eq(parseEther(tkU));
+        expect(await tokenContract.balanceOf(user.address)).to.eq(parseEther(u));
       },
       stake: async (locked: string, unlocked: string) => {
-        expect(await stakeContract.lockedAmount(user.address)).to.eq(parseEther(locked));
-        expect(await stakeContract.unlockedAmount(user.address)).to.eq(parseEther(unlocked));
+        expect(await diamond.lockedAmount(user.address)).to.eq(parseEther(locked));
+        expect(await diamond.unlockedAmount(user.address)).to.eq(parseEther(unlocked));
       },
       deposits: async (examples: [string, number][]) => {
-        const deposits = await stakeContract.depositsFor(user.address);
+        const deposits = await diamond.depositsFor(user.address);
         for (let i = 0; i < deposits.length; i++) {
           expect(deposits[i].amount).to.eq(parseEther(examples[i][0]));
           expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
@@ -108,7 +108,7 @@ const setupHelpers = async ({
       bookings: async (dates: DatesTestData, price: string) => {
         await Promise.all(
           dates.data.map(async (e) => {
-            const [success, booking] = await bookingContract.getBooking(user.address, e.year, e.day);
+            const [success, booking] = await diamond.getBooking(user.address, e.year, e.day);
             return Promise.all([
               expect(booking.price).to.eq(parseEther(price)),
               expect(booking.year).to.eq(e.year),
@@ -132,7 +132,7 @@ const setupHelpers = async ({
         };
         await Promise.all(
           _.map(years, async (yList) => {
-            const bookings = await bookingContract.getBookings(user.address, yList[0].year);
+            const bookings = await diamond.getBookings(user.address, yList[0].year);
             return Promise.all([expect(yList.length).to.eq(bookings.length), listTest(bookings, yList)]);
           })
         );
@@ -146,88 +146,88 @@ const setupHelpers = async ({
         },
         reverted: {
           paused: async (dates: DateInputs) => {
-            await expect(user.ProofOfPresence.book(dates)).to.be.revertedWith('Pausable: paused');
+            await expect(user.TDFDiamond.book(dates)).to.be.revertedWith('Pausable: paused');
           },
         },
       },
       cancel: {
         success: async (dates: DateInputs) => {
-          await expect(user.ProofOfPresence.cancel(dates)).to.emit(bookingContract, 'CanceledBookings');
+          await expect(user.TDFDiamond.cancel(dates)).to.emit(diamond, 'CanceledBookings');
         },
         reverted: {
           noneExisting: async (dates: DateInputs) => {
-            await expect(user.ProofOfPresence.cancel(dates)).to.be.revertedWith('Booking does not exists');
+            await expect(user.TDFDiamond.cancel(dates)).to.be.revertedWith('Booking does not exists');
           },
           inThepast: async (dates: DateInputs) => {
-            await expect(user.ProofOfPresence.cancel(dates)).to.be.revertedWith('Can not cancel past booking');
+            await expect(user.TDFDiamond.cancel(dates)).to.be.revertedWith('Can not cancel past booking');
           },
           paused: async (dates: DateInputs) => {
-            await expect(user.ProofOfPresence.cancel(dates)).to.be.revertedWith('Pausable: paused');
+            await expect(user.TDFDiamond.cancel(dates)).to.be.revertedWith('Pausable: paused');
           },
         },
       },
       addYear: {
         success: async (year: BookingMapLib.YearStruct) => {
           await expect(
-            admin.ProofOfPresence.addYear(year.number, year.leapYear, year.start, year.end, year.enabled)
-          ).to.emit(bookingContract, 'YearAdded');
+            admin.TDFDiamond.addYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+          ).to.emit(diamond, 'YearAdded');
         },
         reverted: {
           onlyOwner: async (year: BookingMapLib.YearStruct) => {
             await expect(
-              user.ProofOfPresence.addYear(year.number, year.leapYear, year.start, year.end, year.enabled)
-            ).to.be.revertedWith('Ownable: caller is not the owner');
+              user.TDFDiamond.addYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+            ).to.be.revertedWith('LibDiamond: Must be contract owner');
           },
           alreadyExists: async (year: BookingMapLib.YearStruct) => {
             await expect(
-              admin.ProofOfPresence.addYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+              admin.TDFDiamond.addYear(year.number, year.leapYear, year.start, year.end, year.enabled)
             ).to.be.revertedWith('Unable to add year');
           },
         },
       },
       removeYear: {
         success: async (year: number) => {
-          await expect(admin.ProofOfPresence.removeYear(year)).to.emit(bookingContract, 'YearRemoved');
+          await expect(admin.TDFDiamond.removeYear(year)).to.emit(diamond, 'YearRemoved');
         },
         reverted: {
           onlyOwner: async (year: number) => {
-            await expect(user.ProofOfPresence.removeYear(year)).to.be.revertedWith('Ownable: caller is not the owner');
+            await expect(user.TDFDiamond.removeYear(year)).to.be.revertedWith('LibDiamond: Must be contract owner');
           },
           doesNotExists: async (year: number) => {
-            await expect(admin.ProofOfPresence.removeYear(year)).to.be.revertedWith('Unable to remove Year');
+            await expect(admin.TDFDiamond.removeYear(year)).to.be.revertedWith('Unable to remove Year');
           },
         },
       },
       enableYear: {
         success: async (year: number, enable: boolean) => {
-          await expect(admin.ProofOfPresence.enableYear(year, enable)).to.emit(bookingContract, 'YearUpdated');
+          await expect(admin.TDFDiamond.enableYear(year, enable)).to.emit(diamond, 'YearUpdated');
         },
         reverted: {
           onlyOwner: async (year: number, enable: boolean) => {
-            await expect(user.ProofOfPresence.enableYear(year, enable)).to.be.revertedWith(
-              'Ownable: caller is not the owner'
+            await expect(user.TDFDiamond.enableYear(year, enable)).to.be.revertedWith(
+              'LibDiamond: Must be contract owner'
             );
           },
           doesNotExists: async (year: number, enable: boolean) => {
-            await expect(admin.ProofOfPresence.enableYear(year, enable)).to.be.revertedWith('Unable to update year');
+            await expect(admin.TDFDiamond.enableYear(year, enable)).to.be.revertedWith('Unable to update year');
           },
         },
       },
       updateYear: {
         success: async (year: BookingMapLib.YearStruct) => {
           await expect(
-            admin.ProofOfPresence.updateYear(year.number, year.leapYear, year.start, year.end, year.enabled)
-          ).to.emit(bookingContract, 'YearUpdated');
+            admin.TDFDiamond.updateYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+          ).to.emit(diamond, 'YearUpdated');
         },
         reverted: {
           onlyOwner: async (year: BookingMapLib.YearStruct) => {
             await expect(
-              user.ProofOfPresence.updateYear(year.number, year.leapYear, year.start, year.end, year.enabled)
-            ).to.be.revertedWith('Ownable: caller is not the owner');
+              user.TDFDiamond.updateYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+            ).to.be.revertedWith('LibDiamond: Must be contract owner');
           },
           doesNotExists: async (year: BookingMapLib.YearStruct) => {
             await expect(
-              admin.ProofOfPresence.updateYear(year.number, year.leapYear, year.start, year.end, year.enabled)
+              admin.TDFDiamond.updateYear(year.number, year.leapYear, year.start, year.end, year.enabled)
             ).to.be.revertedWith('Unable to update Year');
           },
         },
@@ -309,142 +309,144 @@ describe('ProofOfPresence', () => {
       admin: deployer,
     });
 
-    console.log(user.address);
-
     await user.TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
     await send.book.success(dates.inputs);
     await test.balances('5', '5', '9995');
   });
-  // xit('book and cancel', async () => {
-  //   const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
-  //   const user = users[0];
+  it('book and cancel', async () => {
+    const {users, ProofOfPresence, TDFToken, TokenLock, deployer, TDFDiamond} = await setup();
+    const user = users[0];
 
-  //   const {test, send} = await setupHelpers({
-  //     stakeContract: TokenLock,
-  //     tokenContract: TDFToken,
-  //     bookingContract: ProofOfPresence,
-  //     user: user,
-  //     admin: deployer,
-  //   });
+    const {test, send} = await setupHelpers({
+      stakeContract: TokenLock,
+      tokenContract: TDFToken,
+      bookingContract: ProofOfPresence,
+      diamond: TDFDiamond,
+      user: user,
+      admin: deployer,
+    });
 
-  //   await user.TDFToken.approve(TokenLock.address, parseEther('10'));
-  //   const init = addDays(Date.now(), 10);
-  //   const dates = buildDates(init, 5);
+    await user.TDFToken.approve(TDFDiamond.address, parseEther('10'));
+    const init = addDays(Date.now(), 10);
+    const dates = buildDates(init, 5);
 
-  //   // -------------------------------------------------------
-  //   //  Book and cancel all the dates
-  //   // -------------------------------------------------------
-  //   await send.book.success(dates.inputs);
-  //   await test.balances('5', '5', '9995');
-  //   await test.bookings(dates, '1');
+    // -------------------------------------------------------
+    //  Book and cancel all the dates
+    // -------------------------------------------------------
+    await send.book.success(dates.inputs);
+    await test.balances('5', '5', '9995');
+    await test.bookings(dates, '1');
 
-  //   await send.cancel.success(dates.inputs);
-  //   // TODO:
-  //   // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
-  //   await test.balances('5', '5', '9995');
-  //   // -------------------------------------------------------
-  //   //  Book and cancel few dates
-  //   // -------------------------------------------------------
-  //   await send.book.success(dates.inputs);
-  //   await test.balances('5', '5', '9995');
-  //   await test.bookings(dates, '1');
+    await send.cancel.success(dates.inputs);
+    // TODO:
+    // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
+    await test.balances('5', '5', '9995');
+    // -------------------------------------------------------
+    //  Book and cancel few dates
+    // -------------------------------------------------------
+    await send.book.success(dates.inputs);
+    await test.balances('5', '5', '9995');
+    await test.bookings(dates, '1');
 
-  //   const cDates = collectDates(dates, [0, 4]);
-  //   await send.cancel.success(cDates.inputs);
-  //   // TODO:
-  //   // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(3);
-  //   await test.balances('5', '5', '9995');
-  //   const restcDates = collectDates(dates, [1, 2, 3]);
+    const cDates = collectDates(dates, [0, 4]);
+    await send.cancel.success(cDates.inputs);
+    // TODO:
+    // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(3);
+    await test.balances('5', '5', '9995');
+    const restcDates = collectDates(dates, [1, 2, 3]);
 
-  //   await test.bookings(restcDates, '1');
-  //   await send.cancel.reverted.noneExisting(cDates.inputs);
+    await test.bookings(restcDates, '1');
+    await send.cancel.reverted.noneExisting(cDates.inputs);
 
-  //   await timeTravelTo(dates.data[4].unix + 2 * 86400);
+    await timeTravelTo(dates.data[4].unix + 2 * 86400);
 
-  //   await send.cancel.reverted.inThepast(collectDates(dates, [1, 2, 3]).inputs);
-  // });
+    await send.cancel.reverted.inThepast(collectDates(dates, [1, 2, 3]).inputs);
+  });
 
-  // xit('getters', async () => {
-  //   const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
-  //   const user = users[0];
+  it('getters', async () => {
+    const {users, ProofOfPresence, TDFToken, TokenLock, deployer, TDFDiamond} = await setup();
+    const user = users[0];
 
-  //   const {test, send, call} = await setupHelpers({
-  //     stakeContract: TokenLock,
-  //     tokenContract: TDFToken,
-  //     bookingContract: ProofOfPresence,
-  //     user: user,
-  //     admin: deployer,
-  //   });
+    const {test, send, call} = await setupHelpers({
+      stakeContract: TokenLock,
+      tokenContract: TDFToken,
+      bookingContract: ProofOfPresence,
+      diamond: TDFDiamond,
 
-  //   await user.TDFToken.approve(TokenLock.address, parseEther('10'));
-  //   const init = addDays(Date.now(), 10);
-  //   const dates = buildDates(init, 5);
+      user: user,
+      admin: deployer,
+    });
 
-  //   // -------------------------------------------------------
-  //   //  Book and cancel all the dates
-  //   // -------------------------------------------------------
-  //   await send.book.success(dates.inputs);
-  //   await test.balances('5', '5', '9995');
-  //   await test.bookings(dates, '1');
-  //   await call.getBookings(dates);
+    await user.TDFToken.approve(TDFDiamond.address, parseEther('10'));
+    const init = addDays(Date.now(), 10);
+    const dates = buildDates(init, 5);
 
-  //   const years = await ProofOfPresence.getYears();
-  //   expect(years.length).to.eq(4);
-  //   const y = years[0];
-  //   let eY = _.find(yearData(), (v) => v.number == y.number);
-  //   expect(eY).not.to.be.undefined;
-  //   if (eY) {
-  //     expect(eY.leapYear).to.eq(y.leapYear);
-  //     expect(eY.start).to.eq(y.start);
-  //     expect(eY.end).to.eq(y.end);
-  //   }
+    // -------------------------------------------------------
+    //  Book and cancel all the dates
+    // -------------------------------------------------------
+    await send.book.success(dates.inputs);
+    await test.balances('5', '5', '9995');
+    await test.bookings(dates, '1');
+    await call.getBookings(dates);
 
-  //   eY = yearData()['2024'];
-  //   const [success, res] = await ProofOfPresence.getYear(2024);
-  //   expect(success).to.be.true;
-  //   expect(res.leapYear).to.eq(eY.leapYear);
-  //   expect(res.start).to.eq(eY.start);
-  //   expect(res.end).to.eq(eY.end);
-  // });
+    const years = await TDFDiamond.getYears();
+    expect(years.length).to.eq(4);
+    const y = years[0];
+    let eY = _.find(yearData(), (v) => v.number == y.number);
+    expect(eY).not.to.be.undefined;
+    if (eY) {
+      expect(eY.leapYear).to.eq(y.leapYear);
+      expect(eY.start).to.eq(y.start);
+      expect(eY.end).to.eq(y.end);
+    }
 
-  // xit('ownable', async () => {
-  //   const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
+    eY = yearData()['2024'];
+    const [success, res] = await TDFDiamond.getYear(2024);
+    expect(success).to.be.true;
+    expect(res.leapYear).to.eq(eY.leapYear);
+    expect(res.start).to.eq(eY.start);
+    expect(res.end).to.eq(eY.end);
+  });
 
-  //   const user = users[0];
-  //   const {send} = await setupHelpers({
-  //     stakeContract: TokenLock,
-  //     tokenContract: TDFToken,
-  //     bookingContract: ProofOfPresence,
-  //     user: user,
-  //     admin: deployer,
-  //   });
-  //   let yearAttrs;
-  //   yearAttrs = yearData()['2027'];
-  //   await send.addYear.reverted.onlyOwner({...yearAttrs, enabled: false});
-  //   await send.addYear.success({...yearAttrs, enabled: false});
-  //   yearAttrs = yearData()['2024'];
-  //   await send.addYear.reverted.alreadyExists({...yearAttrs, enabled: false});
-  //   let [stored] = await ProofOfPresence.getYear(2024);
-  //   expect(stored).to.be.true;
-  //   await send.removeYear.reverted.onlyOwner(2024);
-  //   [stored] = await ProofOfPresence.getYear(2024);
-  //   expect(stored).to.be.true;
-  //   await send.removeYear.reverted.doesNotExists(3000);
-  //   await send.removeYear.success(2023);
+  it('ownable', async () => {
+    const {users, ProofOfPresence, TDFToken, TokenLock, deployer, TDFDiamond} = await setup();
 
-  //   await send.updateYear.reverted.onlyOwner({...yearAttrs, enabled: false});
-  //   await send.updateYear.reverted.doesNotExists({...yearAttrs, number: 3002, enabled: false});
-  //   await send.updateYear.success({...yearAttrs, enabled: false});
-  //   await send.enableYear.reverted.onlyOwner(2025, false);
-  //   await send.enableYear.reverted.doesNotExists(3002, true);
-  //   await send.enableYear.success(2027, false);
-  //   await send.pause.reverted.onlyOwner();
-  //   await send.pause.success();
-  //   await send.unpause.reverted.onlyOwner();
-  //   await send.unpause.success();
-  // });
+    const user = users[0];
+    const {send} = await setupHelpers({
+      stakeContract: TokenLock,
+      tokenContract: TDFToken,
+      bookingContract: ProofOfPresence,
+      diamond: TDFDiamond,
+      user: user,
+      admin: deployer,
+    });
+    let yearAttrs;
+    yearAttrs = yearData()['2027'];
+    await send.addYear.reverted.onlyOwner({...yearAttrs, enabled: false});
+    await send.addYear.success({...yearAttrs, enabled: false});
+    yearAttrs = yearData()['2024'];
+    await send.addYear.reverted.alreadyExists({...yearAttrs, enabled: false});
+    let [stored] = await TDFDiamond.getYear(2024);
+    expect(stored).to.be.true;
+    await send.removeYear.reverted.onlyOwner(2024);
+    [stored] = await TDFDiamond.getYear(2024);
+    expect(stored).to.be.true;
+    await send.removeYear.reverted.doesNotExists(3000);
+    await send.removeYear.success(2023);
+
+    await send.updateYear.reverted.onlyOwner({...yearAttrs, enabled: false});
+    await send.updateYear.reverted.doesNotExists({...yearAttrs, number: 3002, enabled: false});
+    await send.updateYear.success({...yearAttrs, enabled: false});
+    await send.enableYear.reverted.onlyOwner(2025, false);
+    await send.enableYear.reverted.doesNotExists(3002, true);
+    await send.enableYear.success(2027, false);
+    // await send.pause.reverted.onlyOwner();
+    // await send.pause.success();
+    // await send.unpause.reverted.onlyOwner();
+    // await send.unpause.success();
+  });
 
   // xit('pausable', async () => {
   //   const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();

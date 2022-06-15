@@ -2,8 +2,6 @@
 
 pragma solidity 0.8.9;
 import "@openzeppelin/contracts/utils/Context.sol";
-// import "@openzeppelin/contracts/access/Ownable.sol";
-// import "@openzeppelin/contracts/security/Pausable.sol";
 import "../../Interfaces/ITokenLock.sol";
 import "../../Libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
@@ -22,13 +20,6 @@ contract ProofOfPresenceFacet is Modifiers, Context {
     event YearRemoved(uint16 number);
     event YearUpdated(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
 
-    function ProofOfPresenceFacet_init() external {
-        s._years.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199, true));
-        s._years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
-        s._years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
-        s._years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
-    }
-
     function book(uint16[2][] calldata dates) external {
         uint256 lastDate;
         for (uint256 i = 0; i < dates.length; i++) {
@@ -37,9 +28,8 @@ contract ProofOfPresenceFacet is Modifiers, Context {
 
             if (lastDate < value.timestamp) lastDate = value.timestamp;
         }
-        console.log(_msgSender());
+
         ITokenLock(address(this)).restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
-        console.log("emitting");
         emit NewBookings(_msgSender(), dates);
     }
 
@@ -92,11 +82,11 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         address account,
         uint16 yearNum,
         uint16 dayOfYear
-    ) public view returns (bool, BookingMapLib.Booking memory) {
+    ) external view returns (bool, BookingMapLib.Booking memory) {
         return s._bookings[account].get(yearNum, dayOfYear);
     }
 
-    function getBookings(address account, uint16 _year) public view returns (BookingMapLib.Booking[] memory) {
+    function getBookings(address account, uint16 _year) external view returns (BookingMapLib.Booking[] memory) {
         return s._bookings[account].list(_year);
     }
 
@@ -107,20 +97,20 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint256 start,
         uint256 end,
         bool enabled
-    ) public {
+    ) external onlyOwner {
         require(s._years.add(BookingMapLib.Year(number, leapYear, start, end, enabled)), "Unable to add year");
         emit YearAdded(number, leapYear, start, end, enabled);
     }
 
-    function getYears() public view returns (BookingMapLib.Year[] memory) {
+    function getYears() external view returns (BookingMapLib.Year[] memory) {
         return s._years.values();
     }
 
-    function getYear(uint16 number) public view returns (bool, BookingMapLib.Year memory) {
+    function getYear(uint16 number) external view returns (bool, BookingMapLib.Year memory) {
         return s._years.get(number);
     }
 
-    function removeYear(uint16 number) public onlyOwner {
+    function removeYear(uint16 number) external onlyOwner {
         require(s._years.remove(number), "Unable to remove Year");
         emit YearRemoved(number);
     }
@@ -131,12 +121,12 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint256 start,
         uint256 end,
         bool enabled
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(s._years.update(BookingMapLib.Year(number, leapYear, start, end, enabled)), "Unable to update Year");
         emit YearUpdated(number, leapYear, start, end, enabled);
     }
 
-    function enableYear(uint16 number, bool enable) public onlyOwner {
+    function enableYear(uint16 number, bool enable) external onlyOwner {
         (, BookingMapLib.Year memory y) = s._years.get(number);
         y.enabled = enable;
         require(s._years.update(y), "Unable to update year");

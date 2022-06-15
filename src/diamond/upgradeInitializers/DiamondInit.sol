@@ -16,8 +16,6 @@ import {IERC173} from "../interfaces/IERC173.sol";
 import {IERC165} from "../interfaces/IERC165.sol";
 import "../../Libraries/BookingMapLib.sol";
 
-import "hardhat/console.sol";
-
 // It is expected that this contract is customized if you want to deploy your diamond
 // with data from a deployment script. Use the init function to initialize state variables
 // of your diamond. Add parameters to the init funciton if you need to.
@@ -41,8 +39,6 @@ contract DiamondInit is Modifiers {
         s._years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
         s._years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
         s._years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
-
-        console.log("INITIALIZING");
 
         // Set the contract as initialized
         s.initialized = true;
