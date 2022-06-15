@@ -226,28 +226,28 @@ const setupHelpers = async ({
           },
         },
       },
-      // pause: {
-      //   success: async () => {
-      //     await expect(admin.ProofOfPresence.pause()).to.emit(bookingContract, 'Paused');
-      //     expect(await bookingContract.paused()).to.be.true;
-      //   },
-      //   reverted: {
-      //     onlyOwner: async () => {
-      //       await expect(user.ProofOfPresence.pause()).to.be.revertedWith('Ownable: caller is not the owner');
-      //     },
-      //   },
-      // },
-      // unpause: {
-      //   success: async () => {
-      //     await expect(admin.ProofOfPresence.unpause()).to.emit(bookingContract, 'Unpaused');
-      //     expect(await bookingContract.paused()).to.be.false;
-      //   },
-      //   reverted: {
-      //     onlyOwner: async () => {
-      //       await expect(user.ProofOfPresence.unpause()).to.be.revertedWith('Ownable: caller is not the owner');
-      //     },
-      //   },
-      // },
+      pause: {
+        success: async () => {
+          await expect(admin.TDFDiamond.pause()).to.emit(diamond, 'Paused');
+          expect(await diamond.paused()).to.be.true;
+        },
+        reverted: {
+          onlyOwner: async () => {
+            await expect(user.TDFDiamond.pause()).to.be.revertedWith('LibDiamond: Must be contract owner');
+          },
+        },
+      },
+      unpause: {
+        success: async () => {
+          await expect(admin.TDFDiamond.unpause()).to.emit(diamond, 'Unpaused');
+          expect(await diamond.paused()).to.be.false;
+        },
+        reverted: {
+          onlyOwner: async () => {
+            await expect(user.TDFDiamond.unpause()).to.be.revertedWith('LibDiamond: Must be contract owner');
+          },
+        },
+      },
     },
   };
 };
@@ -285,7 +285,7 @@ const setup = deployments.createFixture(async (hre) => {
   return conf;
 });
 
-describe('ProofOfPresence', () => {
+describe('ProofOfPresenceFacet', () => {
   it('book', async () => {
     const {users, TDFToken, deployer, TDFDiamond} = await setup();
 
@@ -424,40 +424,39 @@ describe('ProofOfPresence', () => {
     await send.enableYear.reverted.onlyOwner(2025, false);
     await send.enableYear.reverted.doesNotExists(3002, true);
     await send.enableYear.success(2027, false);
-    // await send.pause.reverted.onlyOwner();
-    // await send.pause.success();
-    // await send.unpause.reverted.onlyOwner();
-    // await send.unpause.success();
+    await send.pause.reverted.onlyOwner();
+    await send.pause.success();
+    await send.unpause.reverted.onlyOwner();
+    await send.unpause.success();
   });
 
-  // xit('pausable', async () => {
-  //   const {users, ProofOfPresence, TDFToken, TokenLock, deployer} = await setup();
+  it('pausable', async () => {
+    const {users, TDFToken, deployer, TDFDiamond} = await setup();
 
-  //   const user = users[0];
-  //   const {send} = await setupHelpers({
-  //     stakeContract: TokenLock,
-  //     tokenContract: TDFToken,
-  //     bookingContract: ProofOfPresence,
-  //     user: user,
-  //     admin: deployer,
-  //   });
-  //   await user.TDFToken.approve(TokenLock.address, parseEther('10'));
-  //   const init = addDays(Date.now(), 10);
-  //   const dates = buildDates(init, 5);
+    const user = users[0];
+    const {send} = await setupHelpers({
+      tokenContract: TDFToken,
+      diamond: TDFDiamond,
+      user: user,
+      admin: deployer,
+    });
+    await user.TDFToken.approve(TDFDiamond.address, parseEther('10'));
+    const init = addDays(Date.now(), 10);
+    const dates = buildDates(init, 5);
 
-  //   // -------------------------------------------------------
-  //   //  Book and cancel enabled with  Unpaused
-  //   // -------------------------------------------------------
-  //   expect(await ProofOfPresence.paused()).to.be.false;
-  //   await send.book.success(dates.inputs);
-  //   await send.cancel.success(dates.inputs);
-  //   // -------------------------------------------------------
-  //   //  Book and cancel disabled with  Paused
-  //   // -------------------------------------------------------
-  //   await send.pause.success();
-  //   expect(await ProofOfPresence.paused()).to.be.true;
+    // -------------------------------------------------------
+    //  Book and cancel enabled with  Unpaused
+    // -------------------------------------------------------
+    expect(await TDFDiamond.paused()).to.be.false;
+    await send.book.success(dates.inputs);
+    await send.cancel.success(dates.inputs);
+    // -------------------------------------------------------
+    //  Book and cancel disabled with  Paused
+    // -------------------------------------------------------
+    await send.pause.success();
+    expect(await TDFDiamond.paused()).to.be.true;
 
-  //   await send.book.reverted.paused(dates.inputs);
-  //   await send.cancel.reverted.paused(dates.inputs);
-  // });
+    await send.book.reverted.paused(dates.inputs);
+    await send.cancel.reverted.paused(dates.inputs);
+  });
 });
