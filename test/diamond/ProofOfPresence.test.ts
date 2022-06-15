@@ -14,9 +14,7 @@ import {TDFDiamond, TokenLockFacet, ProofOfPresenceFacet} from '../../typechain'
 type DateInputs = [number, number][];
 interface setUser {
   address: string;
-  TokenLock: TokenLockFacet | TokenLock;
   TDFToken: TDFToken;
-  ProofOfPresence: ProofOfPresence | ProofOfPresenceFacet;
   TDFDiamond: TDFDiamond;
 }
 interface DateMetadata {
@@ -73,16 +71,12 @@ const yearData = () => {
 };
 
 const setupHelpers = async ({
-  stakeContract,
   tokenContract,
-  bookingContract,
   diamond,
   user,
   admin,
 }: {
-  stakeContract: TokenLockFacet | TokenLock;
   tokenContract: TDFToken;
-  bookingContract: ProofOfPresenceFacet | ProofOfPresence;
   diamond: TDFDiamond;
   user: setUser;
   admin: setUser;
@@ -268,13 +262,9 @@ const setup = deployments.createFixture(async (hre) => {
   const {deployer, TDFTokenBeneficiary} = accounts;
 
   const token = <TDFToken>await ethers.getContract('TDFToken', deployer);
-  const stakeContract = <TokenLockFacet>await ethers.getContract('TokenLockFacet', deployer);
-  const pOP = <ProofOfPresenceFacet>await ethers.getContract('TokenLockFacet', deployer);
   const contracts = {
     TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', deployer),
     TDFToken: token,
-    ProofOfPresence: pOP,
-    TokenLock: stakeContract,
   };
 
   const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);
@@ -297,13 +287,11 @@ const setup = deployments.createFixture(async (hre) => {
 
 describe('ProofOfPresence', () => {
   it('book', async () => {
-    const {users, ProofOfPresence, TDFToken, TokenLock, deployer, TDFDiamond} = await setup();
+    const {users, TDFToken, deployer, TDFDiamond} = await setup();
 
     const user = users[0];
     const {test, send} = await setupHelpers({
-      stakeContract: TokenLock,
       tokenContract: TDFToken,
-      bookingContract: ProofOfPresence,
       diamond: TDFDiamond,
       user: user,
       admin: deployer,
@@ -316,13 +304,11 @@ describe('ProofOfPresence', () => {
     await test.balances('5', '5', '9995');
   });
   it('book and cancel', async () => {
-    const {users, ProofOfPresence, TDFToken, TokenLock, deployer, TDFDiamond} = await setup();
+    const {users, TDFToken, deployer, TDFDiamond} = await setup();
     const user = users[0];
 
     const {test, send} = await setupHelpers({
-      stakeContract: TokenLock,
       tokenContract: TDFToken,
-      bookingContract: ProofOfPresence,
       diamond: TDFDiamond,
       user: user,
       admin: deployer,
@@ -366,13 +352,11 @@ describe('ProofOfPresence', () => {
   });
 
   it('getters', async () => {
-    const {users, ProofOfPresence, TDFToken, TokenLock, deployer, TDFDiamond} = await setup();
+    const {users, TDFToken, deployer, TDFDiamond} = await setup();
     const user = users[0];
 
     const {test, send, call} = await setupHelpers({
-      stakeContract: TokenLock,
       tokenContract: TDFToken,
-      bookingContract: ProofOfPresence,
       diamond: TDFDiamond,
 
       user: user,
@@ -411,13 +395,11 @@ describe('ProofOfPresence', () => {
   });
 
   it('ownable', async () => {
-    const {users, ProofOfPresence, TDFToken, TokenLock, deployer, TDFDiamond} = await setup();
+    const {users, TDFToken, deployer, TDFDiamond} = await setup();
 
     const user = users[0];
     const {send} = await setupHelpers({
-      stakeContract: TokenLock,
       tokenContract: TDFToken,
-      bookingContract: ProofOfPresence,
       diamond: TDFDiamond,
       user: user,
       admin: deployer,
