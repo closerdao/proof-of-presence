@@ -18,6 +18,7 @@ struct AppStorage {
     mapping(address => Deposit[]) _deposits;
     uint256 lockingPeriod;
     bool paused;
+    bool initialized;
 }
 
 library LibAppStorage {
@@ -33,6 +34,13 @@ contract Modifiers {
 
     modifier onlyOwner() {
         LibDiamond.enforceIsContractOwner();
+        _;
+    }
+
+    modifier whenNotInitalized() {
+        if (s.initialized) {
+            revert("Already initialized");
+        }
         _;
     }
 }

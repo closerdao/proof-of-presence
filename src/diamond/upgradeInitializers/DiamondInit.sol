@@ -9,23 +9,25 @@ pragma solidity 0.8.9;
 /******************************************************************************/
 
 import {LibDiamond} from "../libraries/LibDiamond.sol";
-import {AppStorage, LibAppStorage, IERC20} from "../libraries/AppStorage.sol";
+import {AppStorage, LibAppStorage, IERC20, Modifiers} from "../libraries/AppStorage.sol";
 import {IDiamondLoupe} from "../interfaces/IDiamondLoupe.sol";
 import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
 import {IERC173} from "../interfaces/IERC173.sol";
 import {IERC165} from "../interfaces/IERC165.sol";
-import "hardhat/console.sol";
+import "../../Libraries/BookingMapLib.sol";
 
-// TODO: not been used by the deployment
+import "hardhat/console.sol";
 
 // It is expected that this contract is customized if you want to deploy your diamond
 // with data from a deployment script. Use the init function to initialize state variables
 // of your diamond. Add parameters to the init funciton if you need to.
 
-contract DiamondInit {
+contract DiamondInit is Modifiers {
+    using BookingMapLib for BookingMapLib.YearsStore;
+
     // You can add parameters to this function in order to pass in
     // data to set your own state variables
-    function init(address token) external {
+    function init(address token) external onlyOwner whenNotInitalized {
         // adding ERC165 data
         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
         ds.supportedInterfaces[type(IERC165).interfaceId] = true;
@@ -35,6 +37,15 @@ contract DiamondInit {
 
         AppStorage storage s = LibAppStorage.diamondStorage();
         s.tdfToken = IERC20(token);
+        s._years.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199, true));
+        s._years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
+        s._years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
+        s._years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
+
+        console.log("INITIALIZING");
+
+        // Set the contract as initialized
+        s.initialized = true;
 
         // add your own state variables
         // EIP-2535 specifies that the `diamondCut` function takes two optional

@@ -311,7 +311,7 @@ describe('ProofOfPresence', () => {
 
     console.log(user.address);
 
-    await user.TDFToken.approve(TokenLock.address, parseEther('10'));
+    await user.TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
     await send.book.success(dates.inputs);
