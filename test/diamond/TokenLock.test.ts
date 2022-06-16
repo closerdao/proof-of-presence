@@ -5,6 +5,7 @@ import {setupUser, setupUsers} from '../utils';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays, getUnixTime} from 'date-fns';
+import {diamondTest} from '../utils/diamond';
 const BN = ethers.BigNumber;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,91 +69,19 @@ const timeTravelTo = async (time: number) => {
   await network.provider.send('evm_mine');
 };
 
-const setupHelpers = async ({
-  tokenContract,
-  diamond,
-  user,
-  admin,
-}: {
-  diamond: TDFDiamond;
-  tokenContract: TDFToken;
-  user: {address: string; TDFDiamond: TDFDiamond};
-  admin: {address: string; TDFDiamond: TDFDiamond};
-}) => {
-  return {
-    testBalances: async (TK: string, tkU: string, u: string) => {
-      expect(await tokenContract.balanceOf(diamond.address)).to.eq(parseEther(TK));
-      expect(await diamond.balanceOf(user.address)).to.eq(parseEther(tkU));
-      expect(await tokenContract.balanceOf(user.address)).to.eq(parseEther(u));
-    },
-    testStake: async (locked: string, unlocked: string) => {
-      expect(await diamond.lockedAmount(user.address)).to.eq(parseEther(locked));
-      expect(await diamond.unlockedAmount(user.address)).to.eq(parseEther(unlocked));
-    },
-    testDeposits: async (examples: [string, number][]) => {
-      const deposits = await diamond.depositsFor(user.address);
-      for (let i = 0; i < deposits.length; i++) {
-        expect(deposits[i].amount).to.eq(parseEther(examples[i][0]));
-        expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
-      }
-    },
-    deposit: async (amount: string) => {
-      await expect(user.TDFDiamond.deposit(parseEther(amount)))
-        .to.emit(diamond, 'DepositedTokens')
-        .withArgs(user.address, parseEther(amount));
-    },
-    withdrawMax: {
-      success: async (amount: string) => {
-        await expect(user.TDFDiamond.withdrawMax())
-          .to.emit(diamond, 'WithdrawnTokens')
-          .withArgs(user.address, parseEther(amount));
-      },
-      none: async () => {
-        await expect(user.TDFDiamond.withdrawMax()).to.not.emit(diamond, 'WithdrawnTokens');
-      },
-    },
-    withdraw: {
-      success: async (amount: string) => {
-        await expect(user.TDFDiamond.withdraw(parseEther(amount)))
-          .to.emit(diamond, 'WithdrawnTokens')
-          .withArgs(user.address, parseEther(amount));
-      },
-      reverted: async (amount: string) => {
-        await expect(user.TDFDiamond.withdraw(parseEther(amount))).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
-      },
-    },
-    restakeMax: async () => {
-      await user.TDFDiamond.restakeMax();
-    },
-    restake: {
-      reverted: async (amount: string) => {
-        await expect(user.TDFDiamond.restake(parseEther(amount))).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
-      },
-      success: async (amount: string) => {
-        await user.TDFDiamond.restake(parseEther(amount));
-      },
-    },
-    restakeOrDepositAtFor: async (amount: string, initLockAt: number) => {
-      if (admin) {
-        await admin.TDFDiamond.restakeOrDepositAtFor(user.address, parseEther(amount), initLockAt);
-      } else {
-        throw 'No admin Set';
-      }
-    },
-  };
-};
-
 describe('TokenLockFacet', () => {
   it('lock and unlockMax', async () => {
     const {users, TDFDiamond, TDFToken, deployer} = await setup();
 
     const user = users[0];
-    const {testBalances, deposit, withdrawMax} = await setupHelpers({
+    const {test, TLF} = await diamondTest({
       diamond: TDFDiamond,
       tokenContract: TDFToken,
       user: user,
       admin: deployer,
     });
+    const {testBalances} = test;
+    const {deposit, withdrawMax} = TLF;
 
     expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
     await testBalances('0', '0', '10000');
@@ -181,12 +110,14 @@ describe('TokenLockFacet', () => {
     const {users, TDFDiamond, TDFToken, deployer} = await setup();
 
     const user = users[0];
-    const {testBalances, deposit, withdraw, withdrawMax} = await setupHelpers({
+    const {test, TLF} = await diamondTest({
       diamond: TDFDiamond,
       tokenContract: TDFToken,
       user: user,
       admin: deployer,
     });
+    const {testBalances} = test;
+    const {deposit, withdrawMax, withdraw} = TLF;
 
     expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
     await testBalances('0', '0', '10000');
@@ -263,12 +194,14 @@ describe('TokenLockFacet', () => {
     const {users, TDFDiamond, TDFToken, deployer} = await setup();
     const user = users[0];
 
-    const {testBalances, testStake, deposit, restakeMax, withdrawMax} = await setupHelpers({
+    const {test, TLF} = await diamondTest({
       diamond: TDFDiamond,
       tokenContract: TDFToken,
       user: user,
       admin: deployer,
     });
+    const {testBalances, testStake} = test;
+    const {deposit, withdrawMax, restakeMax} = TLF;
 
     expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
     await testBalances('0', '0', '10000');
@@ -293,12 +226,14 @@ describe('TokenLockFacet', () => {
   it('restake(uint256 amount)', async () => {
     const {users, TDFDiamond, TDFToken, deployer} = await setup();
     const user = users[0];
-    const {testBalances, testStake, deposit, restakeMax, restake, withdraw, withdrawMax} = await setupHelpers({
+    const {test, TLF} = await diamondTest({
       diamond: TDFDiamond,
       tokenContract: TDFToken,
       user: user,
       admin: deployer,
     });
+    const {testBalances, testStake} = test;
+    const {deposit, withdrawMax, restakeMax, restake, withdraw} = TLF;
 
     expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
     await testBalances('0', '0', '10000');
@@ -358,12 +293,14 @@ describe('TokenLockFacet', () => {
   it('restakeOrDepositAt', async () => {
     const {users, TDFDiamond, TDFToken, deployer} = await setup();
     const user = users[0];
-    const {testBalances, testStake, testDeposits, restakeOrDepositAtFor, withdraw, withdrawMax} = await setupHelpers({
+    const {test, TLF} = await diamondTest({
       diamond: TDFDiamond,
       tokenContract: TDFToken,
       user: user,
       admin: deployer,
     });
+    const {testBalances, testStake, testDeposits} = test;
+    const {withdrawMax, withdraw, restakeOrDepositAtFor} = TLF;
 
     expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
     await testBalances('0', '0', '10000');
