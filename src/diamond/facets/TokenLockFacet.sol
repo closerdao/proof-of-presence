@@ -30,10 +30,6 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     event DepositedTokens(address account, uint256 amount);
     event WithdrawnTokens(address account, uint256 amount);
 
-    constructor(uint256 daysLocked) {
-        s.lockingPeriod = daysLocked * 86400; // there are 86400 seconds in a day
-    }
-
     function deposit(uint256 amount) public {
         _deposit(_msgSender(), amount, block.timestamp);
     }

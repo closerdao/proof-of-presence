@@ -13,16 +13,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const deployed = await diamond.deploy('TDFDiamond', {
     from: deployer,
     owner: deployer,
-    facets: [
-      {name: 'ProofOfPresenceFacet'},
-      {name: 'TokenLockFacet', args: [365]},
-      {name: 'DiamondInit'},
-      {name: 'AdminFacet'},
-    ],
+    facets: [{name: 'ProofOfPresenceFacet'}, {name: 'TokenLockFacet'}, {name: 'DiamondInit'}, {name: 'AdminFacet'}],
     // diamondContractArgs: [TDFToken.address],
     execute: {
       methodName: 'init',
-      args: [TDFToken.address],
+      args: [TDFToken.address, 1], // TODO: be 365 and change in tests
     },
   });
   // TODO:

@@ -2,8 +2,6 @@
 pragma solidity 0.8.9;
 
 import {LibDiamond} from "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
-
-import {IERC173} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC173.sol";
 import {Modifiers} from "../libraries/AppStorage.sol";
 
 contract AdminFacet is Modifiers {
