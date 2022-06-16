@@ -8,12 +8,12 @@ pragma solidity 0.8.9;
 * Implementation of a diamond.
 /******************************************************************************/
 
-import {LibDiamond} from "../libraries/LibDiamond.sol";
+import {LibDiamond} from "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
 import {AppStorage, LibAppStorage, IERC20, Modifiers} from "../libraries/AppStorage.sol";
-import {IDiamondLoupe} from "../interfaces/IDiamondLoupe.sol";
-import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
-import {IERC173} from "../interfaces/IERC173.sol";
-import {IERC165} from "../interfaces/IERC165.sol";
+import {IDiamondLoupe} from "hardhat-deploy/solc_0.8/diamond/interfaces/IDiamondLoupe.sol";
+import {IDiamondCut} from "hardhat-deploy/solc_0.8/diamond/interfaces/IDiamondCut.sol";
+import {IERC173} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC173.sol";
+import {IERC165} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC165.sol";
 import "../../Libraries/BookingMapLib.sol";
 
 // It is expected that this contract is customized if you want to deploy your diamond

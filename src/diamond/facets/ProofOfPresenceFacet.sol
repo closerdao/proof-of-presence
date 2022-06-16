@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "../../Interfaces/ITokenLock.sol";
 import "../../Libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
-import "../libraries/LibDiamond.sol";
 
 // TODO: Pausable
 
