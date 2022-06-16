@@ -13,7 +13,7 @@ const yearData = () => {
 };
 
 const setup = deployments.createFixture(async (hre) => {
-  const {deployments, getNamedAccounts, ethers} = hre;
+  const {deployments, getNamedAccounts} = hre;
   await deployments.fixture();
 
   const accounts = await getNamedAccounts();

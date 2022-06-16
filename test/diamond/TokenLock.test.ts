@@ -1,18 +1,10 @@
 import {expect} from '../chai-setup';
-import {deployments, getUnnamedAccounts, ethers, network} from 'hardhat';
+import {deployments, getUnnamedAccounts, network} from 'hardhat';
 import {TDFToken, TDFDiamond} from '../../typechain';
 import {setupUser, setupUsers} from '../utils';
-import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays, getUnixTime} from 'date-fns';
 import {diamondTest} from '../utils/diamond';
-const BN = ethers.BigNumber;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
-  await deployments.deploy(name, {from: deployer, args: args});
-  return ethers.getContract(name, deployer);
-}
 
 const setup = deployments.createFixture(async (hre) => {
   const {deployments, getNamedAccounts, ethers} = hre;
@@ -52,21 +44,9 @@ const incDays = async (days: number) => {
   await network.provider.send('evm_mine');
 };
 
-const buildDates = (initDate: Date, amount: number) => {
-  const acc = [];
-  for (let i = 0; i < amount; i++) {
-    acc.push(getUnixTime(addDays(initDate, i)));
-  }
-  return acc;
-};
 const buildDate = (offset: number) => {
   const initDate = Date.now();
   return getUnixTime(addDays(initDate, offset));
-};
-
-const timeTravelTo = async (time: number) => {
-  await network.provider.send('evm_setNextBlockTimestamp', [time]);
-  await network.provider.send('evm_mine');
 };
 
 describe('TokenLockFacet', () => {

@@ -1,61 +1,13 @@
 import {expect} from '../chai-setup';
-import {deployments, getUnnamedAccounts, ethers, network} from 'hardhat';
-import {TDFToken, ProofOfPresence, TokenLock, TDFDiamond__factory} from '../../typechain';
-import {BookingMapLib} from '../../typechain/ProofOfPresence';
+import {deployments, getUnnamedAccounts} from 'hardhat';
+import * as _ from 'lodash';
+
+import {TDFToken, TDFDiamond} from '../../typechain';
 
 import {setupUser, setupUsers} from '../utils';
-import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
-import {addDays, getUnixTime, fromUnixTime, getDayOfYear, yearsToMonths} from 'date-fns';
-const BN = ethers.BigNumber;
-import * as _ from 'lodash';
-import {TDFDiamond} from '../../typechain';
-import {diamondTest} from '../utils/diamond';
-import {DatesTestData} from '../utils/diamond/types';
-
-const buildDates = (initDate: Date, amount: number): DatesTestData => {
-  const acc: DatesTestData = {data: [], inputs: []};
-  for (let i = 0; i < amount; i++) {
-    const nDate = addDays(initDate, i);
-    acc.data.push({
-      year: nDate.getUTCFullYear(),
-      day: getDayOfYear(nDate),
-      unix: getUnixTime(nDate),
-    });
-    acc.inputs.push([nDate.getUTCFullYear(), getDayOfYear(nDate)]);
-  }
-  return acc;
-};
-
-const collectDates = (dates: DatesTestData, indexes: number[]): DatesTestData => {
-  const acc: DatesTestData = {data: [], inputs: []};
-  indexes.forEach((i) => {
-    acc.data.push(dates.data[i]);
-    acc.inputs.push(dates.inputs[i]);
-  });
-  return acc;
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
-  await deployments.deploy(name, {from: deployer, args: args});
-  return ethers.getContract(name, deployer);
-}
-
-const timeTravelTo = async (time: number) => {
-  await network.provider.send('evm_setNextBlockTimestamp', [time]);
-  await network.provider.send('evm_mine');
-};
-
-const yearData = () => {
-  return {
-    '2022': {number: 2022, leapYear: false, start: 1640995200, end: 1672531199},
-    '2023': {number: 2023, leapYear: false, start: 1672531200, end: 1704067199},
-    '2024': {number: 2024, leapYear: true, start: 1704067200, end: 1735689599},
-    '2025': {number: 2025, leapYear: false, start: 1735689600, end: 1767225599},
-    '2027': {number: 2027, leapYear: false, start: 1798761600, end: 1830297599},
-  };
-};
+import {addDays} from 'date-fns';
+import {diamondTest, buildDates, collectDates, yearData, timeTravelTo} from '../utils/diamond';
 
 const setup = deployments.createFixture(async (hre) => {
   const {deployments, getNamedAccounts, ethers} = hre;

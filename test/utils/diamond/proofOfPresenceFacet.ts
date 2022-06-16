@@ -1,12 +1,10 @@
 import {expect} from '../../chai-setup';
-import {TDFToken, TDFDiamond} from '../../../typechain';
-import {parseEther} from 'ethers/lib/utils';
 import {BookingMapLib} from '../../../typechain/ProofOfPresence';
 
 import {HelpersInput, DatesTestData, DateMetadata, DateInputs} from './types';
 import * as _ from 'lodash';
 
-export const setupHelpers = async ({tokenContract, diamond, user, admin}: HelpersInput) => {
+export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
   return {
     call: {
       getBookings: async (dates: DatesTestData) => {

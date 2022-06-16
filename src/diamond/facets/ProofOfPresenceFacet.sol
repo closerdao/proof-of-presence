@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.9;
 import "@openzeppelin/contracts/utils/Context.sol";
-import "../../Interfaces/ITokenLock.sol";
+import "../interfaces/ITokenLock.sol";
 import "../../Libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
 

@@ -1,6 +1,8 @@
 import {expect} from '../../chai-setup';
 import {parseEther} from 'ethers/lib/utils';
-import {ethers} from 'hardhat';
+import {ethers, network} from 'hardhat';
+import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
+
 import {HelpersInput, DatesTestData} from './types';
 import * as TLH from './tokenlockFacet';
 import * as POPH from './proofOfPresenceFacet';
@@ -46,5 +48,43 @@ export const diamondTest = async (input: HelpersInput) => {
     test: await testHelpers(input),
     TLF: await TLH.setupHelpers(input),
     POPH: await POPH.setupHelpers(input),
+  };
+};
+
+export const buildDates = (initDate: Date, amount: number): DatesTestData => {
+  const acc: DatesTestData = {data: [], inputs: []};
+  for (let i = 0; i < amount; i++) {
+    const nDate = addDays(initDate, i);
+    acc.data.push({
+      year: nDate.getUTCFullYear(),
+      day: getDayOfYear(nDate),
+      unix: getUnixTime(nDate),
+    });
+    acc.inputs.push([nDate.getUTCFullYear(), getDayOfYear(nDate)]);
+  }
+  return acc;
+};
+
+export const collectDates = (dates: DatesTestData, indexes: number[]): DatesTestData => {
+  const acc: DatesTestData = {data: [], inputs: []};
+  indexes.forEach((i) => {
+    acc.data.push(dates.data[i]);
+    acc.inputs.push(dates.inputs[i]);
+  });
+  return acc;
+};
+
+export const timeTravelTo = async (time: number) => {
+  await network.provider.send('evm_setNextBlockTimestamp', [time]);
+  await network.provider.send('evm_mine');
+};
+
+export const yearData = () => {
+  return {
+    '2022': {number: 2022, leapYear: false, start: 1640995200, end: 1672531199},
+    '2023': {number: 2023, leapYear: false, start: 1672531200, end: 1704067199},
+    '2024': {number: 2024, leapYear: true, start: 1704067200, end: 1735689599},
+    '2025': {number: 2025, leapYear: false, start: 1735689600, end: 1767225599},
+    '2027': {number: 2027, leapYear: false, start: 1798761600, end: 1830297599},
   };
 };
