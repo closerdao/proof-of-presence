@@ -1,5 +1,5 @@
 import {expect} from '../../chai-setup';
-import {BookingMapLib} from '../../../typechain/ProofOfPresence';
+import {BookingMapLib} from '../../../typechain/ProofOfPresenceFacet';
 
 import {HelpersInput, DatesTestData, DateMetadata, DateInputs} from './types';
 import * as _ from 'lodash';
