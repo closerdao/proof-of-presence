@@ -20,7 +20,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
     event YearRemoved(uint16 number);
     event YearUpdated(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
 
-    function book(uint16[2][] calldata dates) external {
+    function book(uint16[2][] calldata dates) external whenNotPaused {
         uint256 lastDate;
         for (uint256 i = 0; i < dates.length; i++) {
             uint256 price = 1 ether;
@@ -47,7 +47,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         return value;
     }
 
-    function cancel(uint16[2][] calldata dates) external {
+    function cancel(uint16[2][] calldata dates) external whenNotPaused {
         for (uint256 i = 0; i < dates.length; i++) {
             _cancel(_msgSender(), dates[i][0], dates[i][1]);
         }
