@@ -6,8 +6,6 @@ import "../interfaces/ITokenLock.sol";
 import "../../Libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
 
-// TODO: Pausable
-
 contract ProofOfPresenceFacet is Modifiers, Context {
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
@@ -131,26 +129,4 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         require(s._years.update(y), "Unable to update year");
         emit YearUpdated(y.number, y.leapYear, y.start, y.end, y.enabled);
     }
-
-    // /**
-    //  * @dev Pause bookings.
-    //  *
-    //  * Requirements:
-    //  *
-    //  * - Only Owner.
-    //  */
-    // function pause() public onlyOwner {
-    //     _pause();
-    // }
-
-    // /**
-    //  * @dev Unpause bookings.
-    //  *
-    //  * Requirements:
-    //  *
-    //  * - Only Owner.
-    //  */
-    // function unpause() public onlyOwner {
-    //     _unpause();
-    // }
 }
