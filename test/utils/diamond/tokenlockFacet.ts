@@ -1,18 +1,9 @@
 import {expect} from '../../chai-setup';
 import {TDFToken, TDFDiamond} from '../../../typechain';
 import {parseEther} from 'ethers/lib/utils';
+import {HelpersInput} from './types';
 
-export const setupHelpers = async ({
-  tokenContract,
-  diamond,
-  user,
-  admin,
-}: {
-  diamond: TDFDiamond;
-  tokenContract: TDFToken;
-  user: {address: string; TDFDiamond: TDFDiamond};
-  admin: {address: string; TDFDiamond: TDFDiamond};
-}) => {
+export const setupHelpers = async ({tokenContract, diamond, user, admin}: HelpersInput) => {
   return {
     deposit: async (amount: string) => {
       await expect(user.TDFDiamond.deposit(parseEther(amount)))
