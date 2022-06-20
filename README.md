@@ -50,6 +50,12 @@ This will deploy your contracts on the in-memory hardhat network and exit, leavi
 These will execute your tests using mocha. you can pass extra arguments to mocha
 <br/><br/>
 
+## Verify contracts
+
+```
+hh --network alfajores sourcify
+```
+
 ### `yarn coverage`
 
 These will produce a coverage report in the `coverage/` folder
