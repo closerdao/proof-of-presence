@@ -7,26 +7,15 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "hardhat/console.sol";
+import "../libraries/AppStorage.sol";
 
-contract TokenLock is Context, ReentrancyGuard {
+contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable token;
-    mapping(address => uint256) internal _balances;
-    mapping(address => Deposit[]) internal _deposits;
-    uint256 public lockingPeriod;
     // Max number in uint256
     // same result can be achieved with: `uint256 MAX_INT = 2**256 - 1`
     // Pasted the literal here for cheaper deployment
     uint256 private constant MAX_INT = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
-
-    struct Deposit {
-        uint256 timestamp;
-        uint256 amount;
-    }
 
     struct WithdrawingResult {
         uint256 untiedAmount;
@@ -37,11 +26,6 @@ contract TokenLock is Context, ReentrancyGuard {
     event DepositedTokens(address account, uint256 amount);
     event WithdrawnTokens(address account, uint256 amount);
 
-    constructor(IERC20 _token, uint256 daysLocked) {
-        token = _token;
-        lockingPeriod = daysLocked * 86400; // there are 86400 seconds in a day
-    }
-
     function deposit(uint256 amount) public {
         _deposit(_msgSender(), amount, block.timestamp);
     }
@@ -51,14 +35,14 @@ contract TokenLock is Context, ReentrancyGuard {
         uint256 amount,
         uint256 depositTm
     ) internal {
-        _deposits[account].push(Deposit(depositTm, amount));
-        _balances[account] += amount;
-        token.safeTransferFrom(account, address(this), amount);
+        s._deposits[account].push(Deposit(depositTm, amount));
+        s._balances[account] += amount;
+        s.tdfToken.safeTransferFrom(account, address(this), amount);
         emit DepositedTokens(account, amount);
     }
 
     function withdrawMax() public returns (uint256) {
-        require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        require(s._balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT, block.timestamp);
 
         // Change the state
@@ -67,7 +51,7 @@ contract TokenLock is Context, ReentrancyGuard {
     }
 
     function withdraw(uint256 requested) public returns (uint256) {
-        require(_balances[_msgSender()] >= requested, "NOT_ENOUGHT_BALANCE");
+        require(s._balances[_msgSender()] >= requested, "NOT_ENOUGHT_BALANCE");
         // `requested` is passed as value and not by reference because is a basic type
         // https://docs.soliditylang.org/en/v0.8.9/types.html#value-types
         // It will not be modified by `_calculateWithdraw()`
@@ -79,13 +63,13 @@ contract TokenLock is Context, ReentrancyGuard {
     }
 
     function restakeMax() public {
-        require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        require(s._balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT, block.timestamp);
         _restake(_msgSender(), result, block.timestamp);
     }
 
     function restake(uint256 requestedAmount) public {
-        require(_balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        require(s._balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), requestedAmount, block.timestamp);
         require(result.untiedAmount == requestedAmount, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
         _restake(_msgSender(), result, block.timestamp);
@@ -96,10 +80,10 @@ contract TokenLock is Context, ReentrancyGuard {
         uint256 amount,
         // TODO: initLocking time must be bigger that current timestamp
         uint256 initLockingTm
-    ) public {
+    ) external {
         require(initLockingTm >= block.timestamp, "Unable to stake to the pass");
-        uint256 stake = _balances[account];
-        uint256 tBalance = token.balanceOf(account);
+        uint256 stake = s._balances[account];
+        uint256 tBalance = s.tdfToken.balanceOf(account);
         require(stake + tBalance >= amount, "NOT_ENOUGHT_BALANCE");
         if (stake == 0) {
             _deposit(account, amount, initLockingTm);
@@ -123,13 +107,13 @@ contract TokenLock is Context, ReentrancyGuard {
         uint256 lockingInitTm
     ) internal {
         // crear previous deposits
-        delete _deposits[account];
+        delete s._deposits[account];
         for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
             // copy the deposits to storage
-            _deposits[account].push(result.remainingDeposits[i]);
+            s._deposits[account].push(result.remainingDeposits[i]);
         }
         // ReStake the withdrawable amount
-        _deposits[account].push(Deposit(lockingInitTm, result.untiedAmount));
+        s._deposits[account].push(Deposit(lockingInitTm, result.untiedAmount));
         // EMIT ReStaked
         // return amount
     }
@@ -137,14 +121,14 @@ contract TokenLock is Context, ReentrancyGuard {
     function _withdraw(address account, WithdrawingResult memory result) internal {
         if (result.untiedAmount > 0) {
             // clear previous deposits
-            delete _deposits[account];
+            delete s._deposits[account];
             for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
                 // add the reminder deposits
-                _deposits[account].push(result.remainingDeposits[i]);
+                s._deposits[account].push(result.remainingDeposits[i]);
             }
 
-            _balances[account] = result.remainingBalance;
-            token.safeTransfer(account, result.untiedAmount);
+            s._balances[account] = result.remainingBalance;
+            s.tdfToken.safeTransfer(account, result.untiedAmount);
             emit WithdrawnTokens(account, result.untiedAmount);
         }
     }
@@ -156,15 +140,15 @@ contract TokenLock is Context, ReentrancyGuard {
 
     function lockedAmount(address account) public view returns (uint256) {
         WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT, block.timestamp);
-        return _balances[account] - result.untiedAmount;
+        return s._balances[account] - result.untiedAmount;
     }
 
     function balanceOf(address account) public view returns (uint256) {
-        return _balances[account];
+        return s._balances[account];
     }
 
     function depositsFor(address account) public view returns (Deposit[] memory) {
-        return _deposits[account];
+        return s._deposits[account];
     }
 
     function _calculateWithdraw(
@@ -172,7 +156,7 @@ contract TokenLock is Context, ReentrancyGuard {
         uint256 requested,
         uint256 lockedUntil
     ) internal view returns (WithdrawingResult memory) {
-        Deposit[] memory stakedFunds = _deposits[account];
+        Deposit[] memory stakedFunds = s._deposits[account];
         WithdrawingResult memory result = WithdrawingResult(0, 0, new Deposit[](0));
         if (stakedFunds.length == 0) {
             return result;
@@ -232,6 +216,6 @@ contract TokenLock is Context, ReentrancyGuard {
     }
 
     function _isReleasable(Deposit memory unit, uint256 lockedUntil) internal view returns (bool) {
-        return (unit.timestamp + lockingPeriod) <= lockedUntil;
+        return (unit.timestamp + s.lockingPeriod) <= lockedUntil;
     }
 }

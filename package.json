@@ -38,6 +38,7 @@
     "hardhat": "^2.9.2",
     "hardhat-deploy": "^0.11.4",
     "hardhat-deploy-tenderly": "^0.1.1",
+    "hardhat-diamond-abi": "^2.0.0",
     "hardhat-gas-reporter": "^1.0.8",
     "mocha": "^9.2.2",
     "prettier": "^2.6.1",

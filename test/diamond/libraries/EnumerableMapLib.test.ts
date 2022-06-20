@@ -1,15 +1,9 @@
-import {expect} from '../chai-setup';
+import {BigNumberish} from 'ethers';
+import {expect} from '../../chai-setup';
 import {deployments, getUnnamedAccounts, ethers} from 'hardhat';
-import {EnumerableMapLibMock} from '../../typechain';
-import {setupUser, setupUsers} from '../utils';
-import {BigNumberish, Contract} from 'ethers';
+import {EnumerableMapLibMock} from '../../../typechain';
+import {setupUser, setupUsers, getMock} from '../../utils';
 const BN = ethers.BigNumber;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
-  await deployments.deploy(name, {from: deployer, args: args});
-  return ethers.getContract(name, deployer);
-}
 
 const setup = deployments.createFixture(async (hre) => {
   const {deployments, getNamedAccounts} = hre;

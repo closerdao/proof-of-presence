@@ -1,8 +1,7 @@
 import {expect} from './chai-setup';
-import {deployments, getUnnamedAccounts, ethers} from 'hardhat';
+import {deployments, getUnnamedAccounts} from 'hardhat';
 import {TDFToken} from '../typechain';
 import {setupUser, setupUsers, getMock} from './utils';
-import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

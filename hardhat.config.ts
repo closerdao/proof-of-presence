@@ -3,6 +3,7 @@ import {HardhatUserConfig} from 'hardhat/types';
 import 'hardhat-deploy';
 import '@nomiclabs/hardhat-ethers';
 import 'hardhat-gas-reporter';
+import 'hardhat-diamond-abi';
 import '@typechain/hardhat';
 import 'solidity-coverage';
 import 'hardhat-deploy-tenderly';
@@ -56,6 +57,11 @@ const namedAccounts = {
 };
 
 const config: HardhatUserConfig = {
+  diamondAbi: {
+    // (required) The name of your Diamond ABI
+    name: 'TDFDiamond',
+    include: ['src/diamond/facets/'],
+  },
   solidity: {
     compilers: [
       {
@@ -132,22 +138,22 @@ const config: HardhatUserConfig = {
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 
-task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
+// task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
+//   const accounts = await hre.ethers.getSigners();
 
-  for (const account of accounts) {
-    console.log(account.address);
-  }
-});
+//   for (const account of accounts) {
+//     console.log(account.address);
+//   }
+// });
 
-task('devchain-keys', 'Prints the private keys associated with the devchain', async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
-  const hdNode = hre.ethers.utils.HDNode.fromMnemonic(DEVCHAIN_MNEMONIC);
-  for (let i = 0; i < accounts.length; i++) {
-    const account = hdNode.derivePath(`m/44'/60'/0'/0/${i}`);
-    console.log(`Account ${i}\nAddress: ${account.address}\nKey: ${account.privateKey}`);
-  }
-});
+// task('devchain-keys', 'Prints the private keys associated with the devchain', async (taskArgs, hre) => {
+//   const accounts = await hre.ethers.getSigners();
+//   const hdNode = hre.ethers.utils.HDNode.fromMnemonic(DEVCHAIN_MNEMONIC);
+//   for (let i = 0; i < accounts.length; i++) {
+//     const account = hdNode.derivePath(`m/44'/60'/0'/0/${i}`);
+//     console.log(`Account ${i}\nAddress: ${account.address}\nKey: ${account.privateKey}`);
+//   }
+// });
 
 task('create-account', 'Prints a new private key', async (taskArgs, hre) => {
   const wallet = hre.ethers.Wallet.createRandom();
