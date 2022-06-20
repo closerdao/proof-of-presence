@@ -1,7 +1,7 @@
-import {expect} from '../chai-setup';
+import {expect} from '../../chai-setup';
 import {deployments, getUnnamedAccounts} from 'hardhat';
-import {BookingMapLibMock} from '../../typechain';
-import {setupUser, setupUsers, getMock} from '../utils';
+import {BookingMapLibMock} from '../../../typechain';
+import {setupUser, setupUsers, getMock} from '../../utils';
 import {parseEther} from 'ethers/lib/utils';
 import {fromUnixTime, getDayOfYear} from 'date-fns';
 

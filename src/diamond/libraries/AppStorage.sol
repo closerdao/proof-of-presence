@@ -4,7 +4,7 @@ pragma solidity 0.8.9;
 import "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../../Libraries/BookingMapLib.sol";
+import "../libraries/BookingMapLib.sol";
 
 struct Deposit {
     uint256 timestamp;

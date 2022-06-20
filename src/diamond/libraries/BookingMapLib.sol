@@ -2,8 +2,7 @@
 
 pragma solidity 0.8.9;
 
-import "../Libraries/EnumerableMapLib.sol";
-import "hardhat/console.sol";
+import "./EnumerableMapLib.sol";
 
 library BookingMapLib {
     using EnumerableMapLib for EnumerableMapLib.Bytes32ToUintMap;
