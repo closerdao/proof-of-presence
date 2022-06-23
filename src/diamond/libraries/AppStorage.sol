@@ -5,6 +5,7 @@ import "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../libraries/BookingMapLib.sol";
+import "../libraries/StakeManagerLib.sol";
 
 struct Deposit {
     uint256 timestamp;
@@ -13,11 +14,14 @@ struct Deposit {
 
 struct AppStorage {
     IERC20 tdfToken;
+    // ProofOfPressence
     mapping(address => BookingMapLib.UserStore) _bookings;
     BookingMapLib.YearsStore _years;
+    // TokenLock
     mapping(address => uint256) _balances;
     mapping(address => Deposit[]) _deposits;
     uint256 lockingPeriod;
+    // General
     bool paused;
     bool initialized;
 }
