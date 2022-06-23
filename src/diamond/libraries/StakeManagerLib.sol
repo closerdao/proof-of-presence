@@ -34,7 +34,7 @@ library StakeManagerLib {
         emit DepositedTokens(account, amount);
     }
 
-    function withdrawMax(AppStorage storage s, address account) public returns (uint256) {
+    function withdrawMax(AppStorage storage s, address account) internal returns (uint256) {
         require(s._balances[account] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(s, account, MAX_INT, block.timestamp);
 
@@ -47,7 +47,7 @@ library StakeManagerLib {
         AppStorage storage s,
         address account,
         uint256 requested
-    ) public returns (uint256) {
+    ) internal returns (uint256) {
         require(s._balances[account] >= requested, "NOT_ENOUGHT_BALANCE");
         // `requested` is passed as value and not by reference because is a basic type
         // https://docs.soliditylang.org/en/v0.8.9/types.html#value-types
@@ -59,7 +59,7 @@ library StakeManagerLib {
         return result.untiedAmount;
     }
 
-    function restakeMax(AppStorage storage s, address account) public {
+    function restakeMax(AppStorage storage s, address account) internal {
         require(s._balances[account] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(s, account, MAX_INT, block.timestamp);
         _restake(s, account, result, block.timestamp);
@@ -69,7 +69,7 @@ library StakeManagerLib {
         AppStorage storage s,
         address account,
         uint256 requestedAmount
-    ) public {
+    ) internal {
         require(s._balances[account] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(s, account, requestedAmount, block.timestamp);
         require(result.untiedAmount == requestedAmount, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
