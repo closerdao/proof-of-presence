@@ -10,6 +10,7 @@ import "../libraries/StakeManagerLib.sol";
 contract ProofOfPresenceFacet is Modifiers, Context {
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
+    using StakeManagerLib for AppStorage;
 
     event NewBookings(address account, uint16[2][] bookings);
     event CanceledBookings(address account, uint16[2][] bookings);
@@ -27,7 +28,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
             if (lastDate < value.timestamp) lastDate = value.timestamp;
         }
 
-        ITokenLock(address(this)).restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
+        s.restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
         emit NewBookings(_msgSender(), dates);
     }
 

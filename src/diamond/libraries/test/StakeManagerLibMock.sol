@@ -17,7 +17,6 @@ contract StakeManagerLibMock is Modifiers {
     }
 
     function deposit(uint256 amount) public {
-        // _deposit(_msgSender(), amount, block.timestamp);
         s.deposit(msg.sender, amount, block.timestamp);
     }
 

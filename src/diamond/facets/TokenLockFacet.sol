@@ -53,13 +53,4 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     function depositsFor(address account) public view returns (Deposit[] memory) {
         return s._deposits[account];
     }
-
-    function restakeOrDepositAtFor(
-        address account,
-        uint256 amount,
-        // TODO: initLocking time must be bigger that current timestamp
-        uint256 initLockingTm
-    ) public {
-        s.restakeOrDepositAtFor(account, amount, initLockingTm);
-    }
 }
