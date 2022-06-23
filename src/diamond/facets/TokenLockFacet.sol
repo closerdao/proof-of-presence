@@ -17,20 +17,6 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     event DepositedTokens(address account, uint256 amount);
     event WithdrawnTokens(address account, uint256 amount);
 
-    // // Max number in uint256
-    // // same result can be achieved with: `uint256 MAX_INT = 2**256 - 1`
-    // // Pasted the literal here for cheaper deployment
-    // uint256 private constant MAX_INT = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
-
-    // struct WithdrawingResult {
-    //     uint256 untiedAmount;
-    //     uint256 remainingBalance;
-    //     Deposit[] remainingDeposits;
-    // }
-
-    // event DepositedTokens(address account, uint256 amount);
-    // event WithdrawnTokens(address account, uint256 amount);
-
     function deposit(uint256 amount) public {
         // _deposit(_msgSender(), amount, block.timestamp);
         s.deposit(_msgSender(), amount, block.timestamp);

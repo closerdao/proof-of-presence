@@ -15,7 +15,6 @@ import {IDiamondCut} from "hardhat-deploy/solc_0.8/diamond/interfaces/IDiamondCu
 import {IERC173} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC173.sol";
 import {IERC165} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC165.sol";
 import "../libraries/BookingMapLib.sol";
-import "../libraries/StakeManagerLib.sol";
 
 // It is expected that this contract is customized if you want to deploy your diamond
 // with data from a deployment script. Use the init function to initialize state variables

@@ -5,7 +5,6 @@ import "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../libraries/BookingMapLib.sol";
-import "../libraries/StakeManagerLib.sol";
 
 struct Deposit {
     uint256 timestamp;
