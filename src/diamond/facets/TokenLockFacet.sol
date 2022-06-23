@@ -13,6 +13,9 @@ import "../libraries/StakeManagerLib.sol";
 contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using StakeManagerLib for AppStorage;
+    // TODO: this events are duplicated in the library
+    event DepositedTokens(address account, uint256 amount);
+    event WithdrawnTokens(address account, uint256 amount);
 
     // // Max number in uint256
     // // same result can be achieved with: `uint256 MAX_INT = 2**256 - 1`
