@@ -26,7 +26,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     event DepositedTokens(address account, uint256 amount);
     event WithdrawnTokens(address account, uint256 amount);
 
-    function deposit(uint256 amount) public {
+    function depositStake(uint256 amount) public {
         _deposit(_msgSender(), amount, block.timestamp);
     }
 
@@ -41,7 +41,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         emit DepositedTokens(account, amount);
     }
 
-    function withdrawMax() public returns (uint256) {
+    function withdrawMaxStake() public returns (uint256) {
         require(s._balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT, block.timestamp);
 
@@ -50,7 +50,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         return result.untiedAmount;
     }
 
-    function withdraw(uint256 requested) public returns (uint256) {
+    function withdrawStake(uint256 requested) public returns (uint256) {
         require(s._balances[_msgSender()] >= requested, "NOT_ENOUGHT_BALANCE");
         // `requested` is passed as value and not by reference because is a basic type
         // https://docs.soliditylang.org/en/v0.8.9/types.html#value-types
@@ -133,21 +133,21 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         }
     }
 
-    function unlockedAmount(address account) public view returns (uint256) {
+    function unlockedStake(address account) public view returns (uint256) {
         WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT, block.timestamp);
         return result.untiedAmount;
     }
 
-    function lockedAmount(address account) public view returns (uint256) {
+    function lockedStake(address account) public view returns (uint256) {
         WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT, block.timestamp);
         return s._balances[account] - result.untiedAmount;
     }
 
-    function balanceOf(address account) public view returns (uint256) {
+    function stakedBalanceOf(address account) public view returns (uint256) {
         return s._balances[account];
     }
 
-    function depositsFor(address account) public view returns (Deposit[] memory) {
+    function depositsStakedFor(address account) public view returns (Deposit[] memory) {
         return s._deposits[account];
     }
 
