@@ -36,11 +36,15 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint16 dayOfYear,
         uint256 price
     ) internal returns (BookingMapLib.Booking memory) {
-        (bool successBuild, BookingMapLib.Booking memory value) = s._years.buildBooking(yearNum, dayOfYear, price);
+        (bool successBuild, BookingMapLib.Booking memory value) = s._accommodationYears.buildBooking(
+            yearNum,
+            dayOfYear,
+            price
+        );
         require(successBuild, "Unable to build Booking");
 
         require(value.timestamp > block.timestamp, "date should be in the future");
-        require(s._bookings[account].add(value), "Booking already exists");
+        require(s._accommodationBookings[account].add(value), "Booking already exists");
         return value;
     }
 
@@ -56,20 +60,20 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint16 yearNum,
         uint16 dayOfYear
     ) internal {
-        (bool succesBuild, uint256 tm) = s._years.buildTimestamp(yearNum, dayOfYear);
+        (bool succesBuild, uint256 tm) = s._accommodationYears.buildTimestamp(yearNum, dayOfYear);
         require(succesBuild, "unable to build Timestamp");
         require(tm > block.timestamp, "Can not cancel past booking");
-        (bool success, ) = s._bookings[account].remove(yearNum, dayOfYear);
+        (bool success, ) = s._accommodationBookings[account].remove(yearNum, dayOfYear);
         require(success, "Booking does not exists");
     }
 
     function _expectedStaked(address account) internal view returns (uint256) {
         uint256 max;
-        BookingMapLib.Year[] memory _yearList = s._years.values();
+        BookingMapLib.Year[] memory _yearList = s._accommodationYears.values();
         for (uint16 i = 0; i < _yearList.length; i++) {
             // TODO: should it be + 1 year?
             if (_yearList[i].end < block.timestamp) continue;
-            uint256 amount = s._bookings[account].getBalance(_yearList[i].number);
+            uint256 amount = s._accommodationBookings[account].getBalance(_yearList[i].number);
             if (amount > max) max = amount;
         }
         return max;
@@ -80,7 +84,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint16 yearNum,
         uint16 dayOfYear
     ) external view returns (bool, BookingMapLib.Booking memory) {
-        return s._bookings[account].get(yearNum, dayOfYear);
+        return s._accommodationBookings[account].get(yearNum, dayOfYear);
     }
 
     function getAccommodationBookings(address account, uint16 _year)
@@ -88,7 +92,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         view
         returns (BookingMapLib.Booking[] memory)
     {
-        return s._bookings[account].list(_year);
+        return s._accommodationBookings[account].list(_year);
     }
 
     // Admin functions
@@ -99,20 +103,23 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint256 end,
         bool enabled
     ) external onlyOwner {
-        require(s._years.add(BookingMapLib.Year(number, leapYear, start, end, enabled)), "Unable to add year");
+        require(
+            s._accommodationYears.add(BookingMapLib.Year(number, leapYear, start, end, enabled)),
+            "Unable to add year"
+        );
         emit YearAdded(number, leapYear, start, end, enabled);
     }
 
     function getAccommodationYears() external view returns (BookingMapLib.Year[] memory) {
-        return s._years.values();
+        return s._accommodationYears.values();
     }
 
     function getAccommodationYear(uint16 number) external view returns (bool, BookingMapLib.Year memory) {
-        return s._years.get(number);
+        return s._accommodationYears.get(number);
     }
 
     function removeAccommodationYear(uint16 number) external onlyOwner {
-        require(s._years.remove(number), "Unable to remove Year");
+        require(s._accommodationYears.remove(number), "Unable to remove Year");
         emit YearRemoved(number);
     }
 
@@ -123,14 +130,17 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint256 end,
         bool enabled
     ) external onlyOwner {
-        require(s._years.update(BookingMapLib.Year(number, leapYear, start, end, enabled)), "Unable to update Year");
+        require(
+            s._accommodationYears.update(BookingMapLib.Year(number, leapYear, start, end, enabled)),
+            "Unable to update Year"
+        );
         emit YearUpdated(number, leapYear, start, end, enabled);
     }
 
     function enableAccommodationYear(uint16 number, bool enable) external onlyOwner {
-        (, BookingMapLib.Year memory y) = s._years.get(number);
+        (, BookingMapLib.Year memory y) = s._accommodationYears.get(number);
         y.enabled = enable;
-        require(s._years.update(y), "Unable to update year");
+        require(s._accommodationYears.update(y), "Unable to update year");
         emit YearUpdated(y.number, y.leapYear, y.start, y.end, y.enabled);
     }
 }

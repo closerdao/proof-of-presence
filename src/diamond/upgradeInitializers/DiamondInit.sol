@@ -36,11 +36,11 @@ contract DiamondInit is Modifiers {
         AppStorage storage s = LibAppStorage.diamondStorage();
         s.tdfToken = IERC20(token);
         // TODO: disable all years except current
-        s._years.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199, true));
-        s._years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
-        s._years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
-        s._years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
-        s.lockingPeriod = daysLocked * 86400;
+        s._accommodationYears.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199, true));
+        s._accommodationYears.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
+        s._accommodationYears.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
+        s._accommodationYears.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
+        s.stakeLockingPeriod = daysLocked * 86400;
         // Set the contract as initialized
         s.initialized = true;
 

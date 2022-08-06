@@ -216,6 +216,6 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     }
 
     function _isReleasable(Deposit memory unit, uint256 lockedUntil) internal view returns (bool) {
-        return (unit.timestamp + s.lockingPeriod) <= lockedUntil;
+        return (unit.timestamp + s.stakeLockingPeriod) <= lockedUntil;
     }
 }

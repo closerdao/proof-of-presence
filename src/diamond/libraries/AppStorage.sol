@@ -13,11 +13,11 @@ struct Deposit {
 
 struct AppStorage {
     IERC20 tdfToken;
-    mapping(address => BookingMapLib.UserStore) _bookings;
-    BookingMapLib.YearsStore _years;
+    mapping(address => BookingMapLib.UserStore) _accommodationBookings;
+    BookingMapLib.YearsStore _accommodationYears;
     mapping(address => uint256) _stakeBalances;
     mapping(address => Deposit[]) _stakeDeposits;
-    uint256 lockingPeriod;
+    uint256 stakeLockingPeriod;
     bool paused;
     bool initialized;
 }
