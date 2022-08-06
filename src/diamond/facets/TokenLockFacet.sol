@@ -35,14 +35,14 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         uint256 amount,
         uint256 depositTm
     ) internal {
-        s._deposits[account].push(Deposit(depositTm, amount));
-        s._balances[account] += amount;
+        s._stakeDeposits[account].push(Deposit(depositTm, amount));
+        s._stakeBalances[account] += amount;
         s.tdfToken.safeTransferFrom(account, address(this), amount);
         emit DepositedTokens(account, amount);
     }
 
     function withdrawMaxStake() public returns (uint256) {
-        require(s._balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        require(s._stakeBalances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT, block.timestamp);
 
         // Change the state
@@ -51,7 +51,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     }
 
     function withdrawStake(uint256 requested) public returns (uint256) {
-        require(s._balances[_msgSender()] >= requested, "NOT_ENOUGHT_BALANCE");
+        require(s._stakeBalances[_msgSender()] >= requested, "NOT_ENOUGHT_BALANCE");
         // `requested` is passed as value and not by reference because is a basic type
         // https://docs.soliditylang.org/en/v0.8.9/types.html#value-types
         // It will not be modified by `_calculateWithdraw()`
@@ -63,13 +63,13 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     }
 
     function restakeMax() public {
-        require(s._balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        require(s._stakeBalances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT, block.timestamp);
         _restake(_msgSender(), result, block.timestamp);
     }
 
     function restake(uint256 requestedAmount) public {
-        require(s._balances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        require(s._stakeBalances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), requestedAmount, block.timestamp);
         require(result.untiedAmount == requestedAmount, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
         _restake(_msgSender(), result, block.timestamp);
@@ -82,7 +82,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         uint256 initLockingTm
     ) external {
         require(initLockingTm >= block.timestamp, "Unable to stake to the pass");
-        uint256 stake = s._balances[account];
+        uint256 stake = s._stakeBalances[account];
         uint256 tBalance = s.tdfToken.balanceOf(account);
         require(stake + tBalance >= amount, "NOT_ENOUGHT_BALANCE");
         if (stake == 0) {
@@ -107,13 +107,13 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         uint256 lockingInitTm
     ) internal {
         // crear previous deposits
-        delete s._deposits[account];
+        delete s._stakeDeposits[account];
         for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
             // copy the deposits to storage
-            s._deposits[account].push(result.remainingDeposits[i]);
+            s._stakeDeposits[account].push(result.remainingDeposits[i]);
         }
         // ReStake the withdrawable amount
-        s._deposits[account].push(Deposit(lockingInitTm, result.untiedAmount));
+        s._stakeDeposits[account].push(Deposit(lockingInitTm, result.untiedAmount));
         // EMIT ReStaked
         // return amount
     }
@@ -121,13 +121,13 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     function _withdraw(address account, WithdrawingResult memory result) internal {
         if (result.untiedAmount > 0) {
             // clear previous deposits
-            delete s._deposits[account];
+            delete s._stakeDeposits[account];
             for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
                 // add the reminder deposits
-                s._deposits[account].push(result.remainingDeposits[i]);
+                s._stakeDeposits[account].push(result.remainingDeposits[i]);
             }
 
-            s._balances[account] = result.remainingBalance;
+            s._stakeBalances[account] = result.remainingBalance;
             s.tdfToken.safeTransfer(account, result.untiedAmount);
             emit WithdrawnTokens(account, result.untiedAmount);
         }
@@ -140,15 +140,15 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
 
     function lockedStake(address account) public view returns (uint256) {
         WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT, block.timestamp);
-        return s._balances[account] - result.untiedAmount;
+        return s._stakeBalances[account] - result.untiedAmount;
     }
 
     function stakedBalanceOf(address account) public view returns (uint256) {
-        return s._balances[account];
+        return s._stakeBalances[account];
     }
 
     function depositsStakedFor(address account) public view returns (Deposit[] memory) {
-        return s._deposits[account];
+        return s._stakeDeposits[account];
     }
 
     function _calculateWithdraw(
@@ -156,7 +156,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         uint256 requested,
         uint256 lockedUntil
     ) internal view returns (WithdrawingResult memory) {
-        Deposit[] memory stakedFunds = s._deposits[account];
+        Deposit[] memory stakedFunds = s._stakeDeposits[account];
         WithdrawingResult memory result = WithdrawingResult(0, 0, new Deposit[](0));
         if (stakedFunds.length == 0) {
             return result;

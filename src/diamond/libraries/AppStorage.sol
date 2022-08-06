@@ -15,8 +15,8 @@ struct AppStorage {
     IERC20 tdfToken;
     mapping(address => BookingMapLib.UserStore) _bookings;
     BookingMapLib.YearsStore _years;
-    mapping(address => uint256) _balances;
-    mapping(address => Deposit[]) _deposits;
+    mapping(address => uint256) _stakeBalances;
+    mapping(address => Deposit[]) _stakeDeposits;
     uint256 lockingPeriod;
     bool paused;
     bool initialized;
