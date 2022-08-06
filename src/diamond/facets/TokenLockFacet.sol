@@ -37,7 +37,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     ) internal {
         s._stakeDeposits[account].push(Deposit(depositTm, amount));
         s._stakeBalances[account] += amount;
-        s.tdfToken.safeTransferFrom(account, address(this), amount);
+        s.communityToken.safeTransferFrom(account, address(this), amount);
         emit DepositedTokens(account, amount);
     }
 
@@ -83,7 +83,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     ) external {
         require(initLockingTm >= block.timestamp, "Unable to stake to the pass");
         uint256 stake = s._stakeBalances[account];
-        uint256 tBalance = s.tdfToken.balanceOf(account);
+        uint256 tBalance = s.communityToken.balanceOf(account);
         require(stake + tBalance >= amount, "NOT_ENOUGHT_BALANCE");
         if (stake == 0) {
             _deposit(account, amount, initLockingTm);
@@ -128,7 +128,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
             }
 
             s._stakeBalances[account] = result.remainingBalance;
-            s.tdfToken.safeTransfer(account, result.untiedAmount);
+            s.communityToken.safeTransfer(account, result.untiedAmount);
             emit WithdrawnTokens(account, result.untiedAmount);
         }
     }

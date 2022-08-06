@@ -34,7 +34,7 @@ contract DiamondInit is Modifiers {
         ds.supportedInterfaces[type(IERC173).interfaceId] = true;
 
         AppStorage storage s = LibAppStorage.diamondStorage();
-        s.tdfToken = IERC20(token);
+        s.communityToken = IERC20(token);
         // TODO: disable all years except current
         s._accommodationYears.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199, true));
         s._accommodationYears.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));

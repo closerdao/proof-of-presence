@@ -12,7 +12,7 @@ struct Deposit {
 }
 
 struct AppStorage {
-    IERC20 tdfToken;
+    IERC20 communityToken;
     mapping(address => BookingMapLib.UserStore) _accommodationBookings;
     BookingMapLib.YearsStore _accommodationYears;
     mapping(address => uint256) _stakeBalances;
