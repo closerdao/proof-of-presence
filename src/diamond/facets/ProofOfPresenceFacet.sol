@@ -17,7 +17,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
     event YearRemoved(uint16 number);
     event YearUpdated(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
 
-    function book(uint16[2][] calldata dates) external whenNotPaused {
+    function bookAccommodation(uint16[2][] calldata dates) external whenNotPaused {
         uint256 lastDate;
         for (uint256 i = 0; i < dates.length; i++) {
             uint256 price = 1 ether;
@@ -44,7 +44,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         return value;
     }
 
-    function cancel(uint16[2][] calldata dates) external whenNotPaused {
+    function cancelAccommodation(uint16[2][] calldata dates) external whenNotPaused {
         for (uint256 i = 0; i < dates.length; i++) {
             _cancel(_msgSender(), dates[i][0], dates[i][1]);
         }
@@ -75,7 +75,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         return max;
     }
 
-    function getBooking(
+    function getAccommodationBooking(
         address account,
         uint16 yearNum,
         uint16 dayOfYear
@@ -83,12 +83,16 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         return s._bookings[account].get(yearNum, dayOfYear);
     }
 
-    function getBookings(address account, uint16 _year) external view returns (BookingMapLib.Booking[] memory) {
+    function getAccommodationBookings(address account, uint16 _year)
+        external
+        view
+        returns (BookingMapLib.Booking[] memory)
+    {
         return s._bookings[account].list(_year);
     }
 
     // Admin functions
-    function addYear(
+    function addAccommodationYear(
         uint16 number,
         bool leapYear,
         uint256 start,
@@ -99,20 +103,20 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         emit YearAdded(number, leapYear, start, end, enabled);
     }
 
-    function getYears() external view returns (BookingMapLib.Year[] memory) {
+    function getAccommodationYears() external view returns (BookingMapLib.Year[] memory) {
         return s._years.values();
     }
 
-    function getYear(uint16 number) external view returns (bool, BookingMapLib.Year memory) {
+    function getAccommodationYear(uint16 number) external view returns (bool, BookingMapLib.Year memory) {
         return s._years.get(number);
     }
 
-    function removeYear(uint16 number) external onlyOwner {
+    function removeAccommodationYear(uint16 number) external onlyOwner {
         require(s._years.remove(number), "Unable to remove Year");
         emit YearRemoved(number);
     }
 
-    function updateYear(
+    function updateAccommodationYear(
         uint16 number,
         bool leapYear,
         uint256 start,
@@ -123,7 +127,7 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         emit YearUpdated(number, leapYear, start, end, enabled);
     }
 
-    function enableYear(uint16 number, bool enable) external onlyOwner {
+    function enableAccommodationYear(uint16 number, bool enable) external onlyOwner {
         (, BookingMapLib.Year memory y) = s._years.get(number);
         y.enabled = enable;
         require(s._years.update(y), "Unable to update year");

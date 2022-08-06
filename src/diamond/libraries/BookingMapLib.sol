@@ -2,10 +2,10 @@
 
 pragma solidity 0.8.9;
 
-import "./EnumerableMapLib.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 library BookingMapLib {
-    using EnumerableMapLib for EnumerableMapLib.Bytes32ToUintMap;
+    using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
     struct Booking {
@@ -17,7 +17,7 @@ library BookingMapLib {
 
     struct UserStore {
         mapping(uint16 => uint256) balance;
-        mapping(uint16 => EnumerableMapLib.Bytes32ToUintMap) dates;
+        mapping(uint16 => EnumerableMap.Bytes32ToUintMap) dates;
         mapping(bytes32 => Booking) bookings;
     }
     struct Year {

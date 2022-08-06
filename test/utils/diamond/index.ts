@@ -30,7 +30,7 @@ const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
     bookings: async (dates: DatesTestData, price: string) => {
       await Promise.all(
         dates.data.map(async (e) => {
-          const [success, booking] = await diamond.getBooking(user.address, e.year, e.day);
+          const [success, booking] = await diamond.getAccommodationBooking(user.address, e.year, e.day);
           return Promise.all([
             expect(booking.price).to.eq(parseEther(price)),
             expect(booking.year).to.eq(e.year),
