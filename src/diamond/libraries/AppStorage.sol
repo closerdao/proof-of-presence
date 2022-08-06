@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../libraries/BookingMapLib.sol";
 
-struct Deposit {
+struct StakedDeposit {
     uint256 timestamp;
     uint256 amount;
 }
@@ -15,8 +15,8 @@ struct AppStorage {
     IERC20 communityToken;
     mapping(address => BookingMapLib.UserStore) _accommodationBookings;
     BookingMapLib.YearsStore _accommodationYears;
-    mapping(address => uint256) _stakeBalances;
-    mapping(address => Deposit[]) _stakeDeposits;
+    mapping(address => uint256) _stakedBalances;
+    mapping(address => StakedDeposit[]) _stakedDeposits;
     uint256 stakeLockingPeriod;
     bool paused;
     bool initialized;

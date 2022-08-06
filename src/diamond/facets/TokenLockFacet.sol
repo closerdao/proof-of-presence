@@ -20,7 +20,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     struct WithdrawingResult {
         uint256 untiedAmount;
         uint256 remainingBalance;
-        Deposit[] remainingDeposits;
+        StakedDeposit[] remainingDeposits;
     }
 
     event DepositedTokens(address account, uint256 amount);
@@ -35,14 +35,14 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         uint256 amount,
         uint256 depositTm
     ) internal {
-        s._stakeDeposits[account].push(Deposit(depositTm, amount));
-        s._stakeBalances[account] += amount;
+        s._stakedDeposits[account].push(StakedDeposit(depositTm, amount));
+        s._stakedBalances[account] += amount;
         s.communityToken.safeTransferFrom(account, address(this), amount);
         emit DepositedTokens(account, amount);
     }
 
     function withdrawMaxStake() public returns (uint256) {
-        require(s._stakeBalances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        require(s._stakedBalances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT, block.timestamp);
 
         // Change the state
@@ -51,7 +51,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     }
 
     function withdrawStake(uint256 requested) public returns (uint256) {
-        require(s._stakeBalances[_msgSender()] >= requested, "NOT_ENOUGHT_BALANCE");
+        require(s._stakedBalances[_msgSender()] >= requested, "NOT_ENOUGHT_BALANCE");
         // `requested` is passed as value and not by reference because is a basic type
         // https://docs.soliditylang.org/en/v0.8.9/types.html#value-types
         // It will not be modified by `_calculateWithdraw()`
@@ -63,13 +63,13 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     }
 
     function restakeMax() public {
-        require(s._stakeBalances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        require(s._stakedBalances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), MAX_INT, block.timestamp);
         _restake(_msgSender(), result, block.timestamp);
     }
 
     function restake(uint256 requestedAmount) public {
-        require(s._stakeBalances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
+        require(s._stakedBalances[_msgSender()] > 0, "NOT_ENOUGHT_BALANCE");
         WithdrawingResult memory result = _calculateWithdraw(_msgSender(), requestedAmount, block.timestamp);
         require(result.untiedAmount == requestedAmount, "NOT_ENOUGHT_UNLOCKABLE_BALANCE");
         _restake(_msgSender(), result, block.timestamp);
@@ -82,7 +82,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         uint256 initLockingTm
     ) external {
         require(initLockingTm >= block.timestamp, "Unable to stake to the pass");
-        uint256 stake = s._stakeBalances[account];
+        uint256 stake = s._stakedBalances[account];
         uint256 tBalance = s.communityToken.balanceOf(account);
         require(stake + tBalance >= amount, "NOT_ENOUGHT_BALANCE");
         if (stake == 0) {
@@ -107,13 +107,13 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         uint256 lockingInitTm
     ) internal {
         // crear previous deposits
-        delete s._stakeDeposits[account];
+        delete s._stakedDeposits[account];
         for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
             // copy the deposits to storage
-            s._stakeDeposits[account].push(result.remainingDeposits[i]);
+            s._stakedDeposits[account].push(result.remainingDeposits[i]);
         }
         // ReStake the withdrawable amount
-        s._stakeDeposits[account].push(Deposit(lockingInitTm, result.untiedAmount));
+        s._stakedDeposits[account].push(StakedDeposit(lockingInitTm, result.untiedAmount));
         // EMIT ReStaked
         // return amount
     }
@@ -121,13 +121,13 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
     function _withdraw(address account, WithdrawingResult memory result) internal {
         if (result.untiedAmount > 0) {
             // clear previous deposits
-            delete s._stakeDeposits[account];
+            delete s._stakedDeposits[account];
             for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
                 // add the reminder deposits
-                s._stakeDeposits[account].push(result.remainingDeposits[i]);
+                s._stakedDeposits[account].push(result.remainingDeposits[i]);
             }
 
-            s._stakeBalances[account] = result.remainingBalance;
+            s._stakedBalances[account] = result.remainingBalance;
             s.communityToken.safeTransfer(account, result.untiedAmount);
             emit WithdrawnTokens(account, result.untiedAmount);
         }
@@ -140,15 +140,15 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
 
     function lockedStake(address account) public view returns (uint256) {
         WithdrawingResult memory result = _calculateWithdraw(account, MAX_INT, block.timestamp);
-        return s._stakeBalances[account] - result.untiedAmount;
+        return s._stakedBalances[account] - result.untiedAmount;
     }
 
     function stakedBalanceOf(address account) public view returns (uint256) {
-        return s._stakeBalances[account];
+        return s._stakedBalances[account];
     }
 
-    function depositsStakedFor(address account) public view returns (Deposit[] memory) {
-        return s._stakeDeposits[account];
+    function depositsStakedFor(address account) public view returns (StakedDeposit[] memory) {
+        return s._stakedDeposits[account];
     }
 
     function _calculateWithdraw(
@@ -156,14 +156,14 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         uint256 requested,
         uint256 lockedUntil
     ) internal view returns (WithdrawingResult memory) {
-        Deposit[] memory stakedFunds = s._stakeDeposits[account];
-        WithdrawingResult memory result = WithdrawingResult(0, 0, new Deposit[](0));
+        StakedDeposit[] memory stakedFunds = s._stakedDeposits[account];
+        WithdrawingResult memory result = WithdrawingResult(0, 0, new StakedDeposit[](0));
         if (stakedFunds.length == 0) {
             return result;
         }
 
         for (uint8 i = 0; i < stakedFunds.length; i++) {
-            Deposit memory elem = stakedFunds[i];
+            StakedDeposit memory elem = stakedFunds[i];
             if (_isReleasable(elem, lockedUntil) && requested > 0) {
                 // Example:
                 // requested: 25 < elem.amount: 100 = true
@@ -202,10 +202,14 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
      * @dev Can not modify (push) elements to memory array. The only way is to create a new
      * one with +1 size,copy the previous elements and add the last one
      */
-    function _pushDeposit(Deposit[] memory acc, Deposit memory unit) internal pure returns (Deposit[] memory) {
+    function _pushDeposit(StakedDeposit[] memory acc, StakedDeposit memory unit)
+        internal
+        pure
+        returns (StakedDeposit[] memory)
+    {
         uint256 length = acc.length;
         // creates new acc with one more slot
-        Deposit[] memory newAcc = new Deposit[](length + 1);
+        StakedDeposit[] memory newAcc = new StakedDeposit[](length + 1);
         // copy previous array
         for (uint8 i = 0; i < length; i++) {
             newAcc[i] = acc[i];
@@ -215,7 +219,7 @@ contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
         return newAcc;
     }
 
-    function _isReleasable(Deposit memory unit, uint256 lockedUntil) internal view returns (bool) {
+    function _isReleasable(StakedDeposit memory unit, uint256 lockedUntil) internal view returns (bool) {
         return (unit.timestamp + s.stakeLockingPeriod) <= lockedUntil;
     }
 }
