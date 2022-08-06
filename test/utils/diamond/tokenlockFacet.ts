@@ -5,28 +5,30 @@ import {HelpersInput} from './types';
 export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
   return {
     deposit: async (amount: string) => {
-      await expect(user.TDFDiamond.deposit(parseEther(amount)))
+      await expect(user.TDFDiamond.depositStake(parseEther(amount)))
         .to.emit(diamond, 'DepositedTokens')
         .withArgs(user.address, parseEther(amount));
     },
     withdrawMax: {
       success: async (amount: string) => {
-        await expect(user.TDFDiamond.withdrawMax())
+        await expect(user.TDFDiamond.withdrawMaxStake())
           .to.emit(diamond, 'WithdrawnTokens')
           .withArgs(user.address, parseEther(amount));
       },
       none: async () => {
-        await expect(user.TDFDiamond.withdrawMax()).to.not.emit(diamond, 'WithdrawnTokens');
+        await expect(user.TDFDiamond.withdrawMaxStake()).to.not.emit(diamond, 'WithdrawnTokens');
       },
     },
     withdraw: {
       success: async (amount: string) => {
-        await expect(user.TDFDiamond.withdraw(parseEther(amount)))
+        await expect(user.TDFDiamond.withdrawStake(parseEther(amount)))
           .to.emit(diamond, 'WithdrawnTokens')
           .withArgs(user.address, parseEther(amount));
       },
       reverted: async (amount: string) => {
-        await expect(user.TDFDiamond.withdraw(parseEther(amount))).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
+        await expect(user.TDFDiamond.withdrawStake(parseEther(amount))).to.be.revertedWith(
+          'NOT_ENOUGHT_UNLOCKABLE_BALANCE'
+        );
       },
     },
     restakeMax: async () => {

@@ -83,7 +83,7 @@ describe('TokenLockFacet', () => {
     await withdrawMax.success('1');
     await test.balances('0', '0', '10000');
 
-    await expect(user.TDFDiamond.withdrawMax()).to.be.revertedWith('NOT_ENOUGHT_BALANCE');
+    await expect(user.TDFDiamond.withdrawMaxStake()).to.be.revertedWith('NOT_ENOUGHT_BALANCE');
   });
   it('lock and unlock', async () => {
     const {users, TDFDiamond, TDFToken, deployer} = await setup();
@@ -125,7 +125,7 @@ describe('TokenLockFacet', () => {
 
     await test.balances('2', '2', '9998');
 
-    expect(await TDFDiamond.unlockedAmount(user.address)).to.eq(parseEther('1'));
+    expect(await TDFDiamond.unlockedStake(user.address)).to.eq(parseEther('1'));
     // we only have available 1
     // we are not able to redeem more than 1
     // So trying to remove more will be reverted

@@ -137,7 +137,7 @@ describe('ProofOfPresenceFacet', () => {
     await test.bookings(dates, '1');
     await call.getBookings(dates);
 
-    const years = await TDFDiamond.getYears();
+    const years = await TDFDiamond.getAccommodationYears();
     expect(years.length).to.eq(4);
     const y = years[0];
     let eY = _.find(yearData(), (v) => v.number == y.number);
@@ -149,7 +149,7 @@ describe('ProofOfPresenceFacet', () => {
     }
 
     eY = yearData()['2024'];
-    const [success, res] = await TDFDiamond.getYear(2024);
+    const [success, res] = await TDFDiamond.getAccommodationYear(2024);
     expect(success).to.be.true;
     expect(res.leapYear).to.eq(eY.leapYear);
     expect(res.start).to.eq(eY.start);
@@ -174,10 +174,10 @@ describe('ProofOfPresenceFacet', () => {
     await send.addYear.success({...yearAttrs, enabled: false});
     yearAttrs = yearData()['2024'];
     await send.addYear.reverted.alreadyExists({...yearAttrs, enabled: false});
-    let [stored] = await TDFDiamond.getYear(2024);
+    let [stored] = await TDFDiamond.getAccommodationYear(2024);
     expect(stored).to.be.true;
     await send.removeYear.reverted.onlyOwner(2024);
-    [stored] = await TDFDiamond.getYear(2024);
+    [stored] = await TDFDiamond.getAccommodationYear(2024);
     expect(stored).to.be.true;
     await send.removeYear.reverted.doesNotExists(3000);
     await send.removeYear.success(2023);

@@ -13,15 +13,15 @@ const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
   return {
     balances: async (TK: string, tkU: string, u: string) => {
       expect(await tokenContract.balanceOf(diamond.address)).to.eq(parseEther(TK));
-      expect(await diamond.balanceOf(user.address)).to.eq(parseEther(tkU));
+      expect(await diamond.stakedBalanceOf(user.address)).to.eq(parseEther(tkU));
       expect(await tokenContract.balanceOf(user.address)).to.eq(parseEther(u));
     },
     stake: async (locked: string, unlocked: string) => {
-      expect(await diamond.lockedAmount(user.address)).to.eq(parseEther(locked));
-      expect(await diamond.unlockedAmount(user.address)).to.eq(parseEther(unlocked));
+      expect(await diamond.lockedStake(user.address)).to.eq(parseEther(locked));
+      expect(await diamond.unlockedStake(user.address)).to.eq(parseEther(unlocked));
     },
     deposits: async (examples: [string, number][]) => {
-      const deposits = await diamond.depositsFor(user.address);
+      const deposits = await diamond.depositsStakedFor(user.address);
       for (let i = 0; i < deposits.length; i++) {
         expect(deposits[i].amount).to.eq(parseEther(examples[i][0]));
         expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
@@ -30,7 +30,7 @@ const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
     bookings: async (dates: DatesTestData, price: string) => {
       await Promise.all(
         dates.data.map(async (e) => {
-          const [success, booking] = await diamond.getBooking(user.address, e.year, e.day);
+          const [success, booking] = await diamond.getAccommodationBooking(user.address, e.year, e.day);
           return Promise.all([
             expect(booking.price).to.eq(parseEther(price)),
             expect(booking.year).to.eq(e.year),
