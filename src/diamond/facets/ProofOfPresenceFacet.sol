@@ -6,7 +6,7 @@ import "../interfaces/ITokenLock.sol";
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
 
-contract ProofOfPresenceFacet is Modifiers, Context {
+contract ProofOfPresenceFacet is Modifiers {
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
 

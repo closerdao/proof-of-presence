@@ -14,6 +14,8 @@ import {IDiamondLoupe} from "hardhat-deploy/solc_0.8/diamond/interfaces/IDiamond
 import {IDiamondCut} from "hardhat-deploy/solc_0.8/diamond/interfaces/IDiamondCut.sol";
 import {IERC173} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC173.sol";
 import {IERC165} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC165.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
+
 import "../libraries/BookingMapLib.sol";
 
 // It is expected that this contract is customized if you want to deploy your diamond
@@ -32,6 +34,7 @@ contract DiamondInit is Modifiers {
         ds.supportedInterfaces[type(IDiamondCut).interfaceId] = true;
         ds.supportedInterfaces[type(IDiamondLoupe).interfaceId] = true;
         ds.supportedInterfaces[type(IERC173).interfaceId] = true;
+        ds.supportedInterfaces[type(IAccessControl).interfaceId] = true;
 
         AppStorage storage s = LibAppStorage.diamondStorage();
         s.communityToken = IERC20(token);
