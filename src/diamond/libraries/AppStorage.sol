@@ -20,6 +20,7 @@ struct AppStorage {
     uint256 lockingPeriod;
     bool paused;
     bool initialized;
+    address[] _approvedMembers;
 }
 
 library LibAppStorage {
