@@ -15,14 +15,10 @@ struct StakedDeposit {
     uint256 amount;
 }
 
-struct RoleData {
-    mapping(address => bool) members;
-    bytes32 adminRole;
-}
 struct AppStorage {
+    bool initialized;
     // execution
     bool paused;
-    bool initialized;
     // The ERC!!
     IERC20 communityToken;
     // Roles
