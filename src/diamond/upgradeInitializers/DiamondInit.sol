@@ -44,6 +44,8 @@ contract DiamondInit is Modifiers {
         s._accommodationYears.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
         s._accommodationYears.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
         s.stakeLockingPeriod = daysLocked * 86400;
+
+        s._roleStore.grantRole(keccak256("ADMIN_ROLE"), msg.sender);
         // Set the contract as initialized
         s.initialized = true;
 

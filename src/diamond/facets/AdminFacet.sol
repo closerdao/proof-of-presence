@@ -3,8 +3,11 @@ pragma solidity 0.8.9;
 
 import {LibDiamond} from "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
 import {Modifiers} from "../libraries/AppStorage.sol";
+import "../libraries/AccessControlLib.sol";
 
 contract AdminFacet is Modifiers {
+    using AccessControlLib for AccessControlLib.RoleStore;
+
     /**
      * @dev Emitted when the pause is triggered by `account`.
      */
@@ -41,6 +44,10 @@ contract AdminFacet is Modifiers {
 
     function paused() external view returns (bool) {
         return s.paused;
+    }
+
+    function setLockingTimePeriodDays(uint256 daysLocked) public onlyRole(ADMIN_ROLE) {
+        s.stakeLockingPeriod = daysLocked * 86400;
     }
 
     /**
