@@ -45,6 +45,21 @@ const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
 
 export const diamondTest = async (input: HelpersInput) => {
   return {
+    getRoles: async () => {
+      const {diamond} = input;
+      const val = await diamond.getRoles();
+      const out: {[key: string]: string} = {};
+      console.log(val);
+      console.log('before val');
+      console.log(val[0], 'val[0][1]');
+      console.log('after val');
+      for (let i = 0; i < val.length; i++) {
+        console.log('<begin>LOOP');
+        out[val[i][0]] = 'boo'; //val[i][1];
+        console.log('<end>LOOP');
+      }
+      return out;
+    },
     test: await testHelpers(input),
     TLF: await TLH.setupHelpers(input),
     POPH: await POPH.setupHelpers(input),

@@ -138,7 +138,7 @@ describe('ProofOfPresenceFacet', () => {
     await call.getBookings(dates);
 
     const years = await TDFDiamond.getAccommodationYears();
-    expect(years.length).to.eq(4);
+    expect(years.length).to.eq(5);
     const y = years[0];
     let eY = _.find(yearData(), (v) => v.number == y.number);
     expect(eY).not.to.be.undefined;
@@ -160,7 +160,7 @@ describe('ProofOfPresenceFacet', () => {
     const {users, TDFToken, deployer, TDFDiamond} = await setup();
 
     const user = users[0];
-    const {POPH} = await diamondTest({
+    const {getRoles, POPH} = await diamondTest({
       tokenContract: TDFToken,
       diamond: TDFDiamond,
       user: user,
@@ -170,7 +170,10 @@ describe('ProofOfPresenceFacet', () => {
     const {send} = POPH;
     let yearAttrs;
     yearAttrs = yearData()['2027'];
+
+    console.log(await getRoles(), 'ROLES');
     await send.addYear.reverted.onlyOwner({...yearAttrs, enabled: false});
+    await deployer.TDFDiamond.grantRole('BOOKING_MANAGER_ROLE', deployer.address);
     await send.addYear.success({...yearAttrs, enabled: false});
     yearAttrs = yearData()['2024'];
     await send.addYear.reverted.alreadyExists({...yearAttrs, enabled: false});

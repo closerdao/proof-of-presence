@@ -25,7 +25,7 @@ contract AdminFacet is Modifiers {
      *
      * - The contract must not be paused.
      */
-    function pause() external whenNotPaused onlyOwner {
+    function pause() external whenNotPaused onlyRole(AccessControlLib.ADMIN_ROLE) {
         s.paused = true;
         emit Paused(msg.sender);
     }
@@ -37,7 +37,7 @@ contract AdminFacet is Modifiers {
      *
      * - The contract must be paused.
      */
-    function unpause() external whenPaused onlyOwner {
+    function unpause() external whenPaused onlyRole(AccessControlLib.ADMIN_ROLE) {
         s.paused = false;
         emit Unpaused(msg.sender);
     }
@@ -46,7 +46,7 @@ contract AdminFacet is Modifiers {
         return s.paused;
     }
 
-    function setLockingTimePeriodDays(uint256 daysLocked) public onlyRole(ADMIN_ROLE) {
+    function setLockingTimePeriodDays(uint256 daysLocked) public onlyRole(AccessControlLib.ADMIN_ROLE) {
         s.stakeLockingPeriod = daysLocked * 86400;
     }
 
@@ -118,5 +118,9 @@ contract AdminFacet is Modifiers {
         require(account == _msgSender(), "AccessControl: can only renounce roles for self");
 
         s._roleStore.revokeRole(role, account);
+    }
+
+    function getRoles() public pure returns (string[2][5] memory) {
+        return AccessControlLib.getRoles();
     }
 }

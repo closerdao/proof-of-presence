@@ -45,8 +45,6 @@ contract Modifiers {
 
     AppStorage internal s;
 
-    bytes32 ADMIN_ROLE = keccak256("ADMIN_ROLE");
-
     modifier onlyOwner() {
         LibDiamond.enforceIsContractOwner();
         _;

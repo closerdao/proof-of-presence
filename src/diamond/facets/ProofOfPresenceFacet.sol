@@ -102,7 +102,7 @@ contract ProofOfPresenceFacet is Modifiers {
         uint256 start,
         uint256 end,
         bool enabled
-    ) external onlyOwner {
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
         require(
             s._accommodationYears.add(BookingMapLib.Year(number, leapYear, start, end, enabled)),
             "Unable to add year"
@@ -118,7 +118,7 @@ contract ProofOfPresenceFacet is Modifiers {
         return s._accommodationYears.get(number);
     }
 
-    function removeAccommodationYear(uint16 number) external onlyOwner {
+    function removeAccommodationYear(uint16 number) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
         require(s._accommodationYears.remove(number), "Unable to remove Year");
         emit YearRemoved(number);
     }
@@ -129,7 +129,7 @@ contract ProofOfPresenceFacet is Modifiers {
         uint256 start,
         uint256 end,
         bool enabled
-    ) external onlyOwner {
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
         require(
             s._accommodationYears.update(BookingMapLib.Year(number, leapYear, start, end, enabled)),
             "Unable to update Year"
@@ -137,7 +137,10 @@ contract ProofOfPresenceFacet is Modifiers {
         emit YearUpdated(number, leapYear, start, end, enabled);
     }
 
-    function enableAccommodationYear(uint16 number, bool enable) external onlyOwner {
+    function enableAccommodationYear(uint16 number, bool enable)
+        external
+        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
+    {
         (, BookingMapLib.Year memory y) = s._accommodationYears.get(number);
         y.enabled = enable;
         require(s._accommodationYears.update(y), "Unable to update year");
