@@ -179,7 +179,7 @@ export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
       },
       unpause: {
         success: async () => {
-          await expect(admin.TDFDiamond.unpause(), `send.unpause.success`).to.emit(diamond, 'Unpaused');
+          await expect(user.TDFDiamond.unpause(), `send.unpause.success`).to.emit(diamond, 'Unpaused');
           expect(await diamond.paused()).to.be.false;
         },
         reverted: {
