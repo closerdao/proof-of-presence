@@ -57,7 +57,7 @@ contract DiamondInit is Modifiers {
         );
         s.stakeLockingPeriod = daysLocked * 86400;
 
-        s._roleStore.grantRole(AccessControlLib.ADMIN_ROLE, msg.sender);
+        s._roleStore.grantRole(AccessControlLib.DEFAULT_ADMIN_ROLE, msg.sender);
         s._roleStore.grantRole(AccessControlLib.MINTER_ROLE, msg.sender);
         s._roleStore.grantRole(AccessControlLib.BOOKING_MANAGER_ROLE, msg.sender);
         s._roleStore.grantRole(AccessControlLib.STAKE_MANAGER_ROLE, msg.sender);

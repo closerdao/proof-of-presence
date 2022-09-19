@@ -25,7 +25,7 @@ contract AdminFacet is Modifiers {
      *
      * - The contract must not be paused.
      */
-    function pause() external whenNotPaused onlyRole(AccessControlLib.ADMIN_ROLE) {
+    function pause() external whenNotPaused onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) {
         s.paused = true;
         emit Paused(msg.sender);
     }
@@ -37,7 +37,7 @@ contract AdminFacet is Modifiers {
      *
      * - The contract must be paused.
      */
-    function unpause() external whenPaused onlyRole(AccessControlLib.ADMIN_ROLE) {
+    function unpause() external whenPaused onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) {
         s.paused = false;
         emit Unpaused(msg.sender);
     }
@@ -46,7 +46,7 @@ contract AdminFacet is Modifiers {
         return s.paused;
     }
 
-    function setLockingTimePeriodDays(uint256 daysLocked) public onlyRole(AccessControlLib.ADMIN_ROLE) {
+    function setLockingTimePeriodDays(uint256 daysLocked) public onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) {
         s.stakeLockingPeriod = daysLocked * 86400;
     }
 

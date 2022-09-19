@@ -7,7 +7,7 @@ import {TDFToken, TDFDiamond} from '../../typechain';
 import {setupUser, setupUsers} from '../utils';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays} from 'date-fns';
-import {diamondTest, buildDates, collectDates, yearData, timeTravelTo} from '../utils/diamond';
+import {diamondTest, buildDates, collectDates, yearData, timeTravelTo, roles} from '../utils/diamond';
 
 const setup = deployments.createFixture(async (hre) => {
   const {deployments, getNamedAccounts, ethers} = hre;
@@ -156,7 +156,7 @@ describe('ProofOfPresenceFacet', () => {
     expect(res.end).to.eq(eY.end);
   });
 
-  it('ownable', async () => {
+  it('BOOKING_MANAGER_ROLE', async () => {
     const {users, TDFToken, deployer, TDFDiamond} = await setup();
 
     const user = users[0];
@@ -166,35 +166,64 @@ describe('ProofOfPresenceFacet', () => {
       user: user,
       admin: deployer,
     });
+    const bookingManager = await diamondTest({
+      tokenContract: TDFToken,
+      diamond: TDFDiamond,
+      user: users[1],
+      admin: deployer,
+    });
 
     const {send} = POPH;
     let yearAttrs;
-    yearAttrs = yearData()['2027'];
+    yearAttrs = yearData()['2028'];
 
-    console.log(await getRoles(), 'ROLES');
+    // Give role to user 1 for booking management
+    await deployer.TDFDiamond.grantRole(roles.BOOKING_MANAGER_ROLE as string, users[1].address);
+
     await send.addYear.reverted.onlyOwner({...yearAttrs, enabled: false});
-    await deployer.TDFDiamond.grantRole('BOOKING_MANAGER_ROLE', deployer.address);
-    await send.addYear.success({...yearAttrs, enabled: false});
+    await bookingManager.POPH.send.addYear.success({...yearAttrs, enabled: false});
     yearAttrs = yearData()['2024'];
-    await send.addYear.reverted.alreadyExists({...yearAttrs, enabled: false});
+    await bookingManager.POPH.send.addYear.reverted.alreadyExists({...yearAttrs, enabled: false});
     let [stored] = await TDFDiamond.getAccommodationYear(2024);
     expect(stored).to.be.true;
     await send.removeYear.reverted.onlyOwner(2024);
     [stored] = await TDFDiamond.getAccommodationYear(2024);
     expect(stored).to.be.true;
-    await send.removeYear.reverted.doesNotExists(3000);
-    await send.removeYear.success(2023);
+    await bookingManager.POPH.send.removeYear.reverted.doesNotExists(3000);
+    await bookingManager.POPH.send.removeYear.success(2023);
 
     await send.updateYear.reverted.onlyOwner({...yearAttrs, enabled: false});
-    await send.updateYear.reverted.doesNotExists({...yearAttrs, number: 3002, enabled: false});
-    await send.updateYear.success({...yearAttrs, enabled: false});
+    await bookingManager.POPH.send.updateYear.reverted.doesNotExists({...yearAttrs, number: 3002, enabled: false});
+    await bookingManager.POPH.send.updateYear.success({...yearAttrs, enabled: false});
     await send.enableYear.reverted.onlyOwner(2025, false);
-    await send.enableYear.reverted.doesNotExists(3002, true);
-    await send.enableYear.success(2027, false);
+    await bookingManager.POPH.send.enableYear.reverted.doesNotExists(3002, true);
+    await bookingManager.POPH.send.enableYear.success(2027, false);
+  });
+
+  it('DEFAULT_ADMIN_ROLE', async () => {
+    const {users, TDFToken, deployer, TDFDiamond} = await setup();
+
+    const user = users[0];
+    const {POPH} = await diamondTest({
+      tokenContract: TDFToken,
+      diamond: TDFDiamond,
+      user: user,
+      admin: deployer,
+    });
+    const bookingManager = await diamondTest({
+      tokenContract: TDFToken,
+      diamond: TDFDiamond,
+      user: users[1],
+      admin: deployer,
+    });
+    const {send} = POPH;
+
+    await deployer.TDFDiamond.grantRole(roles.DEFAULT_ADMIN_ROLE as string, users[1].address);
+
     await send.pause.reverted.onlyOwner();
-    await send.pause.success();
+    await bookingManager.POPH.send.pause.success();
     await send.unpause.reverted.onlyOwner();
-    await send.unpause.success();
+    await bookingManager.POPH.send.unpause.success();
   });
 
   it('pausable', async () => {
@@ -205,6 +234,13 @@ describe('ProofOfPresenceFacet', () => {
       tokenContract: TDFToken,
       diamond: TDFDiamond,
       user: user,
+      admin: deployer,
+    });
+    await deployer.TDFDiamond.grantRole(roles.DEFAULT_ADMIN_ROLE as string, users[1].address);
+    const admin = await diamondTest({
+      tokenContract: TDFToken,
+      diamond: TDFDiamond,
+      user: users[1],
       admin: deployer,
     });
 
@@ -222,7 +258,7 @@ describe('ProofOfPresenceFacet', () => {
     // -------------------------------------------------------
     //  Book and cancel disabled with  Paused
     // -------------------------------------------------------
-    await send.pause.success();
+    await admin.POPH.send.pause.success();
     expect(await TDFDiamond.paused()).to.be.true;
 
     await send.book.reverted.paused(dates.inputs);

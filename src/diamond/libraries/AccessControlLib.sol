@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 library AccessControlLib {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    bytes32 constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 constant BOOKING_MANAGER_ROLE = keccak256("BOOKING_MANAGER_ROLE");
     bytes32 constant STAKE_MANAGER_ROLE = keccak256("STAKE_MANAGER_ROLE");
@@ -163,7 +163,7 @@ library AccessControlLib {
     }
 
     function getRoles() internal pure returns (string[2][5] memory roles) {
-        roles[0] = ["ADMIN_ROLE", string(abi.encodePacked(ADMIN_ROLE))];
+        roles[0] = ["DEFAULT_ADMIN_ROLE", string(abi.encodePacked(DEFAULT_ADMIN_ROLE))];
         roles[1] = ["MINTER_ROLE", string(abi.encodePacked(MINTER_ROLE))];
         roles[2] = ["BOOKING_MANAGER_ROLE", string(abi.encodePacked(BOOKING_MANAGER_ROLE))];
         roles[3] = ["STAKE_MANAGER_ROLE", string(abi.encodePacked(STAKE_MANAGER_ROLE))];

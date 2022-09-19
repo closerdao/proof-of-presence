@@ -88,7 +88,7 @@ export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
             await expect(
               user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
               `send.addYear.reverted.onlyOwner ${year}`
-            ).to.be.revertedWith('LibDiamond: Must be contract owner');
+            ).to.be.revertedWith('AccessControl:');
           },
           alreadyExists: async (year: BookingMapLib.YearStruct) => {
             await expect(
@@ -110,7 +110,7 @@ export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
             await expect(
               user.TDFDiamond.removeAccommodationYear(year),
               `send.removeYear.reverted.onlyOwner ${year}`
-            ).to.be.revertedWith('LibDiamond: Must be contract owner');
+            ).to.be.revertedWith('AccessControl:');
           },
           doesNotExists: async (year: number) => {
             await expect(
@@ -132,7 +132,7 @@ export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
             await expect(
               user.TDFDiamond.enableAccommodationYear(year, enable),
               `send.enableYear.reverted.onlyOwner: y ${year}, e ${enable}`
-            ).to.be.revertedWith('LibDiamond: Must be contract owner');
+            ).to.be.revertedWith('AccessControl:');
           },
           doesNotExists: async (year: number, enable: boolean) => {
             await expect(
@@ -154,7 +154,7 @@ export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
             await expect(
               user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
               `send.updateYear.reverted.onlyOwner: y ${year}`
-            ).to.be.revertedWith('LibDiamond: Must be contract owner');
+            ).to.be.revertedWith('AccessControl:');
           },
           doesNotExists: async (year: BookingMapLib.YearStruct) => {
             await expect(
@@ -171,9 +171,7 @@ export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
         },
         reverted: {
           onlyOwner: async () => {
-            await expect(user.TDFDiamond.pause(), `pause.reverted.onlyOwner`).to.be.revertedWith(
-              'LibDiamond: Must be contract owner'
-            );
+            await expect(user.TDFDiamond.pause(), `pause.reverted.onlyOwner`).to.be.revertedWith('AccessControl:');
           },
         },
       },
@@ -185,7 +183,7 @@ export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
         reverted: {
           onlyOwner: async () => {
             await expect(user.TDFDiamond.unpause(), `send.unpause.reverted.onlyOwner`).to.be.revertedWith(
-              'LibDiamond: Must be contract owner'
+              'AccessControl:'
             );
           },
         },
