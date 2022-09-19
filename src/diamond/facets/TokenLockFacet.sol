@@ -45,16 +45,6 @@ contract TokenLockFacet is Modifiers, ReentrancyGuard {
         s.staking.restake(_msgSender(), requestedAmount);
     }
 
-    // TODO: Check dependency and not use this contract to interact
-    function restakeOrDepositAtFor(
-        address account,
-        uint256 amount,
-        // TODO: initLocking time must be bigger that current timestamp
-        uint256 initLockingTm
-    ) external {
-        s.staking.restakeOrDepositAtFor(s.communityToken, account, amount, initLockingTm);
-    }
-
     function unlockedStake(address account) public view returns (uint256) {
         return s.staking.unlockedStake(account);
     }
