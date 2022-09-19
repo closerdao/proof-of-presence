@@ -4,8 +4,7 @@ import {BookingMapLib} from '../../../typechain/ProofOfPresenceFacet';
 import {HelpersInput, DatesTestData, DateMetadata, DateInputs} from './types';
 import * as _ from 'lodash';
 
-// TODO: only implement methods for single user
-export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
+export const setupHelpers = async ({diamond, user}: HelpersInput) => {
   return {
     call: {
       getBookings: async (dates: DatesTestData) => {
@@ -78,7 +77,7 @@ export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
       addYear: {
         success: async (year: BookingMapLib.YearStruct) => {
           await expect(
-            admin.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
+            user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
             `send.addYear.success ${year}`
           ).to.emit(diamond, 'YearAdded');
         },
@@ -92,7 +91,7 @@ export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
           },
           alreadyExists: async (year: BookingMapLib.YearStruct) => {
             await expect(
-              admin.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
+              user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
               `send.addYear.reverted.alreadyExists ${year}`
             ).to.be.revertedWith('Unable to add year');
           },
