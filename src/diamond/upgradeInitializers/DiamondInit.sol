@@ -14,7 +14,10 @@ import {IDiamondLoupe} from "hardhat-deploy/solc_0.8/diamond/interfaces/IDiamond
 import {IDiamondCut} from "hardhat-deploy/solc_0.8/diamond/interfaces/IDiamondCut.sol";
 import {IERC173} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC173.sol";
 import {IERC165} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC165.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
+
 import "../libraries/BookingMapLib.sol";
+import "../libraries/AccessControlLib.sol";
 
 // It is expected that this contract is customized if you want to deploy your diamond
 // with data from a deployment script. Use the init function to initialize state variables
@@ -22,6 +25,7 @@ import "../libraries/BookingMapLib.sol";
 
 contract DiamondInit is Modifiers {
     using BookingMapLib for BookingMapLib.YearsStore;
+    using AccessControlLib for AccessControlLib.RoleStore;
 
     // You can add parameters to this function in order to pass in
     // data to set your own state variables
@@ -32,15 +36,32 @@ contract DiamondInit is Modifiers {
         ds.supportedInterfaces[type(IDiamondCut).interfaceId] = true;
         ds.supportedInterfaces[type(IDiamondLoupe).interfaceId] = true;
         ds.supportedInterfaces[type(IERC173).interfaceId] = true;
+        ds.supportedInterfaces[type(IAccessControl).interfaceId] = true;
 
-        AppStorage storage s = LibAppStorage.diamondStorage();
         s.communityToken = IERC20(token);
         // TODO: disable all years except current
-        s._accommodationYears.add(BookingMapLib.Year(2022, false, 1640995200, 1672531199, true));
-        s._accommodationYears.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
-        s._accommodationYears.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
-        s._accommodationYears.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
+        s._accommodationYears.add(
+            BookingMapLib.Year({number: 2022, leapYear: false, start: 1640995200, end: 1672531199, enabled: true})
+        );
+        s._accommodationYears.add(
+            BookingMapLib.Year({number: 2023, leapYear: false, start: 1672531200, end: 1704067199, enabled: true})
+        );
+        s._accommodationYears.add(
+            BookingMapLib.Year({number: 2024, leapYear: true, start: 1704067200, end: 1735689599, enabled: true})
+        );
+        s._accommodationYears.add(
+            BookingMapLib.Year({number: 2025, leapYear: false, start: 1735689600, end: 1767225599, enabled: true})
+        );
+        s._accommodationYears.add(
+            BookingMapLib.Year({number: 2027, leapYear: false, start: 1798761600, end: 1830297599, enabled: true})
+        );
         s.stakeLockingPeriod = daysLocked * 86400;
+
+        s._roleStore.grantRole(AccessControlLib.DEFAULT_ADMIN_ROLE, msg.sender);
+        s._roleStore.grantRole(AccessControlLib.MINTER_ROLE, msg.sender);
+        s._roleStore.grantRole(AccessControlLib.BOOKING_MANAGER_ROLE, msg.sender);
+        s._roleStore.grantRole(AccessControlLib.STAKE_MANAGER_ROLE, msg.sender);
+        s._roleStore.grantRole(AccessControlLib.VAULT_MANAGER_ROLE, msg.sender);
         // Set the contract as initialized
         s.initialized = true;
 

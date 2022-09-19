@@ -3,8 +3,12 @@
 pragma solidity 0.8.9;
 import "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/access/IAccessControl.sol";
 
 import "../libraries/BookingMapLib.sol";
+import "../libraries/AccessControlLib.sol";
 
 struct StakedDeposit {
     uint256 timestamp;
@@ -12,14 +16,20 @@ struct StakedDeposit {
 }
 
 struct AppStorage {
+    bool initialized;
+    // execution
+    bool paused;
+    // The ERC!!
     IERC20 communityToken;
+    // Roles
+    AccessControlLib.RoleStore _roleStore;
+    // Booking
     mapping(address => BookingMapLib.UserStore) _accommodationBookings;
     BookingMapLib.YearsStore _accommodationYears;
+    // Stake
     mapping(address => uint256) _stakedBalances;
     mapping(address => StakedDeposit[]) _stakedDeposits;
     uint256 stakeLockingPeriod;
-    bool paused;
-    bool initialized;
 }
 
 library LibAppStorage {
@@ -31,6 +41,8 @@ library LibAppStorage {
 }
 
 contract Modifiers {
+    using AccessControlLib for AccessControlLib.RoleStore;
+
     AppStorage internal s;
 
     modifier onlyOwner() {
@@ -44,6 +56,22 @@ contract Modifiers {
         }
         _;
     }
+
+    /**
+     * @dev Modifier that checks that an account has a specific role. Reverts
+     * with a standardized message including the required role.
+     *
+     * The format of the revert reason is given by the following regular expression:
+     *
+     *  /^AccessControl: account (0x[0-9a-f]{40}) is missing role (0x[0-9a-f]{64})$/
+     *
+     * _Available since v4.1._
+     */
+    modifier onlyRole(bytes32 role) {
+        s._roleStore.checkRole(role);
+        _;
+    }
+
     /**
      * @dev Modifier to make a function callable only when the contract is not paused.
      *
@@ -80,5 +108,13 @@ contract Modifiers {
      */
     function _requirePaused() internal view virtual {
         require(s.paused, "Pausable: not paused");
+    }
+
+    function _msgSender() internal view virtual returns (address) {
+        return msg.sender;
+    }
+
+    function _msgData() internal view virtual returns (bytes calldata) {
+        return msg.data;
     }
 }

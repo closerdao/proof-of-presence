@@ -6,7 +6,7 @@ import "../interfaces/ITokenLock.sol";
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
 
-contract ProofOfPresenceFacet is Modifiers, Context {
+contract ProofOfPresenceFacet is Modifiers {
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
 
@@ -41,10 +41,10 @@ contract ProofOfPresenceFacet is Modifiers, Context {
             dayOfYear,
             price
         );
-        require(successBuild, "Unable to build Booking");
+        require(successBuild, "BookingFacet: Unable to build Booking");
 
-        require(value.timestamp > block.timestamp, "date should be in the future");
-        require(s._accommodationBookings[account].add(value), "Booking already exists");
+        require(value.timestamp > block.timestamp, "BookingFacet: date should be in the future");
+        require(s._accommodationBookings[account].add(value), "BookingFacet: Booking already exists");
         return value;
     }
 
@@ -61,10 +61,10 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint16 dayOfYear
     ) internal {
         (bool succesBuild, uint256 tm) = s._accommodationYears.buildTimestamp(yearNum, dayOfYear);
-        require(succesBuild, "unable to build Timestamp");
-        require(tm > block.timestamp, "Can not cancel past booking");
+        require(succesBuild, "BookingFacet: unable to build Timestamp");
+        require(tm > block.timestamp, "BookingFacet: Can not cancel past booking");
         (bool success, ) = s._accommodationBookings[account].remove(yearNum, dayOfYear);
-        require(success, "Booking does not exists");
+        require(success, "BookingFacet: Booking does not exists");
     }
 
     function _expectedStaked(address account) internal view returns (uint256) {
@@ -102,10 +102,10 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint256 start,
         uint256 end,
         bool enabled
-    ) external onlyOwner {
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
         require(
             s._accommodationYears.add(BookingMapLib.Year(number, leapYear, start, end, enabled)),
-            "Unable to add year"
+            "BookingFacet: Unable to add year"
         );
         emit YearAdded(number, leapYear, start, end, enabled);
     }
@@ -118,8 +118,8 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         return s._accommodationYears.get(number);
     }
 
-    function removeAccommodationYear(uint16 number) external onlyOwner {
-        require(s._accommodationYears.remove(number), "Unable to remove Year");
+    function removeAccommodationYear(uint16 number) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
+        require(s._accommodationYears.remove(number), "BookingFacet: Unable to remove Year");
         emit YearRemoved(number);
     }
 
@@ -129,18 +129,21 @@ contract ProofOfPresenceFacet is Modifiers, Context {
         uint256 start,
         uint256 end,
         bool enabled
-    ) external onlyOwner {
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
         require(
             s._accommodationYears.update(BookingMapLib.Year(number, leapYear, start, end, enabled)),
-            "Unable to update Year"
+            "BookingFacet: Unable to update Year"
         );
         emit YearUpdated(number, leapYear, start, end, enabled);
     }
 
-    function enableAccommodationYear(uint16 number, bool enable) external onlyOwner {
+    function enableAccommodationYear(uint16 number, bool enable)
+        external
+        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
+    {
         (, BookingMapLib.Year memory y) = s._accommodationYears.get(number);
         y.enabled = enable;
-        require(s._accommodationYears.update(y), "Unable to update year");
+        require(s._accommodationYears.update(y), "BookingFacet: Unable to update year");
         emit YearUpdated(y.number, y.leapYear, y.start, y.end, y.enabled);
     }
 }

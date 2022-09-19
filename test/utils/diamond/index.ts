@@ -2,6 +2,7 @@ import {expect} from '../../chai-setup';
 import {parseEther} from 'ethers/lib/utils';
 import {ethers, network} from 'hardhat';
 import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
+import {soliditySha3} from 'web3-utils';
 
 import {HelpersInput, DatesTestData} from './types';
 import * as TLH from './tokenlockFacet';
@@ -45,6 +46,21 @@ const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
 
 export const diamondTest = async (input: HelpersInput) => {
   return {
+    getRoles: async () => {
+      const {diamond} = input;
+      const val = await diamond.getRoles();
+      const out: {[key: string]: string} = {};
+      console.log(val);
+      console.log('before val');
+      console.log(val[0], 'val[0][1]');
+      console.log('after val');
+      for (let i = 0; i < val.length; i++) {
+        console.log('<begin>LOOP');
+        out[val[i][0]] = 'boo'; //val[i][1];
+        console.log('<end>LOOP');
+      }
+      return out;
+    },
     test: await testHelpers(input),
     TLF: await TLH.setupHelpers(input),
     POPH: await POPH.setupHelpers(input),
@@ -86,5 +102,14 @@ export const yearData = () => {
     '2024': {number: 2024, leapYear: true, start: 1704067200, end: 1735689599},
     '2025': {number: 2025, leapYear: false, start: 1735689600, end: 1767225599},
     '2027': {number: 2027, leapYear: false, start: 1798761600, end: 1830297599},
+    '2028': {number: 2028, leapYear: false, start: 1830297600, end: 1861919999},
   };
+};
+
+export const roles = {
+  DEFAULT_ADMIN_ROLE: '0x0000000000000000000000000000000000000000000000000000000000000000',
+  MINTER_ROLE: soliditySha3('MINTER_ROLE'),
+  BOOKING_MANAGER_ROLE: soliditySha3('BOOKING_MANAGER_ROLE'),
+  STAKE_MANAGER_ROLE: soliditySha3('STAKE_MANAGER_ROLE'),
+  VAULT_MANAGER_ROLE: soliditySha3('VAULT_MANAGER_ROLE'),
 };

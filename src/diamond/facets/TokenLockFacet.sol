@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../libraries/AppStorage.sol";
 
-contract TokenLockFacet is Modifiers, Context, ReentrancyGuard {
+contract TokenLockFacet is Modifiers, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // Max number in uint256
