@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/access/IAccessControl.sol";
 
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AccessControlLib.sol";
+import "../libraries/StakeLib.sol";
 
 struct StakedDeposit {
     uint256 timestamp;
@@ -27,9 +28,7 @@ struct AppStorage {
     mapping(address => BookingMapLib.UserStore) _accommodationBookings;
     BookingMapLib.YearsStore _accommodationYears;
     // Stake
-    mapping(address => uint256) _stakedBalances;
-    mapping(address => StakedDeposit[]) _stakedDeposits;
-    uint256 stakeLockingPeriod;
+    StakeLib.StakeStore staking;
 }
 
 library LibAppStorage {

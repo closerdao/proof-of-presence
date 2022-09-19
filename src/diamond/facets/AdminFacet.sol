@@ -47,7 +47,7 @@ contract AdminFacet is Modifiers {
     }
 
     function setLockingTimePeriodDays(uint256 daysLocked) public onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) {
-        s.stakeLockingPeriod = daysLocked * 86400;
+        s.staking.stakeLockingPeriod = daysLocked * 86400;
     }
 
     /**
