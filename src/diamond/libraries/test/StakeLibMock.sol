@@ -41,11 +41,11 @@ contract StakeLibMock {
     }
 
     function withdrawMaxStake() public returns (uint256) {
-        return staking.withdrawMaxStake(token, msg.sender);
+        return staking.withdrawMax(token, msg.sender);
     }
 
     function withdrawStake(uint256 requested) public returns (uint256) {
-        return staking.withdrawStake(token, msg.sender, requested);
+        return staking.withdraw(token, msg.sender, requested);
     }
 
     function restakeMax() public {
@@ -57,18 +57,18 @@ contract StakeLibMock {
     }
 
     function unlockedStake(address account) public view returns (uint256) {
-        return staking.unlockedStake(account);
+        return staking.unlocked(account);
     }
 
     function lockedStake(address account) public view returns (uint256) {
-        return staking.lockedStake(account);
+        return staking.locked(account);
     }
 
     function stakedBalanceOf(address account) public view returns (uint256) {
-        return staking.stakedBalanceOf(account);
+        return staking.balanceOf(account);
     }
 
     function depositsStakedFor(address account) public view returns (StakeLib.StakedDeposit[] memory) {
-        return staking.depositsStakedFor(account);
+        return staking.depositsFor(account);
     }
 }

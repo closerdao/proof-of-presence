@@ -30,11 +30,11 @@ contract TokenLockFacet is Modifiers, ReentrancyGuard {
     }
 
     function withdrawMaxStake() public returns (uint256) {
-        return s.staking.withdrawMaxStake(s.communityToken, _msgSender());
+        return s.staking.withdrawMax(s.communityToken, _msgSender());
     }
 
     function withdrawStake(uint256 requested) public returns (uint256) {
-        return s.staking.withdrawStake(s.communityToken, _msgSender(), requested);
+        return s.staking.withdraw(s.communityToken, _msgSender(), requested);
     }
 
     function restakeMax() public {
@@ -46,18 +46,18 @@ contract TokenLockFacet is Modifiers, ReentrancyGuard {
     }
 
     function unlockedStake(address account) public view returns (uint256) {
-        return s.staking.unlockedStake(account);
+        return s.staking.unlocked(account);
     }
 
     function lockedStake(address account) public view returns (uint256) {
-        return s.staking.lockedStake(account);
+        return s.staking.locked(account);
     }
 
     function stakedBalanceOf(address account) public view returns (uint256) {
-        return s.staking.stakedBalanceOf(account);
+        return s.staking.balanceOf(account);
     }
 
     function depositsStakedFor(address account) public view returns (StakeLib.StakedDeposit[] memory) {
-        return s.staking.depositsStakedFor(account);
+        return s.staking.depositsFor(account);
     }
 }

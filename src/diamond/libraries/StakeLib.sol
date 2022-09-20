@@ -46,7 +46,7 @@ library StakeLib {
         emit DepositedTokens(account, amount);
     }
 
-    function withdrawMaxStake(
+    function withdrawMax(
         StakeStore storage store,
         IERC20 communityToken,
         address account
@@ -59,7 +59,7 @@ library StakeLib {
         return result.untiedAmount;
     }
 
-    function withdrawStake(
+    function withdraw(
         StakeStore storage store,
         IERC20 communityToken,
         address account,
@@ -159,25 +159,21 @@ library StakeLib {
         }
     }
 
-    function unlockedStake(StakeStore storage store, address account) internal view returns (uint256) {
+    function unlocked(StakeStore storage store, address account) internal view returns (uint256) {
         WithdrawingResult memory result = _calculateWithdraw(store, account, MAX_INT, block.timestamp);
         return result.untiedAmount;
     }
 
-    function lockedStake(StakeStore storage store, address account) internal view returns (uint256) {
+    function locked(StakeStore storage store, address account) internal view returns (uint256) {
         WithdrawingResult memory result = _calculateWithdraw(store, account, MAX_INT, block.timestamp);
         return store.stakedBalances[account] - result.untiedAmount;
     }
 
-    function stakedBalanceOf(StakeStore storage store, address account) internal view returns (uint256) {
+    function balanceOf(StakeStore storage store, address account) internal view returns (uint256) {
         return store.stakedBalances[account];
     }
 
-    function depositsStakedFor(StakeStore storage store, address account)
-        internal
-        view
-        returns (StakedDeposit[] memory)
-    {
+    function depositsFor(StakeStore storage store, address account) internal view returns (StakedDeposit[] memory) {
         return store.stakedDeposits[account];
     }
 

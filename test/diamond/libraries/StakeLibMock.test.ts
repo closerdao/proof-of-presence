@@ -36,9 +36,9 @@ const setup = deployments.createFixture(async (hre) => {
 });
 
 type setupReturnType = Awaited<ReturnType<typeof setup>>;
-type PrepareBuyInput = {user: setupReturnType['deployer']} & setupReturnType;
+type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
 
-const setupTest = ({token, user, stake}: PrepareBuyInput) => {
+const setupTest = ({token, user, stake}: TestContext) => {
   return {
     test: {
       balances: async (TK: string, tkU: string, u: string) => {
