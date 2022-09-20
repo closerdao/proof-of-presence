@@ -52,7 +52,9 @@ library StakeLib {
         uint256 tm;
     }
     struct WithdrawingResultOptimized {
-        ;
+        uint256 untiedAmount;
+        uint256 remainingBalance;
+        DepositsCommand[] commands;
     }
 
     event DepositedTokens(address account, uint256 amount);
