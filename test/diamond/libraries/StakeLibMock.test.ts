@@ -1,10 +1,11 @@
 import {expect} from '../../chai-setup';
-import {deployments, getUnnamedAccounts, network} from 'hardhat';
-import {StakeLibMock, ERC20} from '../../../typechain';
+import {deployments, getUnnamedAccounts, network, ethers} from 'hardhat';
+import {StakeLibMock, ERC20TestMock} from '../../../typechain';
 import {setupUser, setupUsers, getMock} from '../../utils';
 import {parseEther} from 'ethers/lib/utils';
-import {fromUnixTime, getDayOfYear} from 'date-fns';
 import {addDays, getUnixTime} from 'date-fns';
+
+const BN = ethers.BigNumber;
 
 const buildDate = (offset: number) => {
   const initDate = Date.now();
@@ -19,7 +20,7 @@ const setup = deployments.createFixture(async (hre) => {
   const users = await getUnnamedAccounts();
   const {deployer} = accounts;
 
-  const token = <ERC20>await getMock('ERC20', deployer, []);
+  const token = <ERC20TestMock>await getMock('ERC20TestMock', deployer, []);
 
   const contracts = {
     token: token,
@@ -41,20 +42,28 @@ const setupTest = ({token, user, stake}: PrepareBuyInput) => {
   return {
     test: {
       balances: async (TK: string, tkU: string, u: string) => {
-        expect(await token.balanceOf(stake.address)).to.eq(parseEther(TK));
-        expect(await stake.stakedBalanceOf(user.address)).to.eq(parseEther(tkU));
-        expect(await token.balanceOf(user.address)).to.eq(parseEther(u));
+        expect(await token.balanceOf(stake.address), `balances: staking Contract owns token`).to.eq(parseEther(TK));
+        expect(await stake.stakedBalanceOf(user.address), `balances: user amount staked`).to.eq(parseEther(tkU));
+        expect(await token.balanceOf(user.address), 'balances: user amount of token').to.eq(parseEther(u));
       },
 
-      deposits: async () => {
-        throw new Error('NOT implemented');
+      deposits: async (examples: [string, number][]) => {
+        const deposits = await stake.depositsStakedFor(user.address);
+        for (let i = 0; i < deposits.length; i++) {
+          expect(deposits[i].amount, 'deposits amount').to.eq(parseEther(examples[i][0]));
+          expect(deposits[i].timestamp, 'deposits timestamp').to.eq(BN.from(examples[i][1]));
+        }
       },
-      stake: async () => {
-        throw new Error('NOT implemented');
+      stake: async (locked: string, unlocked: string) => {
+        expect(await stake.lockedStake(user.address), 'stake: locked stake').to.eq(parseEther(locked));
+        expect(await stake.unlockedStake(user.address), 'stake: unlocked stake').to.eq(parseEther(unlocked));
       },
     },
-    restakeOrDepositAtFor: (a: string, tm: number) => {
-      throw new Error('NOT implemented');
+    restakeOrDepositAtFor: async (a: string, tm: number) => {
+      await expect(user.stake.restakeOrDepositAtFor(user.address, parseEther(a), tm)).to.emit(
+        stake,
+        'RestakeOrDepositedAtForStatus'
+      );
     },
     withdrawMax: {
       success: async (amount: string) => {
@@ -63,7 +72,7 @@ const setupTest = ({token, user, stake}: PrepareBuyInput) => {
           .withArgs(user.address, parseEther(amount));
       },
       none: async () => {
-        await expect(user.stake.withdrangMaxStake(), `withdrawMax.none`).to.not.emit(diamond, 'WithdrawnTokens');
+        await expect(user.stake.withdrawMaxStake(), `withdrawMax.none`).to.not.emit(stake, 'WithdrawnTokens');
       },
     },
     withdraw: {
@@ -83,12 +92,14 @@ const setupTest = ({token, user, stake}: PrepareBuyInput) => {
 
 describe('StakeLibMock', () => {
   it('restakeOrDepositAt', async () => {
-    const {users, stake, token, deployer} = await setup();
+    const context = await setup();
+    const {users, stake, token, deployer} = context;
     const user = users[0];
 
-    const {test, restakeOrDepositAtFor, withdraw, withdrawMax} = setupTest({token});
+    const {test, restakeOrDepositAtFor, withdraw, withdrawMax} = setupTest({...context, user});
 
-    expect(await token.balanceOf(user.address)).to.eq(parseEther('10000'));
+    await user.token.faucet(parseEther('10000'));
+    expect(await token.balanceOf(user.address), 'user to have initial balance').to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
     // await user.TDFToken.approve(deployer.address, parseEther('10'));
