@@ -47,13 +47,5 @@ export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
         await user.TDFDiamond.restake(parseEther(amount));
       },
     },
-    restakeOrDepositAtFor: async (amount: string, initLockAt: number) => {
-      // TODO: `restakeOrDepositAtFor.success ${amount}`
-      if (admin) {
-        await admin.TDFDiamond.restakeOrDepositAtFor(user.address, parseEther(amount), initLockAt);
-      } else {
-        throw 'No admin Set';
-      }
-    },
   };
 };

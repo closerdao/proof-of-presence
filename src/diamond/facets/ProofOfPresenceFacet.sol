@@ -2,13 +2,13 @@
 
 pragma solidity 0.8.9;
 import "@openzeppelin/contracts/utils/Context.sol";
-import "../interfaces/ITokenLock.sol";
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
 
 contract ProofOfPresenceFacet is Modifiers {
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
+    using StakeLib for StakeLib.StakeStore;
 
     event NewBookings(address account, uint16[2][] bookings);
     event CanceledBookings(address account, uint16[2][] bookings);
@@ -26,7 +26,7 @@ contract ProofOfPresenceFacet is Modifiers {
             if (lastDate < value.timestamp) lastDate = value.timestamp;
         }
 
-        ITokenLock(address(this)).restakeOrDepositAtFor(_msgSender(), _expectedStaked(_msgSender()), lastDate);
+        s.staking.restakeOrDepositAtFor(s.communityToken, _msgSender(), _expectedStaked(_msgSender()), lastDate);
         emit NewBookings(_msgSender(), dates);
     }
 
@@ -42,7 +42,6 @@ contract ProofOfPresenceFacet is Modifiers {
             price
         );
         require(successBuild, "BookingFacet: Unable to build Booking");
-
         require(value.timestamp > block.timestamp, "BookingFacet: date should be in the future");
         require(s._accommodationBookings[account].add(value), "BookingFacet: Booking already exists");
         return value;
