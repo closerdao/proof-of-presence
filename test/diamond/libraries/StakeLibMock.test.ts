@@ -43,20 +43,20 @@ const setupTest = ({token, user, stake}: TestContext) => {
     test: {
       balances: async (TK: string, tkU: string, u: string) => {
         expect(await token.balanceOf(stake.address), `balances: staking Contract owns token`).to.eq(parseEther(TK));
-        expect(await stake.stakedBalanceOf(user.address), `balances: user amount staked`).to.eq(parseEther(tkU));
+        expect(await stake.balanceOf(user.address), `balances: user amount staked`).to.eq(parseEther(tkU));
         expect(await token.balanceOf(user.address), 'balances: user amount of token').to.eq(parseEther(u));
       },
 
       deposits: async (examples: [string, number][]) => {
-        const deposits = await stake.depositsStakedFor(user.address);
+        const deposits = await stake.depositsFor(user.address);
         for (let i = 0; i < deposits.length; i++) {
           expect(deposits[i].amount, 'deposits amount').to.eq(parseEther(examples[i][0]));
           expect(deposits[i].timestamp, 'deposits timestamp').to.eq(BN.from(examples[i][1]));
         }
       },
       stake: async (locked: string, unlocked: string) => {
-        expect(await stake.lockedStake(user.address), 'stake: locked stake').to.eq(parseEther(locked));
-        expect(await stake.unlockedStake(user.address), 'stake: unlocked stake').to.eq(parseEther(unlocked));
+        expect(await stake.locked(user.address), 'stake: locked stake').to.eq(parseEther(locked));
+        expect(await stake.unlocked(user.address), 'stake: unlocked stake').to.eq(parseEther(unlocked));
       },
     },
     restakeOrDepositAtFor: async (a: string, tm: number) => {
@@ -67,22 +67,22 @@ const setupTest = ({token, user, stake}: TestContext) => {
     },
     withdrawMax: {
       success: async (amount: string) => {
-        await expect(user.stake.withdrawMaxStake(), `withdrawMax.success ${amount}`)
+        await expect(user.stake.withdrawMax(), `withdrawMax.success ${amount}`)
           .to.emit(stake, 'WithdrawnTokens')
           .withArgs(user.address, parseEther(amount));
       },
       none: async () => {
-        await expect(user.stake.withdrawMaxStake(), `withdrawMax.none`).to.not.emit(stake, 'WithdrawnTokens');
+        await expect(user.stake.withdrawMax(), `withdrawMax.none`).to.not.emit(stake, 'WithdrawnTokens');
       },
     },
     withdraw: {
       success: async (amount: string) => {
-        await expect(user.stake.withdrawStake(parseEther(amount)), `withdraw.success ${amount}`)
+        await expect(user.stake.withdraw(parseEther(amount)), `withdraw.success ${amount}`)
           .to.emit(stake, 'WithdrawnTokens')
           .withArgs(user.address, parseEther(amount));
       },
       reverted: async (amount: string) => {
-        await expect(user.stake.withdrawStake(parseEther(amount)), `withdraw.reverted ${amount}`).to.be.revertedWith(
+        await expect(user.stake.withdraw(parseEther(amount)), `withdraw.reverted ${amount}`).to.be.revertedWith(
           'NOT_ENOUGHT_UNLOCKABLE_BALANCE'
         );
       },

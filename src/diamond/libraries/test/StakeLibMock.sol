@@ -28,7 +28,7 @@ contract StakeLibMock {
         emit RestakeOrDepositedAtForStatus();
     }
 
-    function depositStake(uint256 amount) public {
+    function deposit(uint256 amount) public {
         _deposit(msg.sender, amount, block.timestamp);
     }
 
@@ -40,11 +40,11 @@ contract StakeLibMock {
         staking.deposit(token, account, amount, depositTm);
     }
 
-    function withdrawMaxStake() public returns (uint256) {
+    function withdrawMax() public returns (uint256) {
         return staking.withdrawMax(token, msg.sender);
     }
 
-    function withdrawStake(uint256 requested) public returns (uint256) {
+    function withdraw(uint256 requested) public returns (uint256) {
         return staking.withdraw(token, msg.sender, requested);
     }
 
@@ -56,19 +56,19 @@ contract StakeLibMock {
         staking.restake(msg.sender, requestedAmount);
     }
 
-    function unlockedStake(address account) public view returns (uint256) {
+    function unlocked(address account) public view returns (uint256) {
         return staking.unlocked(account);
     }
 
-    function lockedStake(address account) public view returns (uint256) {
+    function locked(address account) public view returns (uint256) {
         return staking.locked(account);
     }
 
-    function stakedBalanceOf(address account) public view returns (uint256) {
+    function balanceOf(address account) public view returns (uint256) {
         return staking.balanceOf(account);
     }
 
-    function depositsStakedFor(address account) public view returns (StakeLib.StakedDeposit[] memory) {
+    function depositsFor(address account) public view returns (StakeLib.StakedDeposit[] memory) {
         return staking.depositsFor(account);
     }
 }
