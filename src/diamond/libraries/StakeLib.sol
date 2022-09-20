@@ -13,7 +13,23 @@ library StakeLib {
     // same result can be achieved with: `uint256 MAX_INT = 2**256 - 1`
     // Pasted the literal here for cheaper deployment
     uint256 private constant MAX_INT = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
+
+    // Storage structs avoid using in calculations or aggregations
     struct StakedDeposit {
+        uint256 timestamp;
+        uint256 amount;
+    }
+
+    struct StakeStore {
+        // TODO: remove stake namespace
+        mapping(address => uint256) stakedBalances;
+        mapping(address => StakedDeposit[]) stakedDeposits;
+        uint256 stakeLockingPeriod;
+    }
+
+    // Memory structs for Aggregations and Calculations
+    // This are internal, should not be used outside
+    struct StakedDepositTemp {
         uint256 timestamp;
         uint256 amount;
     }
@@ -23,11 +39,20 @@ library StakeLib {
         uint256 remainingBalance;
         StakedDeposit[] remainingDeposits;
     }
-    struct StakeStore {
-        // TODO: remove stake namespace
-        mapping(address => uint256) stakedBalances;
-        mapping(address => StakedDeposit[]) stakedDeposits;
-        uint256 stakeLockingPeriod;
+
+    enum Command {
+        Add,
+        Update,
+        Delete
+    }
+    struct DepositsCommand {
+        Command command;
+        bytes32 key;
+        uint256 amount;
+        uint256 tm;
+    }
+    struct WithdrawingResultOptimized {
+        ;
     }
 
     event DepositedTokens(address account, uint256 amount);
@@ -146,6 +171,7 @@ library StakeLib {
         WithdrawingResult memory result
     ) internal {
         if (result.untiedAmount > 0) {
+            // TODO: this is too expensive
             // clear previous deposits
             delete store.stakedDeposits[account];
             for (uint256 i = 0; i < result.remainingDeposits.length; i++) {
