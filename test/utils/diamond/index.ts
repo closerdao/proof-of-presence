@@ -127,7 +127,7 @@ export const setDiamondUser = async (testContext: TestContext) => {
   return {
     test: await testHelpers(testContext),
     TLF: await TLH.setupHelpers(testContext),
-    POPH: await POPH.setupHelpers(testContext),
+    ...(await POPH.setupHelpers(testContext)),
     ...(await Members.setupHelpers(testContext)),
     ...(await Admin.setupHelpers(testContext)),
   };
@@ -135,6 +135,7 @@ export const setDiamondUser = async (testContext: TestContext) => {
 
 export const getterHelpers = async (testContext: TestContext) => {
   return {
+    ...(await POPH.getterHelpers(testContext)),
     ...(await Admin.getterHelpers(testContext)),
   };
 };
