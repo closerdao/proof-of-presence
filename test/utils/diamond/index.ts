@@ -1,12 +1,18 @@
 import {expect} from '../../chai-setup';
 import {parseEther} from 'ethers/lib/utils';
-import {ethers, network} from 'hardhat';
+import {ethers, network, deployments, getUnnamedAccounts} from 'hardhat';
+import {TDFToken, TDFDiamond} from '../../../typechain';
+
 import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
-import {soliditySha3} from 'web3-utils';
+import {setupUser, setupUsers} from '..';
 
 import {HelpersInput, DatesTestData} from './types';
 import * as TLH from './tokenlockFacet';
 import * as POPH from './proofOfPresenceFacet';
+import * as Members from './membershipFacet';
+import * as Admin from './adminFacet';
+
+export {ROLES} from './adminFacet';
 
 const BN = ethers.BigNumber;
 
@@ -46,24 +52,11 @@ const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
 
 export const diamondTest = async (input: HelpersInput) => {
   return {
-    getRoles: async () => {
-      const {diamond} = input;
-      const val = await diamond.getRoles();
-      const out: {[key: string]: string} = {};
-      console.log(val);
-      console.log('before val');
-      console.log(val[0], 'val[0][1]');
-      console.log('after val');
-      for (let i = 0; i < val.length; i++) {
-        console.log('<begin>LOOP');
-        out[val[i][0]] = 'boo'; //val[i][1];
-        console.log('<end>LOOP');
-      }
-      return out;
-    },
     test: await testHelpers(input),
     TLF: await TLH.setupHelpers(input),
     POPH: await POPH.setupHelpers(input),
+    ...(await Members.setupHelpers(input)),
+    ...(await Admin.setupHelpers(input)),
   };
 };
 
@@ -106,10 +99,60 @@ export const yearData = () => {
   };
 };
 
-export const roles = {
-  DEFAULT_ADMIN_ROLE: '0x0000000000000000000000000000000000000000000000000000000000000000',
-  MINTER_ROLE: soliditySha3('MINTER_ROLE'),
-  BOOKING_MANAGER_ROLE: soliditySha3('BOOKING_MANAGER_ROLE'),
-  STAKE_MANAGER_ROLE: soliditySha3('STAKE_MANAGER_ROLE'),
-  VAULT_MANAGER_ROLE: soliditySha3('VAULT_MANAGER_ROLE'),
+export const setupContext = deployments.createFixture(async (hre) => {
+  const {deployments, getNamedAccounts, ethers} = hre;
+  await deployments.fixture();
+
+  const accounts = await getNamedAccounts();
+  const users = await getUnnamedAccounts();
+  const {deployer, TDFTokenBeneficiary} = accounts;
+
+  const token: TDFToken = await ethers.getContract('TDFToken', deployer);
+  const contracts = {
+    TDFToken: token,
+    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', deployer),
+  };
+
+  const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);
+
+  const conf = {
+    ...contracts,
+    users: await setupUsers(users, contracts),
+    deployer: await setupUser(deployer, contracts),
+    TDFTokenBeneficiary: tokenBeneficiary,
+    accounts,
+  };
+  // fund users with TDF token
+  await Promise.all(
+    users.map((e) => {
+      return conf.TDFTokenBeneficiary.TDFToken.transfer(e, parseEther('10000'));
+    })
+  );
+  return conf;
+});
+type setupReturnType = Awaited<ReturnType<typeof setupContext>>;
+type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
+
+// TODO: rename setDiamondUser
+export const newDiamondTest = async ({user, TDFToken, TDFDiamond, deployer}: TestContext) => {
+  return await diamondTest({
+    user: user,
+    diamond: TDFDiamond,
+    tokenContract: TDFToken,
+    admin: deployer,
+  });
+};
+
+export const getterHelpers = async (testContext: TestContext) => {
+  const {user, TDFToken, TDFDiamond, deployer} = testContext;
+  const contextTransformation = {
+    ...testContext,
+    user: user,
+    diamond: TDFDiamond,
+    tokenContract: TDFToken,
+    admin: deployer,
+  };
+  return {
+    ...(await Admin.getterHelpers(contextTransformation)),
+  };
 };

@@ -7,7 +7,7 @@ import {TDFToken, TDFDiamond} from '../../typechain';
 import {setupUser, setupUsers} from '../utils';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays} from 'date-fns';
-import {diamondTest, buildDates, collectDates, yearData, timeTravelTo, roles} from '../utils/diamond';
+import {diamondTest, buildDates, collectDates, yearData, timeTravelTo, ROLES} from '../utils/diamond';
 
 const setup = deployments.createFixture(async (hre) => {
   const {deployments, getNamedAccounts, ethers} = hre;
@@ -160,7 +160,7 @@ describe('ProofOfPresenceFacet', () => {
     const {users, TDFToken, deployer, TDFDiamond} = await setup();
 
     const user = users[0];
-    const {getRoles, POPH} = await diamondTest({
+    const {POPH} = await diamondTest({
       tokenContract: TDFToken,
       diamond: TDFDiamond,
       user: user,
@@ -178,7 +178,7 @@ describe('ProofOfPresenceFacet', () => {
     yearAttrs = yearData()['2028'];
 
     // Give role to user 1 for booking management
-    await deployer.TDFDiamond.grantRole(roles.BOOKING_MANAGER_ROLE as string, users[1].address);
+    await deployer.TDFDiamond.grantRole(ROLES.BOOKING_MANAGER_ROLE as string, users[1].address);
 
     await send.addYear.reverted.onlyOwner({...yearAttrs, enabled: false});
     await bookingManager.POPH.send.addYear.success({...yearAttrs, enabled: false});
@@ -218,7 +218,7 @@ describe('ProofOfPresenceFacet', () => {
     });
     const {send} = POPH;
 
-    await deployer.TDFDiamond.grantRole(roles.DEFAULT_ADMIN_ROLE as string, users[1].address);
+    await deployer.TDFDiamond.grantRole(ROLES.DEFAULT_ADMIN_ROLE as string, users[1].address);
 
     await send.pause.reverted.onlyOwner();
     await bookingManager.POPH.send.pause.success();
@@ -236,7 +236,7 @@ describe('ProofOfPresenceFacet', () => {
       user: user,
       admin: deployer,
     });
-    await deployer.TDFDiamond.grantRole(roles.DEFAULT_ADMIN_ROLE as string, users[1].address);
+    await deployer.TDFDiamond.grantRole(ROLES.DEFAULT_ADMIN_ROLE as string, users[1].address);
     const admin = await diamondTest({
       tokenContract: TDFToken,
       diamond: TDFDiamond,

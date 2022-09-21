@@ -6,10 +6,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/IAccessControl.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AccessControlLib.sol";
 import "../libraries/StakeLib.sol";
+import "../libraries/MembershipLib.sol";
 
 struct StakedDeposit {
     uint256 timestamp;
@@ -29,6 +31,8 @@ struct AppStorage {
     BookingMapLib.YearsStore _accommodationYears;
     // Stake
     StakeLib.StakeStore staking;
+    // Members
+    MembershipLib.Store members;
 }
 
 library LibAppStorage {
@@ -41,6 +45,7 @@ library LibAppStorage {
 
 contract Modifiers {
     using AccessControlLib for AccessControlLib.RoleStore;
+    using MembershipLib for MembershipLib.Store;
 
     AppStorage internal s;
 
@@ -93,6 +98,15 @@ contract Modifiers {
     modifier whenPaused() {
         _requirePaused();
         _;
+    }
+
+    modifier onlyMember(address account) {
+        _requireMember(account);
+        _;
+    }
+
+    function _requireMember(address account) internal view {
+        require(!s.members.contains(account), "Membership: only members allowed");
     }
 
     /**
