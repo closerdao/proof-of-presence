@@ -6,7 +6,7 @@ import {TDFToken, TDFDiamond} from '../../../typechain';
 import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
 import {setupUser, setupUsers} from '..';
 
-import {HelpersInput, DatesTestData} from './types';
+import {DatesTestData} from './types';
 import * as TLH from './tokenlockFacet';
 import * as POPH from './proofOfPresenceFacet';
 import * as Members from './membershipFacet';
@@ -16,19 +16,19 @@ export {ROLES} from './adminFacet';
 
 const BN = ethers.BigNumber;
 
-const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
+const testHelpers = async ({TDFToken, TDFDiamond, user}: TestContext) => {
   return {
     balances: async (TK: string, tkU: string, u: string) => {
-      expect(await tokenContract.balanceOf(diamond.address)).to.eq(parseEther(TK));
-      expect(await diamond.stakedBalanceOf(user.address)).to.eq(parseEther(tkU));
-      expect(await tokenContract.balanceOf(user.address)).to.eq(parseEther(u));
+      expect(await TDFToken.balanceOf(TDFDiamond.address)).to.eq(parseEther(TK));
+      expect(await TDFDiamond.stakedBalanceOf(user.address)).to.eq(parseEther(tkU));
+      expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther(u));
     },
     stake: async (locked: string, unlocked: string) => {
-      expect(await diamond.lockedStake(user.address)).to.eq(parseEther(locked));
-      expect(await diamond.unlockedStake(user.address)).to.eq(parseEther(unlocked));
+      expect(await TDFDiamond.lockedStake(user.address)).to.eq(parseEther(locked));
+      expect(await TDFDiamond.unlockedStake(user.address)).to.eq(parseEther(unlocked));
     },
     deposits: async (examples: [string, number][]) => {
-      const deposits = await diamond.depositsStakedFor(user.address);
+      const deposits = await TDFDiamond.depositsStakedFor(user.address);
       for (let i = 0; i < deposits.length; i++) {
         expect(deposits[i].amount).to.eq(parseEther(examples[i][0]));
         expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
@@ -37,7 +37,7 @@ const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
     bookings: async (dates: DatesTestData, price: string) => {
       await Promise.all(
         dates.data.map(async (e) => {
-          const [success, booking] = await diamond.getAccommodationBooking(user.address, e.year, e.day);
+          const [success, booking] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
           return Promise.all([
             expect(booking.price).to.eq(parseEther(price)),
             expect(booking.year).to.eq(e.year),
@@ -47,16 +47,6 @@ const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
         })
       );
     },
-  };
-};
-
-export const diamondTest = async (input: HelpersInput) => {
-  return {
-    test: await testHelpers(input),
-    TLF: await TLH.setupHelpers(input),
-    POPH: await POPH.setupHelpers(input),
-    ...(await Members.setupHelpers(input)),
-    ...(await Admin.setupHelpers(input)),
   };
 };
 
@@ -131,27 +121,20 @@ export const setupContext = deployments.createFixture(async (hre) => {
   return conf;
 });
 type setupReturnType = Awaited<ReturnType<typeof setupContext>>;
-type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
+export type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
 
-export const setDiamondUser = async ({user, TDFToken, TDFDiamond, deployer}: TestContext) => {
-  return await diamondTest({
-    user: user,
-    diamond: TDFDiamond,
-    tokenContract: TDFToken,
-    admin: deployer,
-  });
+export const setDiamondUser = async (testContext: TestContext) => {
+  return {
+    test: await testHelpers(testContext),
+    TLF: await TLH.setupHelpers(testContext),
+    POPH: await POPH.setupHelpers(testContext),
+    ...(await Members.setupHelpers(testContext)),
+    ...(await Admin.setupHelpers(testContext)),
+  };
 };
 
 export const getterHelpers = async (testContext: TestContext) => {
-  const {user, TDFToken, TDFDiamond, deployer} = testContext;
-  const contextTransformation = {
-    ...testContext,
-    user: user,
-    diamond: TDFDiamond,
-    tokenContract: TDFToken,
-    admin: deployer,
-  };
   return {
-    ...(await Admin.getterHelpers(contextTransformation)),
+    ...(await Admin.getterHelpers(testContext)),
   };
 };

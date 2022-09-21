@@ -1,10 +1,11 @@
 import {expect} from '../../chai-setup';
 import {BookingMapLib} from '../../../typechain/ProofOfPresenceFacet';
+import type {TestContext} from './index';
 
-import {HelpersInput, DatesTestData, DateMetadata, DateInputs} from './types';
+import {DatesTestData, DateMetadata, DateInputs} from './types';
 import * as _ from 'lodash';
 
-export const setupHelpers = async ({diamond, user}: HelpersInput) => {
+export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
     call: {
       getBookings: async (dates: DatesTestData) => {
@@ -19,7 +20,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
         };
         await Promise.all(
           _.map(years, async (yList) => {
-            const bookings = await diamond.getAccommodationBookings(user.address, yList[0].year);
+            const bookings = await TDFDiamond.getAccommodationBookings(user.address, yList[0].year);
             return Promise.all([
               expect(yList.length, 'getAccommodationBookings have length').to.eq(bookings.length),
               listTest(bookings, yList),
@@ -33,7 +34,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
       book: {
         success: async (dates: DateInputs) => {
           await expect(user.TDFDiamond.bookAccommodation(dates), `send.book.success: ${dates}`).to.emit(
-            diamond,
+            TDFDiamond,
             'NewBookings'
           );
         },
@@ -49,7 +50,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
       cancel: {
         success: async (dates: DateInputs) => {
           await expect(user.TDFDiamond.cancelAccommodation(dates), `send.cancel.success ${dates}`).to.emit(
-            diamond,
+            TDFDiamond,
             'CanceledBookings'
           );
         },
@@ -79,7 +80,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
           await expect(
             user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
             `send.addYear.success ${year}`
-          ).to.emit(diamond, 'YearAdded');
+          ).to.emit(TDFDiamond, 'YearAdded');
         },
         reverted: {
           // TODO: Access Mananger cannot
@@ -100,7 +101,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
       removeYear: {
         success: async (year: number) => {
           await expect(user.TDFDiamond.removeAccommodationYear(year), `send.removeYear.success: ${year}`).to.emit(
-            diamond,
+            TDFDiamond,
             'YearRemoved'
           );
         },
@@ -124,7 +125,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
           await expect(
             user.TDFDiamond.enableAccommodationYear(year, enable),
             `send.enableYear.success: y ${year}, e ${enable}`
-          ).to.emit(diamond, 'YearUpdated');
+          ).to.emit(TDFDiamond, 'YearUpdated');
         },
         reverted: {
           onlyOwner: async (year: number, enable: boolean) => {
@@ -146,7 +147,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
           await expect(
             user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
             `send.enableYear.updateYear.success: y ${year}`
-          ).to.emit(diamond, 'YearUpdated');
+          ).to.emit(TDFDiamond, 'YearUpdated');
         },
         reverted: {
           onlyOwner: async (year: BookingMapLib.YearStruct) => {
@@ -163,10 +164,11 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
           },
         },
       },
+      // TODO: pause and unpause has been moved to Admin Facet, remove from here
       pause: {
         success: async () => {
-          await expect(user.TDFDiamond.pause(), `send.pause.success`).to.emit(diamond, 'Paused');
-          expect(await diamond.paused()).to.be.true;
+          await expect(user.TDFDiamond.pause(), `send.pause.success`).to.emit(TDFDiamond, 'Paused');
+          expect(await TDFDiamond.paused()).to.be.true;
         },
         reverted: {
           onlyOwner: async () => {
@@ -176,8 +178,8 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
       },
       unpause: {
         success: async () => {
-          await expect(user.TDFDiamond.unpause(), `send.unpause.success`).to.emit(diamond, 'Unpaused');
-          expect(await diamond.paused()).to.be.false;
+          await expect(user.TDFDiamond.unpause(), `send.unpause.success`).to.emit(TDFDiamond, 'Unpaused');
+          expect(await TDFDiamond.paused()).to.be.false;
         },
         reverted: {
           onlyOwner: async () => {

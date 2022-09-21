@@ -1,28 +1,28 @@
 import {expect} from '../../chai-setup';
 import {parseEther} from 'ethers/lib/utils';
-import {HelpersInput} from './types';
+import type {TestContext} from './index';
 
-export const setupHelpers = async ({diamond, user, admin}: HelpersInput) => {
+export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
     deposit: async (amount: string) => {
       await expect(user.TDFDiamond.depositStake(parseEther(amount)), `deposit ${amount}`)
-        .to.emit(diamond, 'DepositedTokens')
+        .to.emit(TDFDiamond, 'DepositedTokens')
         .withArgs(user.address, parseEther(amount));
     },
     withdrawMax: {
       success: async (amount: string) => {
         await expect(user.TDFDiamond.withdrawMaxStake(), `withdrawMax.success ${amount}`)
-          .to.emit(diamond, 'WithdrawnTokens')
+          .to.emit(TDFDiamond, 'WithdrawnTokens')
           .withArgs(user.address, parseEther(amount));
       },
       none: async () => {
-        await expect(user.TDFDiamond.withdrawMaxStake(), `withdrawMax.none`).to.not.emit(diamond, 'WithdrawnTokens');
+        await expect(user.TDFDiamond.withdrawMaxStake(), `withdrawMax.none`).to.not.emit(TDFDiamond, 'WithdrawnTokens');
       },
     },
     withdraw: {
       success: async (amount: string) => {
         await expect(user.TDFDiamond.withdrawStake(parseEther(amount)), `withdraw.success ${amount}`)
-          .to.emit(diamond, 'WithdrawnTokens')
+          .to.emit(TDFDiamond, 'WithdrawnTokens')
           .withArgs(user.address, parseEther(amount));
       },
       reverted: async (amount: string) => {

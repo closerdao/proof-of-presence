@@ -1,10 +1,10 @@
 import {expect} from '../../chai-setup';
 
-import {HelpersInput} from './types';
 import * as _ from 'lodash';
 
 import {soliditySha3} from 'web3-utils';
-import {BytesLike} from 'ethers';
+
+import type {TestContext} from './index';
 
 export const ROLES = {
   DEFAULT_ADMIN_ROLE: '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -19,12 +19,12 @@ export const ROLES = {
 
 type RoleKeys = keyof typeof ROLES;
 
-export const setupHelpers = async ({diamond, user}: HelpersInput) => {
+export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
     pause: {
       success: async () => {
         await expect(user.TDFDiamond.pause(), 'pause: should succeed')
-          .to.emit(diamond, 'Paused')
+          .to.emit(TDFDiamond, 'Paused')
           .withArgs(user.address);
       },
       reverted: {
@@ -41,7 +41,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
     unpause: {
       success: async () => {
         await expect(user.TDFDiamond.unpause(), 'unpause: should succeed')
-          .to.emit(diamond, 'Unpaused')
+          .to.emit(TDFDiamond, 'Unpaused')
           .withArgs(user.address);
       },
       reverted: {
@@ -58,7 +58,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
     setLockingTimePeriodDays: {
       success: async (days: number) => {
         await expect(user.TDFDiamond.setLockingTimePeriodDays(days), `setLockingTimePeriodDays: should succeed ${days}`)
-          .to.emit(diamond, 'LockingTimePeriodChanged')
+          .to.emit(TDFDiamond, 'LockingTimePeriodChanged')
           .withArgs(days, user.address);
       },
       reverted: {
@@ -83,7 +83,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
           user.TDFDiamond.grantRole(ROLES[role], address),
           `grantRole.success: role(${role}) address(${address})`
         )
-          .to.emit(diamond, 'RoleGranted')
+          .to.emit(TDFDiamond, 'RoleGranted')
           .withArgs(ROLES[role], address, user.address);
       },
       reverted: {
@@ -101,7 +101,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
           user.TDFDiamond.revokeRole(ROLES[role], address),
           `revokeRole.success: role(${role}) address(${address})`
         )
-          .to.emit(diamond, 'RoleRevoked')
+          .to.emit(TDFDiamond, 'RoleRevoked')
           .withArgs(ROLES[role], address, user.address);
       },
       reverted: {
@@ -119,7 +119,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
           user.TDFDiamond.renounceRole(ROLES[role], address),
           `renounceRole.success: role(${role}) address(${address})`
         )
-          .to.emit(diamond, 'RoleRevoked')
+          .to.emit(TDFDiamond, 'RoleRevoked')
           .withArgs(ROLES[role], address, user.address);
       },
       reverted: {
@@ -136,7 +136,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
         await expect(
           user.TDFDiamond.setRoleAdmin(ROLES[role], ROLES[adminRole]),
           `setRoleAdmin.success: role(${role}) adminRole(${adminRole})`
-        ).to.emit(diamond, 'RoleAdminChanged');
+        ).to.emit(TDFDiamond, 'RoleAdminChanged');
       },
       reverted: {
         onlyRole: async (role: RoleKeys, adminRole: RoleKeys) => {
@@ -150,10 +150,10 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
   };
 };
 
-export const getterHelpers = async ({diamond}: HelpersInput) => {
+export const getterHelpers = async ({TDFDiamond}: TestContext) => {
   return {
     hasRole: (role: RoleKeys, address: string) => {
-      const value = async () => await diamond.hasRole(ROLES[role], address);
+      const value = async () => await TDFDiamond.hasRole(ROLES[role], address);
       return {
         toEq: async (expected: boolean) => {
           expect(await value(), `hasRole.toEq role(${role}), address(${address}) expected => ${expected}`).to.eq(
@@ -163,12 +163,12 @@ export const getterHelpers = async ({diamond}: HelpersInput) => {
       };
     },
     getRoleAdmin: async (role: RoleKeys) => {
-      return await diamond.getRoleAdmin(ROLES[role]);
+      return await TDFDiamond.getRoleAdmin(ROLES[role]);
     },
   };
 };
 
-export const roleTesters = async (context: HelpersInput) => {
+export const roleTesters = async (context: TestContext) => {
   const helpers = await setupHelpers(context);
 
   return {

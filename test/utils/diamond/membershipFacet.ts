@@ -1,13 +1,16 @@
 import {expect} from '../../chai-setup';
 
-import {HelpersInput} from './types';
 import * as _ from 'lodash';
+import type {TestContext} from './index';
 
-export const setupHelpers = async ({diamond, user}: HelpersInput) => {
+export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
     addMember: {
       success: async (address: string) => {
-        await expect(user.TDFDiamond.addMember(address), 'addMember: should succeed').to.emit(diamond, 'MemberAdded');
+        await expect(user.TDFDiamond.addMember(address), 'addMember: should succeed').to.emit(
+          TDFDiamond,
+          'MemberAdded'
+        );
       },
       reverted: {
         onlyRole: async (address: string) => {
@@ -26,7 +29,7 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
     removeMember: {
       success: async (address: string) => {
         await expect(user.TDFDiamond.removeMember(address), `removeMenber: should succeed ${address}`).to.emit(
-          diamond,
+          TDFDiamond,
           'MemberRemoved'
         );
       },
@@ -46,14 +49,14 @@ export const setupHelpers = async ({diamond, user}: HelpersInput) => {
       },
     },
     isMember: async (address: string, expected: boolean) => {
-      expect(await diamond.isMember(address), `isMember: ${address} to be ${expected}`).to.eq(expected);
+      expect(await TDFDiamond.isMember(address), `isMember: ${address} to be ${expected}`).to.eq(expected);
     },
     membersLength: async (expected: number) => {
-      expect(await diamond.membersLength(), `membersLength: to be ${expected}`).to.eq(expected);
+      expect(await TDFDiamond.membersLength(), `membersLength: to be ${expected}`).to.eq(expected);
     },
   };
 };
-export const roleTesters = async (context: HelpersInput) => {
+export const roleTesters = async (context: TestContext) => {
   const helpers = await setupHelpers(context);
 
   return {
