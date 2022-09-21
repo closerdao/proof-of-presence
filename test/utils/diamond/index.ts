@@ -16,7 +16,7 @@ export {ROLES} from './adminFacet';
 
 const BN = ethers.BigNumber;
 
-const testHelpers = async ({TDFToken, TDFDiamond, user}: TestContext) => {
+export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => {
   return {
     balances: async (TK: string, tkU: string, u: string) => {
       expect(await TDFToken.balanceOf(TDFDiamond.address)).to.eq(parseEther(TK));
@@ -125,8 +125,7 @@ export type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
 
 export const setDiamondUser = async (testContext: TestContext) => {
   return {
-    test: await testHelpers(testContext),
-    TLF: await TLH.setupHelpers(testContext),
+    ...(await TLH.setupHelpers(testContext)),
     ...(await POPH.setupHelpers(testContext)),
     ...(await Members.setupHelpers(testContext)),
     ...(await Admin.setupHelpers(testContext)),
@@ -137,5 +136,23 @@ export const getterHelpers = async (testContext: TestContext) => {
   return {
     ...(await POPH.getterHelpers(testContext)),
     ...(await Admin.getterHelpers(testContext)),
+  };
+};
+
+export const roleTesters = async (testContext: TestContext) => {
+  const booking = await POPH.roleTesters(testContext);
+  const admin = await Admin.roleTesters(testContext);
+  const members = await Members.roleTesters(testContext);
+  return {
+    can: {
+      ...members.can,
+      ...booking.can,
+      ...admin.can,
+    },
+    cannot: {
+      ...members.cannot,
+      ...booking.cannot,
+      ...admin.cannot,
+    },
   };
 };

@@ -10,6 +10,7 @@ import {
   setupContext,
   setDiamondUser,
   getterHelpers,
+  userTesters,
 } from '../utils/diamond';
 import * as _ from 'lodash';
 
@@ -25,7 +26,7 @@ describe('ProofOfPresenceFacet', () => {
       ...context,
     });
 
-    const {test} = user;
+    const test = await userTesters({user: users[0], ...context});
 
     await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
@@ -42,7 +43,7 @@ describe('ProofOfPresenceFacet', () => {
       ...context,
     });
 
-    const test = user.test;
+    const test = await userTesters({user: users[0], ...context});
 
     await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
@@ -91,7 +92,7 @@ describe('ProofOfPresenceFacet', () => {
     });
 
     const call = await getterHelpers({user: users[0], ...context});
-    const {test} = user;
+    const test = await userTesters({user: users[0], ...context});
 
     await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
