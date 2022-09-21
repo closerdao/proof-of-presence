@@ -4,11 +4,13 @@ import type {TestContext} from './index';
 
 export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
-    depositStake: async (amount: string) => {
-      await expect(user.TDFDiamond.depositStake(parseEther(amount)), `deposit ${amount}`)
-        .to.emit(TDFDiamond, 'DepositedTokens')
-        .withArgs(user.address, parseEther(amount));
-    },
+    depositStake: (amount: string) => ({
+      success: async () => {
+        await expect(user.TDFDiamond.depositStake(parseEther(amount)), `deposit ${amount}`)
+          .to.emit(TDFDiamond, 'DepositedTokens')
+          .withArgs(user.address, parseEther(amount));
+      },
+    }),
     withdrawMaxStake: {
       success: async (amount: string) => {
         await expect(user.TDFDiamond.withdrawMaxStake(), `withdrawMax.success ${amount}`)

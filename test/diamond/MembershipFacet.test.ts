@@ -19,15 +19,15 @@ describe('MembershipFacet', () => {
       ...context,
     });
 
-    await user.addMember.reverted.onlyRole(users[10].address);
-    await user.removeMember.reverted.onlyRole(users[10].address);
+    await user.addMember(users[10].address).reverted.onlyRole();
+    await user.removeMember(users[10].address).reverted.onlyRole();
     await admin.grantRole.success('MEMBERSHIP_MANAGER_ROLE', usertmp.address);
     const prevLength = await context.TDFDiamond.membersLength();
-    await user.addMember.success(users[10].address);
+    await user.addMember(users[10].address).success();
     expect(await context.TDFDiamond.isMember(users[10].address)).to.eq(true);
     expect(await context.TDFDiamond.membersLength()).to.eq(prevLength.add(BN.from(1)));
 
-    await user.removeMember.success(users[10].address);
+    await user.removeMember(users[10].address).success();
     expect(await context.TDFDiamond.membersLength()).to.eq(prevLength);
     expect(await context.TDFDiamond.isMember(users[10].address)).to.eq(false);
   });

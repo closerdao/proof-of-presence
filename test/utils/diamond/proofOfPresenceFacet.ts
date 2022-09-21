@@ -1,9 +1,10 @@
+import * as _ from 'lodash';
 import {expect} from '../../chai-setup';
 import {BookingMapLib} from '../../../typechain/ProofOfPresenceFacet';
 import type {TestContext} from './index';
 
 import {DatesTestData, DateMetadata, DateInputs} from './types';
-import * as _ from 'lodash';
+import {wrapOnlyRole, wrapSuccess} from './helpers';
 
 export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
@@ -191,15 +192,4 @@ export const roleTesters = async (context: TestContext) => {
       updateAccommodationYear: wrapOnlyRole(helpers.updateAccommodationYear),
     },
   };
-};
-
-const wrapSuccess = <T extends Array<any>, R extends Promise<void>, U extends {success: () => R}>(
-  fn: (...args: T) => U
-) => {
-  return (...args: T): R => fn(...args).success();
-};
-const wrapOnlyRole = <T extends Array<any>, R extends Promise<void>, U extends {reverted: {onlyRole: () => R}}>(
-  fn: (...args: T) => U
-) => {
-  return (...args: T): R => fn(...args).reverted.onlyRole();
 };
