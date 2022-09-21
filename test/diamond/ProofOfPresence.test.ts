@@ -11,6 +11,7 @@ import {
   setDiamondUser,
   getterHelpers,
   userTesters,
+  roleTesters,
 } from '../utils/diamond';
 import * as _ from 'lodash';
 
@@ -31,7 +32,7 @@ describe('ProofOfPresenceFacet', () => {
     await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
-    await user.bookAccommodation.success(dates.inputs);
+    await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
   });
   it('book and cancel', async () => {
@@ -52,34 +53,34 @@ describe('ProofOfPresenceFacet', () => {
     // -------------------------------------------------------
     //  Book and cancel all the dates
     // -------------------------------------------------------
-    await user.bookAccommodation.success(dates.inputs);
+    await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
 
-    await user.cancelAccommodation.success(dates.inputs);
+    await user.cancelAccommodation(dates.inputs).success();
     // TODO:
     // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
     await test.balances('5', '5', '9995');
     // -------------------------------------------------------
     //  Book and cancel few dates
     // -------------------------------------------------------
-    await user.bookAccommodation.success(dates.inputs);
+    await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
 
     const cDates = collectDates(dates, [0, 4]);
-    await user.cancelAccommodation.success(cDates.inputs);
+    await user.cancelAccommodation(cDates.inputs).success();
     // TODO:
     // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(3);
     await test.balances('5', '5', '9995');
     const restcDates = collectDates(dates, [1, 2, 3]);
 
     await test.bookings(restcDates, '1');
-    await user.cancelAccommodation.reverted.noneExisting(cDates.inputs);
+    await user.cancelAccommodation(cDates.inputs).reverted.noneExisting();
 
     await timeTravelTo(dates.data[4].unix + 2 * 86400);
 
-    await user.cancelAccommodation.reverted.inThepast(collectDates(dates, [1, 2, 3]).inputs);
+    await user.cancelAccommodation(collectDates(dates, [1, 2, 3]).inputs).reverted.inThepast();
   });
 
   it('getters', async () => {
@@ -101,7 +102,7 @@ describe('ProofOfPresenceFacet', () => {
     // -------------------------------------------------------
     //  Book and cancel all the dates
     // -------------------------------------------------------
-    await user.bookAccommodation.success(dates.inputs);
+    await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
     await call.getAccommodationBookings(users[0], 0).exactMatch(dates);
@@ -144,28 +145,30 @@ describe('ProofOfPresenceFacet', () => {
     // Give role to user 1 for booking management
     await deployer.TDFDiamond.grantRole(ROLES.BOOKING_MANAGER_ROLE as string, users[1].address);
 
-    await user.addAccommodationYear.reverted.onlyRole({...yearAttrs, enabled: false});
-    await bookingManager.addAccommodationYear.success({...yearAttrs, enabled: false});
+    await user.addAccommodationYear({...yearAttrs, enabled: false}).reverted.onlyRole();
+    await bookingManager.addAccommodationYear({...yearAttrs, enabled: false}).success();
     yearAttrs = yearData()['2024'];
-    await bookingManager.addAccommodationYear.reverted.alreadyExists({...yearAttrs, enabled: false});
+    await bookingManager.addAccommodationYear({...yearAttrs, enabled: false}).reverted.alreadyExists();
     let [stored] = await TDFDiamond.getAccommodationYear(2024);
     expect(stored).to.be.true;
-    await user.removeAccommodationYear.reverted.onlyRole(2024);
+    await user.removeAccommodationYear(2024).reverted.onlyRole();
     [stored] = await TDFDiamond.getAccommodationYear(2024);
     expect(stored).to.be.true;
-    await bookingManager.removeAccommodationYear.reverted.doesNotExists(3000);
-    await bookingManager.removeAccommodationYear.success(2023);
+    await bookingManager.removeAccommodationYear(3000).reverted.doesNotExists();
+    await bookingManager.removeAccommodationYear(2023).success();
 
-    await user.updateAccommodationYear.reverted.onlyRole({...yearAttrs, enabled: false});
-    await bookingManager.updateAccommodationYear.reverted.doesNotExists({
-      ...yearAttrs,
-      number: 3002,
-      enabled: false,
-    });
-    await bookingManager.updateAccommodationYear.success({...yearAttrs, enabled: false});
-    await user.enableAccommodationYear.reverted.onlyRole(2025, false);
-    await bookingManager.enableAccommodationYear.reverted.doesNotExists(3002, true);
-    await bookingManager.enableAccommodationYear.success(2027, false);
+    await user.updateAccommodationYear({...yearAttrs, enabled: false}).reverted.onlyRole();
+    await bookingManager
+      .updateAccommodationYear({
+        ...yearAttrs,
+        number: 3002,
+        enabled: false,
+      })
+      .reverted.doesNotExists();
+    await bookingManager.updateAccommodationYear({...yearAttrs, enabled: false}).success();
+    await user.enableAccommodationYear(2025, false).reverted.onlyRole();
+    await bookingManager.enableAccommodationYear(3002, true).reverted.doesNotExists();
+    await bookingManager.enableAccommodationYear(2027, false).success();
   });
 
   it('DEFAULT_ADMIN_ROLE', async () => {
@@ -214,15 +217,28 @@ describe('ProofOfPresenceFacet', () => {
     //  Book and cancel enabled with  Unpaused
     // -------------------------------------------------------
     expect(await TDFDiamond.paused()).to.be.false;
-    await user.bookAccommodation.success(dates.inputs);
-    await user.cancelAccommodation.success(dates.inputs);
+    await user.bookAccommodation(dates.inputs).success();
+    await user.cancelAccommodation(dates.inputs).success();
     // -------------------------------------------------------
     //  Book and cancel disabled with  Paused
     // -------------------------------------------------------
     await admin.pause.success();
     expect(await TDFDiamond.paused()).to.be.true;
 
-    await user.bookAccommodation.reverted.paused(dates.inputs);
-    await user.cancelAccommodation.reverted.paused(dates.inputs);
+    await user.bookAccommodation(dates.inputs).reverted.paused();
+    await user.cancelAccommodation(dates.inputs).reverted.paused();
+  });
+
+  it('role testing example', async () => {
+    const context = await setup();
+    const {users, TDFDiamond, deployer} = context;
+
+    const user = await roleTesters({
+      user: users[0],
+      ...context,
+    });
+    const yearAttrs = yearData()['2028'];
+    await user.cannot.addAccommodationYear({...yearAttrs, enabled: false});
+    // await user.can.addAccommodationYear({...yearAttrs, enabled: false});
   });
 });

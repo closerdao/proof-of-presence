@@ -7,139 +7,138 @@ import * as _ from 'lodash';
 
 export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
-    bookAccommodation: {
-      success: async (dates: DateInputs) => {
+    bookAccommodation: (dates: DateInputs) => ({
+      success: async () => {
         await expect(user.TDFDiamond.bookAccommodation(dates), `send.book.success: ${dates}`).to.emit(
           TDFDiamond,
           'NewBookings'
         );
       },
       reverted: {
-        paused: async (dates: DateInputs) => {
+        paused: async () => {
           await expect(
             user.TDFDiamond.bookAccommodation(dates),
             `send.book.reverted.paused: ${dates}`
           ).to.be.revertedWith('Pausable: paused');
         },
       },
-    },
-    cancelAccommodation: {
-      success: async (dates: DateInputs) => {
+    }),
+    cancelAccommodation: (dates: DateInputs) => ({
+      success: async () => {
         await expect(user.TDFDiamond.cancelAccommodation(dates), `send.cancel.success ${dates}`).to.emit(
           TDFDiamond,
           'CanceledBookings'
         );
       },
       reverted: {
-        noneExisting: async (dates: DateInputs) => {
+        noneExisting: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodation(dates),
             `send.cancel.reverted.noneExisting ${dates}`
           ).to.be.revertedWith('Booking does not exists');
         },
-        inThepast: async (dates: DateInputs) => {
+        inThepast: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodation(dates),
             `send.cancel.reverted.inThepast ${dates}`
           ).to.be.revertedWith('Can not cancel past booking');
         },
-        paused: async (dates: DateInputs) => {
+        paused: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodation(dates),
             `send.cancel.reverted.paused ${dates}`
           ).to.be.revertedWith('Pausable: paused');
         },
       },
-    },
-    addAccommodationYear: {
-      success: async (year: BookingMapLib.YearStruct) => {
+    }),
+    addAccommodationYear: (year: BookingMapLib.YearStruct) => ({
+      success: async () => {
         await expect(
           user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
           `send.addYear.success ${year}`
         ).to.emit(TDFDiamond, 'YearAdded');
       },
       reverted: {
-        // TODO: Access Mananger cannot
-        onlyRole: async (year: BookingMapLib.YearStruct) => {
+        onlyRole: async () => {
           await expect(
             user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
             `send.addYear.reverted.onlyOwner ${year}`
           ).to.be.revertedWith('AccessControl:');
         },
-        alreadyExists: async (year: BookingMapLib.YearStruct) => {
+        alreadyExists: async () => {
           await expect(
             user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
             `send.addYear.reverted.alreadyExists ${year}`
           ).to.be.revertedWith('Unable to add year');
         },
       },
-    },
-    removeAccommodationYear: {
-      success: async (year: number) => {
+    }),
+    removeAccommodationYear: (year: number) => ({
+      success: async () => {
         await expect(user.TDFDiamond.removeAccommodationYear(year), `send.removeYear.success: ${year}`).to.emit(
           TDFDiamond,
           'YearRemoved'
         );
       },
       reverted: {
-        onlyRole: async (year: number) => {
+        onlyRole: async () => {
           await expect(
             user.TDFDiamond.removeAccommodationYear(year),
             `send.removeYear.reverted.onlyOwner ${year}`
           ).to.be.revertedWith('AccessControl:');
         },
-        doesNotExists: async (year: number) => {
+        doesNotExists: async () => {
           await expect(
             user.TDFDiamond.removeAccommodationYear(year),
             `send.removeYear.reverted.doesNotExists ${year}`
           ).to.be.revertedWith('Unable to remove Year');
         },
       },
-    },
-    enableAccommodationYear: {
-      success: async (year: number, enable: boolean) => {
+    }),
+    enableAccommodationYear: (year: number, enable: boolean) => ({
+      success: async () => {
         await expect(
           user.TDFDiamond.enableAccommodationYear(year, enable),
           `send.enableYear.success: y ${year}, e ${enable}`
         ).to.emit(TDFDiamond, 'YearUpdated');
       },
       reverted: {
-        onlyRole: async (year: number, enable: boolean) => {
+        onlyRole: async () => {
           await expect(
             user.TDFDiamond.enableAccommodationYear(year, enable),
             `send.enableYear.reverted.onlyOwner: y ${year}, e ${enable}`
           ).to.be.revertedWith('AccessControl:');
         },
-        doesNotExists: async (year: number, enable: boolean) => {
+        doesNotExists: async () => {
           await expect(
             user.TDFDiamond.enableAccommodationYear(year, enable),
             `send.enableYear.reverted.doesNotExists: y ${year}, e ${enable}`
           ).to.be.revertedWith('Unable to update year');
         },
       },
-    },
-    updateAccommodationYear: {
-      success: async (year: BookingMapLib.YearStruct) => {
+    }),
+    updateAccommodationYear: (year: BookingMapLib.YearStruct) => ({
+      success: async () => {
         await expect(
           user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
           `send.enableYear.updateYear.success: y ${year}`
         ).to.emit(TDFDiamond, 'YearUpdated');
       },
       reverted: {
-        onlyRole: async (year: BookingMapLib.YearStruct) => {
+        onlyRole: async () => {
           await expect(
             user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
             `send.updateYear.reverted.onlyOwner: y ${year}`
           ).to.be.revertedWith('AccessControl:');
         },
-        doesNotExists: async (year: BookingMapLib.YearStruct) => {
+        doesNotExists: async () => {
           await expect(
             user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
             `send.updateYear.reverted.doesNotExists: y ${year}`
           ).to.be.revertedWith('Unable to update Year');
         },
       },
-    },
+    }),
   };
 };
 
@@ -180,16 +179,27 @@ export const roleTesters = async (context: TestContext) => {
 
   return {
     can: {
-      addAccommodationYear: helpers.addAccommodationYear.success,
-      removeAccommodationYear: helpers.removeAccommodationYear.success,
-      enableAccommodationYear: helpers.enableAccommodationYear.success,
-      updateAccommodationYear: helpers.updateAccommodationYear.success,
+      addAccommodationYear: wrapSuccess(helpers.addAccommodationYear),
+      removeAccommodationYear: wrapSuccess(helpers.removeAccommodationYear),
+      enableAccommodationYear: wrapSuccess(helpers.enableAccommodationYear),
+      updateAccommodationYear: wrapSuccess(helpers.updateAccommodationYear),
     },
     cannot: {
-      addAccommodationYear: helpers.addAccommodationYear.reverted.onlyRole,
-      removeAccommodationYear: helpers.removeAccommodationYear.reverted.onlyRole,
-      enableAccommodationYear: helpers.enableAccommodationYear.reverted.onlyRole,
-      updateAccommodationYear: helpers.updateAccommodationYear.reverted.onlyRole,
+      addAccommodationYear: wrapOnlyRole(helpers.addAccommodationYear),
+      removeAccommodationYear: wrapOnlyRole(helpers.removeAccommodationYear),
+      enableAccommodationYear: wrapOnlyRole(helpers.enableAccommodationYear),
+      updateAccommodationYear: wrapOnlyRole(helpers.updateAccommodationYear),
     },
   };
+};
+
+const wrapSuccess = <T extends Array<any>, R extends Promise<void>, U extends {success: () => R}>(
+  fn: (...args: T) => U
+) => {
+  return (...args: T): R => fn(...args).success();
+};
+const wrapOnlyRole = <T extends Array<any>, R extends Promise<void>, U extends {reverted: {onlyRole: () => R}}>(
+  fn: (...args: T) => U
+) => {
+  return (...args: T): R => fn(...args).reverted.onlyRole();
 };
