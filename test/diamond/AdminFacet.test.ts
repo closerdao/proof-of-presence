@@ -1,5 +1,5 @@
 import {expect} from '../chai-setup';
-import {newDiamondTest, setupContext, getterHelpers} from '../utils/diamond';
+import {setDiamondUser, setupContext, getterHelpers} from '../utils/diamond';
 
 describe('AdminFacet', () => {
   it('Assigning roles', async () => {
@@ -7,11 +7,11 @@ describe('AdminFacet', () => {
     const usertmp = context.users[1];
 
     const diamond = await getterHelpers({user: usertmp, ...context});
-    const user = await newDiamondTest({
+    const user = await setDiamondUser({
       user: usertmp,
       ...context,
     });
-    const admin = await newDiamondTest({
+    const admin = await setDiamondUser({
       user: context.deployer,
       ...context,
     });

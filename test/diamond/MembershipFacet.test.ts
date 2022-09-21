@@ -1,5 +1,5 @@
 import {expect} from '../chai-setup';
-import {newDiamondTest, setupContext} from '../utils/diamond';
+import {setDiamondUser, setupContext} from '../utils/diamond';
 import {ethers} from 'hardhat';
 
 const BN = ethers.BigNumber;
@@ -10,11 +10,11 @@ describe('MembershipFacet', () => {
     const users = context.users;
     const usertmp = context.users[1];
 
-    const user = await newDiamondTest({
+    const user = await setDiamondUser({
       user: usertmp,
       ...context,
     });
-    const admin = await newDiamondTest({
+    const admin = await setDiamondUser({
       user: context.deployer,
       ...context,
     });

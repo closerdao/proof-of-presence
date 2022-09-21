@@ -1,57 +1,20 @@
 import {expect} from '../chai-setup';
-import {deployments, getUnnamedAccounts} from 'hardhat';
-import * as _ from 'lodash';
-
-import {TDFToken, TDFDiamond} from '../../typechain';
-
-import {setupUser, setupUsers} from '../utils';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays} from 'date-fns';
-import {diamondTest, buildDates, collectDates, yearData, timeTravelTo, ROLES} from '../utils/diamond';
+import {buildDates, collectDates, yearData, timeTravelTo, ROLES, setupContext, setDiamondUser} from '../utils/diamond';
+import * as _ from 'lodash';
 
-const setup = deployments.createFixture(async (hre) => {
-  const {deployments, getNamedAccounts, ethers} = hre;
-
-  await deployments.fixture();
-
-  const accounts = await getNamedAccounts();
-  const users = await getUnnamedAccounts();
-  const {deployer, TDFTokenBeneficiary} = accounts;
-
-  const token = <TDFToken>await ethers.getContract('TDFToken', deployer);
-  const contracts = {
-    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', deployer),
-    TDFToken: token,
-  };
-
-  const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);
-
-  const conf = {
-    ...contracts,
-    users: await setupUsers(users, contracts),
-    deployer: await setupUser(deployer, contracts),
-    TDFTokenBeneficiary: tokenBeneficiary,
-    accounts,
-  };
-
-  await Promise.all(
-    [users[0], users[1]].map((e) => {
-      return conf.TDFTokenBeneficiary.TDFToken.transfer(e, parseEther('10000'));
-    })
-  );
-  return conf;
-});
+const setup = setupContext;
 
 describe('ProofOfPresenceFacet', () => {
   it('book', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond} = context;
 
     const user = users[0];
-    const {test, POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
+    const {test, POPH} = await setDiamondUser({
       user: user,
-      admin: deployer,
+      ...context,
     });
 
     const {send} = POPH;
@@ -63,14 +26,13 @@ describe('ProofOfPresenceFacet', () => {
     await test.balances('5', '5', '9995');
   });
   it('book and cancel', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
-    const user = users[0];
+    const context = await setup();
+    const {users, TDFDiamond} = context;
 
-    const {test, POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
+    const user = users[0];
+    const {test, POPH} = await setDiamondUser({
       user: user,
-      admin: deployer,
+      ...context,
     });
 
     const {send} = POPH;
@@ -113,14 +75,13 @@ describe('ProofOfPresenceFacet', () => {
   });
 
   it('getters', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
-    const user = users[0];
+    const context = await setup();
+    const {users, TDFDiamond} = context;
 
-    const {test, POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
+    const user = users[0];
+    const {test, POPH} = await setDiamondUser({
       user: user,
-      admin: deployer,
+      ...context,
     });
 
     const {send, call} = POPH;
@@ -157,22 +118,19 @@ describe('ProofOfPresenceFacet', () => {
   });
 
   it('BOOKING_MANAGER_ROLE', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond, deployer} = context;
 
     const user = users[0];
-    const {POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
+    const {POPH} = await setDiamondUser({
       user: user,
-      admin: deployer,
-    });
-    const bookingManager = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
-      user: users[1],
-      admin: deployer,
+      ...context,
     });
 
+    const bookingManager = await setDiamondUser({
+      user: users[1],
+      ...context,
+    });
     const {send} = POPH;
     let yearAttrs;
     yearAttrs = yearData()['2028'];
@@ -201,21 +159,20 @@ describe('ProofOfPresenceFacet', () => {
   });
 
   it('DEFAULT_ADMIN_ROLE', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond, deployer} = context;
 
     const user = users[0];
-    const {POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
+    const {POPH} = await setDiamondUser({
       user: user,
-      admin: deployer,
+      ...context,
     });
-    const bookingManager = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
+
+    const bookingManager = await setDiamondUser({
       user: users[1],
-      admin: deployer,
+      ...context,
     });
+
     const {send} = POPH;
 
     await deployer.TDFDiamond.grantRole(ROLES.DEFAULT_ADMIN_ROLE as string, users[1].address);
@@ -227,21 +184,19 @@ describe('ProofOfPresenceFacet', () => {
   });
 
   it('pausable', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond, deployer} = context;
 
     const user = users[0];
-    const {POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
+    const {POPH} = await setDiamondUser({
       user: user,
-      admin: deployer,
+      ...context,
     });
+
     await deployer.TDFDiamond.grantRole(ROLES.DEFAULT_ADMIN_ROLE as string, users[1].address);
-    const admin = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
+    const admin = await setDiamondUser({
       user: users[1],
-      admin: deployer,
+      ...context,
     });
 
     const {send} = POPH;

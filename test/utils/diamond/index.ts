@@ -133,8 +133,7 @@ export const setupContext = deployments.createFixture(async (hre) => {
 type setupReturnType = Awaited<ReturnType<typeof setupContext>>;
 type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
 
-// TODO: rename setDiamondUser
-export const newDiamondTest = async ({user, TDFToken, TDFDiamond, deployer}: TestContext) => {
+export const setDiamondUser = async ({user, TDFToken, TDFDiamond, deployer}: TestContext) => {
   return await diamondTest({
     user: user,
     diamond: TDFDiamond,

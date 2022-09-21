@@ -1,42 +1,9 @@
 import {expect} from '../chai-setup';
-import {deployments, getUnnamedAccounts, network} from 'hardhat';
-import {TDFToken, TDFDiamond} from '../../typechain';
-import {setupUser, setupUsers} from '../utils';
+import {network} from 'hardhat';
 import {parseEther} from 'ethers/lib/utils';
-import {addDays, getUnixTime} from 'date-fns';
-import {diamondTest} from '../utils/diamond';
+import {setDiamondUser, setupContext} from '../utils/diamond';
 
-const setup = deployments.createFixture(async (hre) => {
-  const {deployments, getNamedAccounts, ethers} = hre;
-  await deployments.fixture();
-
-  const accounts = await getNamedAccounts();
-  const users = await getUnnamedAccounts();
-  const {deployer, TDFTokenBeneficiary} = accounts;
-
-  const token: TDFToken = await ethers.getContract('TDFToken', deployer);
-  const contracts = {
-    TDFToken: token,
-    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', deployer),
-  };
-
-  const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);
-
-  const conf = {
-    ...contracts,
-    users: await setupUsers(users, contracts),
-    deployer: await setupUser(deployer, contracts),
-    TDFTokenBeneficiary: tokenBeneficiary,
-    accounts,
-  };
-  // fund users with TDF token
-  await Promise.all(
-    users.map((e) => {
-      return conf.TDFTokenBeneficiary.TDFToken.transfer(e, parseEther('10000'));
-    })
-  );
-  return conf;
-});
+const setup = setupContext;
 
 const incDays = async (days: number) => {
   // suppose the current block has a timestamp of 01:00 PM
@@ -44,21 +11,15 @@ const incDays = async (days: number) => {
   await network.provider.send('evm_mine');
 };
 
-const buildDate = (offset: number) => {
-  const initDate = Date.now();
-  return getUnixTime(addDays(initDate, offset));
-};
-
 describe('TokenLockFacet', () => {
   it('lock and unlockMax', async () => {
-    const {users, TDFDiamond, TDFToken, deployer} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond, TDFToken} = context;
 
     const user = users[0];
-    const {test, TLF} = await diamondTest({
-      diamond: TDFDiamond,
-      tokenContract: TDFToken,
+    const {test, TLF} = await setDiamondUser({
       user: user,
-      admin: deployer,
+      ...context,
     });
     const {deposit, withdrawMax} = TLF;
 
@@ -86,14 +47,13 @@ describe('TokenLockFacet', () => {
     await expect(user.TDFDiamond.withdrawMaxStake()).to.be.revertedWith('NOT_ENOUGHT_BALANCE');
   });
   it('lock and unlock', async () => {
-    const {users, TDFDiamond, TDFToken, deployer} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond, TDFToken} = context;
 
     const user = users[0];
-    const {test, TLF} = await diamondTest({
-      diamond: TDFDiamond,
-      tokenContract: TDFToken,
+    const {test, TLF} = await setDiamondUser({
       user: user,
-      admin: deployer,
+      ...context,
     });
     const {deposit, withdrawMax, withdraw} = TLF;
 
@@ -169,14 +129,13 @@ describe('TokenLockFacet', () => {
   });
 
   it('restakeMax', async () => {
-    const {users, TDFDiamond, TDFToken, deployer} = await setup();
-    const user = users[0];
+    const context = await setup();
+    const {users, TDFToken} = context;
 
-    const {test, TLF} = await diamondTest({
-      diamond: TDFDiamond,
-      tokenContract: TDFToken,
+    const user = users[0];
+    const {test, TLF} = await setDiamondUser({
       user: user,
-      admin: deployer,
+      ...context,
     });
     const {deposit, withdrawMax, restakeMax} = TLF;
 
@@ -201,13 +160,13 @@ describe('TokenLockFacet', () => {
     await test.stake('0', '0');
   });
   it('restake(uint256 amount)', async () => {
-    const {users, TDFDiamond, TDFToken, deployer} = await setup();
+    const context = await setup();
+    const {users, TDFToken} = context;
+
     const user = users[0];
-    const {test, TLF} = await diamondTest({
-      diamond: TDFDiamond,
-      tokenContract: TDFToken,
+    const {test, TLF} = await setDiamondUser({
       user: user,
-      admin: deployer,
+      ...context,
     });
     const {deposit, withdrawMax, restakeMax, restake, withdraw} = TLF;
 
