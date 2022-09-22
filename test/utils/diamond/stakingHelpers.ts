@@ -58,3 +58,13 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
     }),
   };
 };
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const getterHelpers = async (_context: TestContext) => ({});
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const roleTesters = async (_context: TestContext) => {
+  return {
+    can: {},
+    cannot: {},
+  };
+};

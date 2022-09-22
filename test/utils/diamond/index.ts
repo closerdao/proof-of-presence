@@ -7,12 +7,12 @@ import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
 import {setupUser, setupUsers} from '..';
 
 import {DatesTestData} from './types';
-import * as TLH from './tokenlockFacet';
-import * as POPH from './booking';
-import * as Members from './membershipFacet';
-import * as Admin from './adminFacet';
+import * as stakingHelpers from './stakingHelpers';
+import * as bookingHelpers from './bookingHelpers';
+import * as membershipHelpers from './membershipHelpers';
+import * as adminHelpers from './adminHelpers';
 
-export {ROLES} from './adminFacet';
+export {ROLES} from './adminHelpers';
 
 const BN = ethers.BigNumber;
 
@@ -136,31 +136,37 @@ export type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
 
 export const setDiamondUser = async (testContext: TestContext) => {
   return {
-    ...(await TLH.setupHelpers(testContext)),
-    ...(await POPH.setupHelpers(testContext)),
-    ...(await Members.setupHelpers(testContext)),
-    ...(await Admin.setupHelpers(testContext)),
+    ...(await stakingHelpers.setupHelpers(testContext)),
+    ...(await bookingHelpers.setupHelpers(testContext)),
+    ...(await membershipHelpers.setupHelpers(testContext)),
+    ...(await adminHelpers.setupHelpers(testContext)),
   };
 };
 
 export const getterHelpers = async (testContext: TestContext) => {
   return {
-    ...(await POPH.getterHelpers(testContext)),
-    ...(await Admin.getterHelpers(testContext)),
+    ...(await stakingHelpers.getterHelpers(testContext)),
+    ...(await membershipHelpers.getterHelpers(testContext)),
+    ...(await bookingHelpers.getterHelpers(testContext)),
+    ...(await adminHelpers.getterHelpers(testContext)),
   };
 };
 
 export const roleTesters = async (testContext: TestContext) => {
-  const booking = await POPH.roleTesters(testContext);
-  const admin = await Admin.roleTesters(testContext);
-  const members = await Members.roleTesters(testContext);
+  const booking = await bookingHelpers.roleTesters(testContext);
+  const admin = await adminHelpers.roleTesters(testContext);
+  const members = await membershipHelpers.roleTesters(testContext);
+  const staking = await stakingHelpers.roleTesters(testContext);
+
   return {
     can: {
+      ...staking.can,
       ...members.can,
       ...booking.can,
       ...admin.can,
     },
     cannot: {
+      ...staking.cannot,
       ...members.cannot,
       ...booking.cannot,
       ...admin.cannot,
