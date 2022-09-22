@@ -18,20 +18,31 @@ const BN = ethers.BigNumber;
 
 export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => {
   return {
-    balances: async (TK: string, tkU: string, u: string) => {
-      expect(await TDFToken.balanceOf(TDFDiamond.address)).to.eq(parseEther(TK));
-      expect(await TDFDiamond.stakedBalanceOf(user.address)).to.eq(parseEther(tkU));
-      expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther(u));
+    balances: async (diamondTokenBalance: string, stakedBalance: string, userTokenBalance: string) => {
+      expect(
+        await TDFToken.balanceOf(TDFDiamond.address),
+        `balances diamondTokenBalance to Eq(${diamondTokenBalance})`
+      ).to.eq(parseEther(diamondTokenBalance));
+      expect(await TDFDiamond.stakedBalanceOf(user.address), `balances stakedBalance to Eq(${stakedBalance})`).to.eq(
+        parseEther(stakedBalance)
+      );
+      expect(await TDFToken.balanceOf(user.address), `balances userTokenBalance to Eq(${userTokenBalance})`).to.eq(
+        parseEther(userTokenBalance)
+      );
     },
     stake: async (locked: string, unlocked: string) => {
-      expect(await TDFDiamond.lockedStake(user.address)).to.eq(parseEther(locked));
-      expect(await TDFDiamond.unlockedStake(user.address)).to.eq(parseEther(unlocked));
+      expect(await TDFDiamond.lockedStake(user.address), `stake locked to Eq(${locked})`).to.eq(parseEther(locked));
+      expect(await TDFDiamond.unlockedStake(user.address), `stake unlocked to Eq(${unlocked})`).to.eq(
+        parseEther(unlocked)
+      );
     },
     deposits: async (examples: [string, number][]) => {
       const deposits = await TDFDiamond.depositsStakedFor(user.address);
       for (let i = 0; i < deposits.length; i++) {
-        expect(deposits[i].amount).to.eq(parseEther(examples[i][0]));
-        expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
+        expect(deposits[i].amount, `deposits Index(${i}) Amount(${examples[i][0]})`).to.eq(parseEther(examples[i][0]));
+        expect(deposits[i].timestamp, `deposits Index(${i}) timestamp(${examples[i][1]})`).to.eq(
+          BN.from(examples[i][1])
+        );
       }
     },
     bookings: async (dates: DatesTestData, price: string) => {

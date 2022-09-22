@@ -11,8 +11,11 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
           .withArgs(user.address, parseEther(amount));
       },
     }),
-    withdrawMaxStake: {
-      success: async (amount: string) => {
+    withdrawMaxStake: () => ({
+      success: async () => {
+        await expect(user.TDFDiamond.withdrawMaxStake(), `withdrawMax.success`).to.emit(TDFDiamond, 'WithdrawnTokens');
+      },
+      successWithAmount: async (amount: string) => {
         await expect(user.TDFDiamond.withdrawMaxStake(), `withdrawMax.success ${amount}`)
           .to.emit(TDFDiamond, 'WithdrawnTokens')
           .withArgs(user.address, parseEther(amount));
@@ -20,34 +23,38 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       none: async () => {
         await expect(user.TDFDiamond.withdrawMaxStake(), `withdrawMax.none`).to.not.emit(TDFDiamond, 'WithdrawnTokens');
       },
-    },
-    withdrawStake: {
-      success: async (amount: string) => {
+    }),
+    withdrawStake: (amount: string) => ({
+      success: async () => {
         await expect(user.TDFDiamond.withdrawStake(parseEther(amount)), `withdraw.success ${amount}`)
           .to.emit(TDFDiamond, 'WithdrawnTokens')
           .withArgs(user.address, parseEther(amount));
       },
-      reverted: async (amount: string) => {
-        await expect(
-          user.TDFDiamond.withdrawStake(parseEther(amount)),
-          `withdraw.reverted ${amount}`
-        ).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
-      },
-    },
-    restakeMax: async () => {
+      reverted: () => ({
+        notEnoughtBalance: async () => {
+          await expect(
+            user.TDFDiamond.withdrawStake(parseEther(amount)),
+            `withdraw.reverted ${amount}`
+          ).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
+        },
+      }),
+    }),
+    restakeMax: () => ({
       // TODO:
-      await user.TDFDiamond.restakeMax();
-    },
-    restake: {
-      reverted: async (amount: string) => {
-        await expect(user.TDFDiamond.restake(parseEther(amount)), `restake.reverted ${amount}`).to.be.revertedWith(
-          'NOT_ENOUGHT_UNLOCKABLE_BALANCE'
-        );
+      success: async () => await user.TDFDiamond.restakeMax(),
+    }),
+    restake: (amount: string) => ({
+      reverted: {
+        notEnoughtBalance: async () => {
+          await expect(user.TDFDiamond.restake(parseEther(amount)), `restake.reverted ${amount}`).to.be.revertedWith(
+            'NOT_ENOUGHT_UNLOCKABLE_BALANCE'
+          );
+        },
       },
-      success: async (amount: string) => {
+      success: async () => {
         // TODO: `restake.success ${amount}`
         await user.TDFDiamond.restake(parseEther(amount));
       },
-    },
+    }),
   };
 };
