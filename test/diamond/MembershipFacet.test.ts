@@ -21,7 +21,7 @@ describe('MembershipFacet', () => {
 
     await user.addMember(users[10].address).reverted.onlyRole();
     await user.removeMember(users[10].address).reverted.onlyRole();
-    await admin.grantRole.success('MEMBERSHIP_MANAGER_ROLE', usertmp.address);
+    await admin.grantRole('MEMBERSHIP_MANAGER_ROLE', usertmp.address).success();
     const prevLength = await context.TDFDiamond.membersLength();
     await user.addMember(users[10].address).success();
     expect(await context.TDFDiamond.isMember(users[10].address)).to.eq(true);

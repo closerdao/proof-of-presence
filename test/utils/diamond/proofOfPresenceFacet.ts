@@ -4,7 +4,7 @@ import {BookingMapLib} from '../../../typechain/ProofOfPresenceFacet';
 import type {TestContext} from './index';
 
 import {DatesTestData, DateMetadata, DateInputs} from './types';
-import {wrapOnlyRole, wrapSuccess} from './helpers';
+import {wrapOnlyRole, wrapSuccess, wrapOnlyMember} from './helpers';
 
 export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
@@ -17,16 +17,21 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       },
       reverted: {
         paused: async () => {
+          await expect(user.TDFDiamond.bookAccommodation(dates), `book.reverted.paused: ${dates}`).to.be.revertedWith(
+            'Pausable: paused'
+          );
+        },
+        onlyMember: async () => {
           await expect(
             user.TDFDiamond.bookAccommodation(dates),
-            `send.book.reverted.paused: ${dates}`
-          ).to.be.revertedWith('Pausable: paused');
+            `book.reverted.onlyMember: ${dates}`
+          ).to.be.revertedWith('Membership:');
         },
       },
     }),
     cancelAccommodation: (dates: DateInputs) => ({
       success: async () => {
-        await expect(user.TDFDiamond.cancelAccommodation(dates), `send.cancel.success ${dates}`).to.emit(
+        await expect(user.TDFDiamond.cancelAccommodation(dates), `cancel.success ${dates}`).to.emit(
           TDFDiamond,
           'CanceledBookings'
         );
@@ -35,19 +40,19 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         noneExisting: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodation(dates),
-            `send.cancel.reverted.noneExisting ${dates}`
+            `cancel.reverted.noneExisting ${dates}`
           ).to.be.revertedWith('Booking does not exists');
         },
         inThepast: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodation(dates),
-            `send.cancel.reverted.inThepast ${dates}`
+            `cancel.reverted.inThepast ${dates}`
           ).to.be.revertedWith('Can not cancel past booking');
         },
         paused: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodation(dates),
-            `send.cancel.reverted.paused ${dates}`
+            `cancel.reverted.paused ${dates}`
           ).to.be.revertedWith('Pausable: paused');
         },
       },
@@ -56,27 +61,27 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-          `send.addYear.success ${year}`
+          `addYear.success ${year}`
         ).to.emit(TDFDiamond, 'YearAdded');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-            `send.addYear.reverted.onlyOwner ${year}`
+            `addYear.reverted.onlyOwner ${year}`
           ).to.be.revertedWith('AccessControl:');
         },
         alreadyExists: async () => {
           await expect(
             user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-            `send.addYear.reverted.alreadyExists ${year}`
+            `addYear.reverted.alreadyExists ${year}`
           ).to.be.revertedWith('Unable to add year');
         },
       },
     }),
     removeAccommodationYear: (year: number) => ({
       success: async () => {
-        await expect(user.TDFDiamond.removeAccommodationYear(year), `send.removeYear.success: ${year}`).to.emit(
+        await expect(user.TDFDiamond.removeAccommodationYear(year), `removeYear.success: ${year}`).to.emit(
           TDFDiamond,
           'YearRemoved'
         );
@@ -85,13 +90,13 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.removeAccommodationYear(year),
-            `send.removeYear.reverted.onlyOwner ${year}`
+            `removeYear.reverted.onlyOwner ${year}`
           ).to.be.revertedWith('AccessControl:');
         },
         doesNotExists: async () => {
           await expect(
             user.TDFDiamond.removeAccommodationYear(year),
-            `send.removeYear.reverted.doesNotExists ${year}`
+            `removeYear.reverted.doesNotExists ${year}`
           ).to.be.revertedWith('Unable to remove Year');
         },
       },
@@ -100,20 +105,20 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.enableAccommodationYear(year, enable),
-          `send.enableYear.success: y ${year}, e ${enable}`
+          `enableYear.success: y ${year}, e ${enable}`
         ).to.emit(TDFDiamond, 'YearUpdated');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.enableAccommodationYear(year, enable),
-            `send.enableYear.reverted.onlyOwner: y ${year}, e ${enable}`
+            `enableYear.reverted.onlyOwner: y ${year}, e ${enable}`
           ).to.be.revertedWith('AccessControl:');
         },
         doesNotExists: async () => {
           await expect(
             user.TDFDiamond.enableAccommodationYear(year, enable),
-            `send.enableYear.reverted.doesNotExists: y ${year}, e ${enable}`
+            `enableYear.reverted.doesNotExists: y ${year}, e ${enable}`
           ).to.be.revertedWith('Unable to update year');
         },
       },
@@ -122,20 +127,20 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-          `send.enableYear.updateYear.success: y ${year}`
+          `enableYear.updateYear.success: y ${year}`
         ).to.emit(TDFDiamond, 'YearUpdated');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-            `send.updateYear.reverted.onlyOwner: y ${year}`
+            `updateYear.reverted.onlyOwner: y ${year}`
           ).to.be.revertedWith('AccessControl:');
         },
         doesNotExists: async () => {
           await expect(
             user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-            `send.updateYear.reverted.doesNotExists: y ${year}`
+            `updateYear.reverted.doesNotExists: y ${year}`
           ).to.be.revertedWith('Unable to update Year');
         },
       },

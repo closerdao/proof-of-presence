@@ -5,6 +5,7 @@ import * as _ from 'lodash';
 import {soliditySha3} from 'web3-utils';
 
 import type {TestContext} from './index';
+import {wrapOnlyRole, wrapSuccess} from './helpers';
 
 export const ROLES = {
   DEFAULT_ADMIN_ROLE: '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -21,7 +22,7 @@ type RoleKeys = keyof typeof ROLES;
 
 export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
-    pause: {
+    pause: () => ({
       success: async () => {
         await expect(user.TDFDiamond.pause(), 'pause: should succeed')
           .to.emit(TDFDiamond, 'Paused')
@@ -37,8 +38,8 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
           await expect(user.TDFDiamond.pause(), 'pause: should revert').to.be.revertedWith('Pausable: paused');
         },
       },
-    },
-    unpause: {
+    }),
+    unpause: () => ({
       success: async () => {
         await expect(user.TDFDiamond.unpause(), 'unpause: should succeed')
           .to.emit(TDFDiamond, 'Unpaused')
@@ -54,31 +55,31 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
           await expect(user.TDFDiamond.unpause(), 'unpause: should revert').to.be.revertedWith('Pausable: unpaused');
         },
       },
-    },
-    setLockingTimePeriodDays: {
-      success: async (days: number) => {
+    }),
+    setLockingTimePeriodDays: (days: number) => ({
+      success: async () => {
         await expect(user.TDFDiamond.setLockingTimePeriodDays(days), `setLockingTimePeriodDays: should succeed ${days}`)
           .to.emit(TDFDiamond, 'LockingTimePeriodChanged')
           .withArgs(days, user.address);
       },
       reverted: {
-        onlyRole: async (days: number) => {
+        onlyRole: async () => {
           await expect(
             user.TDFDiamond.setLockingTimePeriodDays(days),
             'setLockingTimePeriodDays: should revert AccessControl'
           ).to.be.revertedWith('AccessControl:');
         },
-        zero: async (days: number) => {
+        zero: async () => {
           await expect(
             user.TDFDiamond.setLockingTimePeriodDays(days),
             'setLockingTimePeriodDays: should revert `not zero`'
           ).to.be.revertedWith('AdminFaucet:');
         },
       },
-    },
+    }),
 
-    grantRole: {
-      success: async (role: RoleKeys, address: string) => {
+    grantRole: (role: RoleKeys, address: string) => ({
+      success: async () => {
         await expect(
           user.TDFDiamond.grantRole(ROLES[role], address),
           `grantRole.success: role(${role}) address(${address})`
@@ -87,16 +88,16 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
           .withArgs(ROLES[role], address, user.address);
       },
       reverted: {
-        onlyRole: async (role: RoleKeys, address: string) => {
+        onlyRole: async () => {
           await expect(
             user.TDFDiamond.grantRole(ROLES[role], address),
             `grantRole.reverted.onlyRole: role(${role}) address(${address})`
           ).to.be.revertedWith('AccessControl:');
         },
       },
-    },
-    revokeRole: {
-      success: async (role: RoleKeys, address: string) => {
+    }),
+    revokeRole: (role: RoleKeys, address: string) => ({
+      success: async () => {
         await expect(
           user.TDFDiamond.revokeRole(ROLES[role], address),
           `revokeRole.success: role(${role}) address(${address})`
@@ -105,16 +106,16 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
           .withArgs(ROLES[role], address, user.address);
       },
       reverted: {
-        onlyRole: async (role: RoleKeys, address: string) => {
+        onlyRole: async () => {
           await expect(
             user.TDFDiamond.revokeRole(ROLES[role], address),
             `reverted.reverted.onlyRole: role(${role}) address(${address})`
           ).to.be.revertedWith('AccessControl:');
         },
       },
-    },
-    renounceRole: {
-      success: async (role: RoleKeys, address: string) => {
+    }),
+    renounceRole: (role: RoleKeys, address: string) => ({
+      success: async () => {
         await expect(
           user.TDFDiamond.renounceRole(ROLES[role], address),
           `renounceRole.success: role(${role}) address(${address})`
@@ -123,30 +124,30 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
           .withArgs(ROLES[role], address, user.address);
       },
       reverted: {
-        notSelf: async (role: RoleKeys, address: string) => {
+        notSelf: async () => {
           await expect(
             user.TDFDiamond.renounceRole(ROLES[role], address),
             `renounceRole.reverted.notSelf: role(${role}) address(${address})`
           ).to.be.revertedWith('AccessControl:');
         },
       },
-    },
-    setRoleAdmin: {
-      success: async (role: RoleKeys, adminRole: RoleKeys) => {
+    }),
+    setRoleAdmin: (role: RoleKeys, adminRole: RoleKeys) => ({
+      success: async () => {
         await expect(
           user.TDFDiamond.setRoleAdmin(ROLES[role], ROLES[adminRole]),
           `setRoleAdmin.success: role(${role}) adminRole(${adminRole})`
         ).to.emit(TDFDiamond, 'RoleAdminChanged');
       },
       reverted: {
-        onlyRole: async (role: RoleKeys, adminRole: RoleKeys) => {
+        onlyRole: async () => {
           await expect(
             user.TDFDiamond.setRoleAdmin(ROLES[role], ROLES[adminRole]),
             `setRoleAdmin.reveole: role(${role}) adminRole(${adminRole})`
           ).to.be.revertedWith('AccessControl:');
         },
       },
-    },
+    }),
   };
 };
 
@@ -173,20 +174,20 @@ export const roleTesters = async (context: TestContext) => {
 
   return {
     can: {
-      pause: helpers.pause.success,
-      unpause: helpers.unpause.success,
-      setLockingTimePeriodDays: helpers.setLockingTimePeriodDays.success,
-      grantRole: helpers.grantRole.success,
-      revokeRole: helpers.revokeRole.success,
-      setRoleAdmin: helpers.setRoleAdmin.success,
+      pause: wrapSuccess(helpers.pause),
+      unpause: wrapSuccess(helpers.unpause),
+      setLockingTimePeriodDays: wrapSuccess(helpers.setLockingTimePeriodDays),
+      grantRole: wrapSuccess(helpers.grantRole),
+      revokeRole: wrapSuccess(helpers.revokeRole),
+      setRoleAdmin: wrapSuccess(helpers.setRoleAdmin),
     },
     cannot: {
-      pause: helpers.pause.reverted.onlyRole,
-      unpause: helpers.unpause.reverted.onlyRole,
-      setLockingTimePeriodDays: helpers.setLockingTimePeriodDays.reverted.onlyRole,
-      grantRole: helpers.grantRole.reverted.onlyRole,
-      revokeRole: helpers.revokeRole.reverted.onlyRole,
-      setRoleAdmin: helpers.setRoleAdmin.reverted.onlyRole,
+      pause: wrapOnlyRole(helpers.pause),
+      unpause: wrapOnlyRole(helpers.unpause),
+      setLockingTimePeriodDays: wrapOnlyRole(helpers.setLockingTimePeriodDays),
+      grantRole: wrapOnlyRole(helpers.grantRole),
+      revokeRole: wrapOnlyRole(helpers.revokeRole),
+      setRoleAdmin: wrapOnlyRole(helpers.setRoleAdmin),
     },
   };
 };

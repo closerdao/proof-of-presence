@@ -20,12 +20,19 @@ const setup = setupContext;
 describe('ProofOfPresenceFacet', () => {
   it('book', async () => {
     const context = await setup();
-    const {users, TDFDiamond} = context;
+    const {users, TDFDiamond, deployer} = context;
 
     const user = await setDiamondUser({
       user: users[0],
       ...context,
     });
+
+    const admin = await setDiamondUser({
+      user: deployer,
+      ...context,
+    });
+
+    await admin.addMember(users[0].address).success();
 
     const test = await userTesters({user: users[0], ...context});
 
@@ -37,12 +44,18 @@ describe('ProofOfPresenceFacet', () => {
   });
   it('book and cancel', async () => {
     const context = await setup();
-    const {users, TDFDiamond} = context;
+    const {users, TDFDiamond, deployer} = context;
 
     const user = await setDiamondUser({
       user: users[0],
       ...context,
     });
+    const admin = await setDiamondUser({
+      user: deployer,
+      ...context,
+    });
+
+    await admin.addMember(users[0].address).success();
 
     const test = await userTesters({user: users[0], ...context});
 
@@ -85,12 +98,19 @@ describe('ProofOfPresenceFacet', () => {
 
   it('getters', async () => {
     const context = await setup();
-    const {users, TDFDiamond} = context;
+    const {users, TDFDiamond, deployer} = context;
 
     const user = await setDiamondUser({
       user: users[0],
       ...context,
     });
+
+    const admin = await setDiamondUser({
+      user: deployer,
+      ...context,
+    });
+
+    await admin.addMember(users[0].address).success();
 
     const call = await getterHelpers({user: users[0], ...context});
     const test = await userTesters({user: users[0], ...context});
@@ -188,10 +208,10 @@ describe('ProofOfPresenceFacet', () => {
 
     await deployer.TDFDiamond.grantRole(ROLES.DEFAULT_ADMIN_ROLE as string, users[1].address);
 
-    await user.pause.reverted.onlyRole();
-    await bookingManager.pause.success();
-    await user.unpause.reverted.onlyRole();
-    await bookingManager.unpause.success();
+    await user.pause().reverted.onlyRole();
+    await bookingManager.pause().success();
+    await user.unpause().reverted.onlyRole();
+    await bookingManager.unpause().success();
   });
 
   it('pausable', async () => {
@@ -203,11 +223,11 @@ describe('ProofOfPresenceFacet', () => {
       ...context,
     });
 
-    await deployer.TDFDiamond.grantRole(ROLES.DEFAULT_ADMIN_ROLE as string, users[1].address);
     const admin = await setDiamondUser({
-      user: users[1],
+      user: deployer,
       ...context,
     });
+    await admin.addMember(users[0].address).success();
 
     await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
@@ -222,11 +242,41 @@ describe('ProofOfPresenceFacet', () => {
     // -------------------------------------------------------
     //  Book and cancel disabled with  Paused
     // -------------------------------------------------------
-    await admin.pause.success();
+    await admin.pause().success();
     expect(await TDFDiamond.paused()).to.be.true;
 
     await user.bookAccommodation(dates.inputs).reverted.paused();
     await user.cancelAccommodation(dates.inputs).reverted.paused();
+  });
+
+  it('onlyMembers can book', async () => {
+    const context = await setup();
+    const {users, deployer, TDFDiamond} = context;
+
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
+    });
+    const admin = await setDiamondUser({
+      user: deployer,
+      ...context,
+    });
+    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
+
+    await admin.addMember(users[0].address).success();
+    // When member
+
+    let init = addDays(Date.now(), 5);
+    let dates = buildDates(init, 5);
+
+    await user.bookAccommodation(dates.inputs).success();
+
+    // When not member
+    await admin.removeMember(users[0].address).success();
+
+    init = addDays(Date.now(), 11);
+    dates = buildDates(init, 5);
+    await user.bookAccommodation(dates.inputs).reverted.onlyMember();
   });
 
   it('role testing example', async () => {

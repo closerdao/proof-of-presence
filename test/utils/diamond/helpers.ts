@@ -10,3 +10,13 @@ export const wrapOnlyRole = <T extends Array<any>, R extends Promise<void>, U ex
 ) => {
   return (...args: T): R => fn(...args).reverted.onlyRole();
 };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const wrapOnlyMember = <
+  T extends Array<any>,
+  R extends Promise<void>,
+  U extends {reverted: {onlyMember: () => R}}
+>(
+  fn: (...args: T) => U
+) => {
+  return (...args: T): R => fn(...args).reverted.onlyMember();
+};

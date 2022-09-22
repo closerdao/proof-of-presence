@@ -100,13 +100,13 @@ contract Modifiers {
         _;
     }
 
-    modifier onlyMember(address account) {
-        _requireMember(account);
+    modifier onlyMember() {
+        _requireMember(_msgSender());
         _;
     }
 
     function _requireMember(address account) internal view {
-        require(!s.members.contains(account), "Membership: only members allowed");
+        require(s.members.contains(account), "Membership: only members allowed");
     }
 
     /**

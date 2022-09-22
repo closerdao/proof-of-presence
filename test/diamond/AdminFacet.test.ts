@@ -16,12 +16,12 @@ describe('AdminFacet', () => {
       ...context,
     });
 
-    await user.setLockingTimePeriodDays.reverted.onlyRole(3);
-    await admin.grantRole.success('STAKE_MANAGER_ROLE', usertmp.address);
-    await admin.grantRole.success('DEFAULT_ADMIN_ROLE', usertmp.address);
+    await user.setLockingTimePeriodDays(3).reverted.onlyRole();
+    await admin.grantRole('STAKE_MANAGER_ROLE', usertmp.address).success();
+    await admin.grantRole('DEFAULT_ADMIN_ROLE', usertmp.address).success();
     await diamond.hasRole('STAKE_MANAGER_ROLE', usertmp.address).toEq(true);
     await diamond.hasRole('DEFAULT_ADMIN_ROLE', usertmp.address).toEq(true);
-    await user.setLockingTimePeriodDays.reverted.zero(0);
-    await user.setLockingTimePeriodDays.success(365);
+    await user.setLockingTimePeriodDays(0).reverted.zero();
+    await user.setLockingTimePeriodDays(365).success();
   });
 });
