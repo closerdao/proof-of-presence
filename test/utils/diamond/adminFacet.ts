@@ -143,7 +143,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.setRoleAdmin(ROLES[role], ROLES[adminRole]),
-            `setRoleAdmin.reveole: role(${role}) adminRole(${adminRole})`
+            `setRoleAdmin.reverted.onlyRole: role(${role}) adminRole(${adminRole})`
           ).to.be.revertedWith('AccessControl:');
         },
       },

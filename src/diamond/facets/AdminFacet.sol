@@ -29,7 +29,7 @@ contract AdminFacet is Modifiers {
      *
      * - The contract must not be paused.
      */
-    function pause() external whenNotPaused onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) {
+    function pause() external onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) whenNotPaused {
         s.paused = true;
         emit Paused(msg.sender);
     }
@@ -41,7 +41,7 @@ contract AdminFacet is Modifiers {
      *
      * - The contract must be paused.
      */
-    function unpause() external whenPaused onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) {
+    function unpause() external onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) whenPaused {
         s.paused = false;
         emit Unpaused(msg.sender);
     }
