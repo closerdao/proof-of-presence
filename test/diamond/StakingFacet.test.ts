@@ -11,7 +11,7 @@ const incDays = async (days: number) => {
   await network.provider.send('evm_mine');
 };
 
-describe('TokenLockFacet', () => {
+describe('StakingFacet', () => {
   it('lock and unlockMax', async () => {
     const context = await setup();
     const {users, TDFDiamond, TDFToken} = context;

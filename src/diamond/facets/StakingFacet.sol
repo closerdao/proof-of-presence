@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../libraries/AppStorage.sol";
 import "../libraries/StakeLib.sol";
 
-contract TokenLockFacet is Modifiers, ReentrancyGuard {
+contract StakingFacet is Modifiers, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using StakeLib for StakeLib.StakeStore;
 
