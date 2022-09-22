@@ -17,7 +17,7 @@ import * as _ from 'lodash';
 
 const setup = setupContext;
 
-describe('ProofOfPresenceFacet', () => {
+describe('BookingFacet', () => {
   it('book', async () => {
     const context = await setup();
     const {users, TDFDiamond, deployer} = context;
@@ -71,8 +71,7 @@ describe('ProofOfPresenceFacet', () => {
     await test.bookings(dates, '1');
 
     await user.cancelAccommodation(dates.inputs).success();
-    // TODO:
-    // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
+
     await test.balances('5', '5', '9995');
     // -------------------------------------------------------
     //  Book and cancel few dates
@@ -83,8 +82,6 @@ describe('ProofOfPresenceFacet', () => {
 
     const cDates = collectDates(dates, [0, 4]);
     await user.cancelAccommodation(cDates.inputs).success();
-    // TODO:
-    // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(3);
     await test.balances('5', '5', '9995');
     const restcDates = collectDates(dates, [1, 2, 3]);
 

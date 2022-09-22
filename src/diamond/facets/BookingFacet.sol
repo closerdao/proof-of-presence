@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
 
-contract ProofOfPresenceFacet is Modifiers {
+contract BookingFacet is Modifiers {
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
     using StakeLib for StakeLib.StakeStore;

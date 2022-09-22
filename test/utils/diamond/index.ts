@@ -8,7 +8,7 @@ import {setupUser, setupUsers} from '..';
 
 import {DatesTestData} from './types';
 import * as TLH from './tokenlockFacet';
-import * as POPH from './proofOfPresenceFacet';
+import * as POPH from './booking';
 import * as Members from './membershipFacet';
 import * as Admin from './adminFacet';
 

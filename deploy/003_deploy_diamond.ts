@@ -13,7 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     owner: deployer,
     facets: [
-      {name: 'ProofOfPresenceFacet'},
+      {name: 'BookingFacet'},
       {name: 'TokenLockFacet'},
       {name: 'AdminFacet'},
       {name: 'MembershipFacet'},
