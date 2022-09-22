@@ -1,141 +1,131 @@
 import {expect} from '../chai-setup';
-import {deployments, getUnnamedAccounts} from 'hardhat';
-import * as _ from 'lodash';
-
-import {TDFToken, TDFDiamond} from '../../typechain';
-
-import {setupUser, setupUsers} from '../utils';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays} from 'date-fns';
-import {diamondTest, buildDates, collectDates, yearData, timeTravelTo, roles} from '../utils/diamond';
+import {
+  buildDates,
+  collectDates,
+  yearData,
+  timeTravelTo,
+  ROLES,
+  setupContext,
+  setDiamondUser,
+  getterHelpers,
+  userTesters,
+  roleTesters,
+} from '../utils/diamond';
+import * as _ from 'lodash';
 
-const setup = deployments.createFixture(async (hre) => {
-  const {deployments, getNamedAccounts, ethers} = hre;
-
-  await deployments.fixture();
-
-  const accounts = await getNamedAccounts();
-  const users = await getUnnamedAccounts();
-  const {deployer, TDFTokenBeneficiary} = accounts;
-
-  const token = <TDFToken>await ethers.getContract('TDFToken', deployer);
-  const contracts = {
-    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', deployer),
-    TDFToken: token,
-  };
-
-  const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);
-
-  const conf = {
-    ...contracts,
-    users: await setupUsers(users, contracts),
-    deployer: await setupUser(deployer, contracts),
-    TDFTokenBeneficiary: tokenBeneficiary,
-    accounts,
-  };
-
-  await Promise.all(
-    [users[0], users[1]].map((e) => {
-      return conf.TDFTokenBeneficiary.TDFToken.transfer(e, parseEther('10000'));
-    })
-  );
-  return conf;
-});
+const setup = setupContext;
 
 describe('ProofOfPresenceFacet', () => {
   it('book', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond, deployer} = context;
 
-    const user = users[0];
-    const {test, POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
-      user: user,
-      admin: deployer,
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
     });
 
-    const {send} = POPH;
+    const admin = await setDiamondUser({
+      user: deployer,
+      ...context,
+    });
 
-    await user.TDFToken.approve(TDFDiamond.address, parseEther('10'));
+    await admin.addMember(users[0].address).success();
+
+    const test = await userTesters({user: users[0], ...context});
+
+    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
-    await send.book.success(dates.inputs);
+    await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
   });
   it('book and cancel', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
-    const user = users[0];
+    const context = await setup();
+    const {users, TDFDiamond, deployer} = context;
 
-    const {test, POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
-      user: user,
-      admin: deployer,
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
+    });
+    const admin = await setDiamondUser({
+      user: deployer,
+      ...context,
     });
 
-    const {send} = POPH;
+    await admin.addMember(users[0].address).success();
 
-    await user.TDFToken.approve(TDFDiamond.address, parseEther('10'));
+    const test = await userTesters({user: users[0], ...context});
+
+    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
 
     // -------------------------------------------------------
     //  Book and cancel all the dates
     // -------------------------------------------------------
-    await send.book.success(dates.inputs);
+    await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
 
-    await send.cancel.success(dates.inputs);
+    await user.cancelAccommodation(dates.inputs).success();
     // TODO:
     // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(0);
     await test.balances('5', '5', '9995');
     // -------------------------------------------------------
     //  Book and cancel few dates
     // -------------------------------------------------------
-    await send.book.success(dates.inputs);
+    await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
 
     const cDates = collectDates(dates, [0, 4]);
-    await send.cancel.success(cDates.inputs);
+    await user.cancelAccommodation(cDates.inputs).success();
     // TODO:
     // expect((await ProofOfPresence.getDates(user.address)).length).to.eq(3);
     await test.balances('5', '5', '9995');
     const restcDates = collectDates(dates, [1, 2, 3]);
 
     await test.bookings(restcDates, '1');
-    await send.cancel.reverted.noneExisting(cDates.inputs);
+    await user.cancelAccommodation(cDates.inputs).reverted.noneExisting();
 
     await timeTravelTo(dates.data[4].unix + 2 * 86400);
 
-    await send.cancel.reverted.inThepast(collectDates(dates, [1, 2, 3]).inputs);
+    await user.cancelAccommodation(collectDates(dates, [1, 2, 3]).inputs).reverted.inThepast();
   });
 
   it('getters', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
-    const user = users[0];
+    const context = await setup();
+    const {users, TDFDiamond, deployer} = context;
 
-    const {test, POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
-      user: user,
-      admin: deployer,
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
     });
 
-    const {send, call} = POPH;
+    const admin = await setDiamondUser({
+      user: deployer,
+      ...context,
+    });
 
-    await user.TDFToken.approve(TDFDiamond.address, parseEther('10'));
+    await admin.addMember(users[0].address).success();
+
+    const call = await getterHelpers({user: users[0], ...context});
+    const test = await userTesters({user: users[0], ...context});
+
+    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
 
     // -------------------------------------------------------
     //  Book and cancel all the dates
     // -------------------------------------------------------
-    await send.book.success(dates.inputs);
+    await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
     await test.bookings(dates, '1');
-    await call.getBookings(dates);
+    await call.getAccommodationBookings(users[0], 0).exactMatch(dates);
 
     const years = await TDFDiamond.getAccommodationYears();
     expect(years.length).to.eq(5);
@@ -157,95 +147,89 @@ describe('ProofOfPresenceFacet', () => {
   });
 
   it('BOOKING_MANAGER_ROLE', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond, deployer} = context;
 
-    const user = users[0];
-    const {getRoles, POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
-      user: user,
-      admin: deployer,
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
     });
-    const bookingManager = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
+
+    const bookingManager = await setDiamondUser({
       user: users[1],
-      admin: deployer,
+      ...context,
     });
-
-    const {send} = POPH;
     let yearAttrs;
     yearAttrs = yearData()['2028'];
 
     // Give role to user 1 for booking management
-    await deployer.TDFDiamond.grantRole(roles.BOOKING_MANAGER_ROLE as string, users[1].address);
+    await deployer.TDFDiamond.grantRole(ROLES.BOOKING_MANAGER_ROLE as string, users[1].address);
 
-    await send.addYear.reverted.onlyOwner({...yearAttrs, enabled: false});
-    await bookingManager.POPH.send.addYear.success({...yearAttrs, enabled: false});
+    await user.addAccommodationYear({...yearAttrs, enabled: false}).reverted.onlyRole();
+    await bookingManager.addAccommodationYear({...yearAttrs, enabled: false}).success();
     yearAttrs = yearData()['2024'];
-    await bookingManager.POPH.send.addYear.reverted.alreadyExists({...yearAttrs, enabled: false});
+    await bookingManager.addAccommodationYear({...yearAttrs, enabled: false}).reverted.alreadyExists();
     let [stored] = await TDFDiamond.getAccommodationYear(2024);
     expect(stored).to.be.true;
-    await send.removeYear.reverted.onlyOwner(2024);
+    await user.removeAccommodationYear(2024).reverted.onlyRole();
     [stored] = await TDFDiamond.getAccommodationYear(2024);
     expect(stored).to.be.true;
-    await bookingManager.POPH.send.removeYear.reverted.doesNotExists(3000);
-    await bookingManager.POPH.send.removeYear.success(2023);
+    await bookingManager.removeAccommodationYear(3000).reverted.doesNotExists();
+    await bookingManager.removeAccommodationYear(2023).success();
 
-    await send.updateYear.reverted.onlyOwner({...yearAttrs, enabled: false});
-    await bookingManager.POPH.send.updateYear.reverted.doesNotExists({...yearAttrs, number: 3002, enabled: false});
-    await bookingManager.POPH.send.updateYear.success({...yearAttrs, enabled: false});
-    await send.enableYear.reverted.onlyOwner(2025, false);
-    await bookingManager.POPH.send.enableYear.reverted.doesNotExists(3002, true);
-    await bookingManager.POPH.send.enableYear.success(2027, false);
+    await user.updateAccommodationYear({...yearAttrs, enabled: false}).reverted.onlyRole();
+    await bookingManager
+      .updateAccommodationYear({
+        ...yearAttrs,
+        number: 3002,
+        enabled: false,
+      })
+      .reverted.doesNotExists();
+    await bookingManager.updateAccommodationYear({...yearAttrs, enabled: false}).success();
+    await user.enableAccommodationYear(2025, false).reverted.onlyRole();
+    await bookingManager.enableAccommodationYear(3002, true).reverted.doesNotExists();
+    await bookingManager.enableAccommodationYear(2027, false).success();
   });
 
   it('DEFAULT_ADMIN_ROLE', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
+    const context = await setup();
+    const {users, deployer} = context;
 
-    const user = users[0];
-    const {POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
-      user: user,
-      admin: deployer,
+    const exampleUser = users[0];
+    const user = await setDiamondUser({
+      user: exampleUser,
+      ...context,
     });
-    const bookingManager = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
+
+    const bookingManager = await setDiamondUser({
       user: users[1],
-      admin: deployer,
+      ...context,
     });
-    const {send} = POPH;
 
-    await deployer.TDFDiamond.grantRole(roles.DEFAULT_ADMIN_ROLE as string, users[1].address);
+    await deployer.TDFDiamond.grantRole(ROLES.DEFAULT_ADMIN_ROLE as string, users[1].address);
 
-    await send.pause.reverted.onlyOwner();
-    await bookingManager.POPH.send.pause.success();
-    await send.unpause.reverted.onlyOwner();
-    await bookingManager.POPH.send.unpause.success();
+    await user.pause().reverted.onlyRole();
+    await bookingManager.pause().success();
+    await user.unpause().reverted.onlyRole();
+    await bookingManager.unpause().success();
   });
 
   it('pausable', async () => {
-    const {users, TDFToken, deployer, TDFDiamond} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond, deployer} = context;
 
-    const user = users[0];
-    const {POPH} = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
-      user: user,
-      admin: deployer,
-    });
-    await deployer.TDFDiamond.grantRole(roles.DEFAULT_ADMIN_ROLE as string, users[1].address);
-    const admin = await diamondTest({
-      tokenContract: TDFToken,
-      diamond: TDFDiamond,
-      user: users[1],
-      admin: deployer,
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
     });
 
-    const {send} = POPH;
-    await user.TDFToken.approve(TDFDiamond.address, parseEther('10'));
+    const admin = await setDiamondUser({
+      user: deployer,
+      ...context,
+    });
+    await admin.addMember(users[0].address).success();
+
+    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
 
@@ -253,15 +237,58 @@ describe('ProofOfPresenceFacet', () => {
     //  Book and cancel enabled with  Unpaused
     // -------------------------------------------------------
     expect(await TDFDiamond.paused()).to.be.false;
-    await send.book.success(dates.inputs);
-    await send.cancel.success(dates.inputs);
+    await user.bookAccommodation(dates.inputs).success();
+    await user.cancelAccommodation(dates.inputs).success();
     // -------------------------------------------------------
     //  Book and cancel disabled with  Paused
     // -------------------------------------------------------
-    await admin.POPH.send.pause.success();
+    await admin.pause().success();
     expect(await TDFDiamond.paused()).to.be.true;
 
-    await send.book.reverted.paused(dates.inputs);
-    await send.cancel.reverted.paused(dates.inputs);
+    await user.bookAccommodation(dates.inputs).reverted.paused();
+    await user.cancelAccommodation(dates.inputs).reverted.paused();
+  });
+
+  it('onlyMembers can book', async () => {
+    const context = await setup();
+    const {users, deployer, TDFDiamond} = context;
+
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
+    });
+    const admin = await setDiamondUser({
+      user: deployer,
+      ...context,
+    });
+    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
+
+    await admin.addMember(users[0].address).success();
+    // When member
+
+    let init = addDays(Date.now(), 5);
+    let dates = buildDates(init, 5);
+
+    await user.bookAccommodation(dates.inputs).success();
+
+    // When not member
+    await admin.removeMember(users[0].address).success();
+
+    init = addDays(Date.now(), 11);
+    dates = buildDates(init, 5);
+    await user.bookAccommodation(dates.inputs).reverted.onlyMember();
+  });
+
+  it('role testing example', async () => {
+    const context = await setup();
+    const {users, TDFDiamond, deployer} = context;
+
+    const user = await roleTesters({
+      user: users[0],
+      ...context,
+    });
+    const yearAttrs = yearData()['2028'];
+    await user.cannot.addAccommodationYear({...yearAttrs, enabled: false});
+    // await user.can.addAccommodationYear({...yearAttrs, enabled: false});
   });
 });

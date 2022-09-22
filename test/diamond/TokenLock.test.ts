@@ -1,42 +1,9 @@
 import {expect} from '../chai-setup';
-import {deployments, getUnnamedAccounts, network} from 'hardhat';
-import {TDFToken, TDFDiamond} from '../../typechain';
-import {setupUser, setupUsers} from '../utils';
+import {network} from 'hardhat';
 import {parseEther} from 'ethers/lib/utils';
-import {addDays, getUnixTime} from 'date-fns';
-import {diamondTest} from '../utils/diamond';
+import {setDiamondUser, setupContext, userTesters} from '../utils/diamond';
 
-const setup = deployments.createFixture(async (hre) => {
-  const {deployments, getNamedAccounts, ethers} = hre;
-  await deployments.fixture();
-
-  const accounts = await getNamedAccounts();
-  const users = await getUnnamedAccounts();
-  const {deployer, TDFTokenBeneficiary} = accounts;
-
-  const token: TDFToken = await ethers.getContract('TDFToken', deployer);
-  const contracts = {
-    TDFToken: token,
-    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', deployer),
-  };
-
-  const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);
-
-  const conf = {
-    ...contracts,
-    users: await setupUsers(users, contracts),
-    deployer: await setupUser(deployer, contracts),
-    TDFTokenBeneficiary: tokenBeneficiary,
-    accounts,
-  };
-  // fund users with TDF token
-  await Promise.all(
-    users.map((e) => {
-      return conf.TDFTokenBeneficiary.TDFToken.transfer(e, parseEther('10000'));
-    })
-  );
-  return conf;
-});
+const setup = setupContext;
 
 const incDays = async (days: number) => {
   // suppose the current block has a timestamp of 01:00 PM
@@ -44,63 +11,55 @@ const incDays = async (days: number) => {
   await network.provider.send('evm_mine');
 };
 
-const buildDate = (offset: number) => {
-  const initDate = Date.now();
-  return getUnixTime(addDays(initDate, offset));
-};
-
 describe('TokenLockFacet', () => {
   it('lock and unlockMax', async () => {
-    const {users, TDFDiamond, TDFToken, deployer} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond, TDFToken} = context;
 
-    const user = users[0];
-    const {test, TLF} = await diamondTest({
-      diamond: TDFDiamond,
-      tokenContract: TDFToken,
-      user: user,
-      admin: deployer,
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
     });
-    const {deposit, withdrawMax} = TLF;
+    const test = await userTesters({user: users[0], ...context});
 
-    expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
+    expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
-    await user.TDFToken.approve(TDFDiamond.address, parseEther('10'));
-    await deposit('1');
+    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
+    await user.depositStake('1').success();
 
     await test.balances('1', '1', '9999');
 
-    await withdrawMax.none();
+    await user.withdrawMaxStake().none();
     await test.balances('1', '1', '9999');
 
     await incDays(1);
-    await deposit('1');
+    await user.depositStake('1').success();
     await test.balances('2', '2', '9998');
-    await withdrawMax.success('1');
+    await user.withdrawMaxStake().successWithAmount('1');
     await test.balances('1', '1', '9999');
 
     await incDays(1);
-    await withdrawMax.success('1');
+    await user.withdrawMaxStake().successWithAmount('1');
     await test.balances('0', '0', '10000');
 
-    await expect(user.TDFDiamond.withdrawMaxStake()).to.be.revertedWith('NOT_ENOUGHT_BALANCE');
+    await expect(users[0].TDFDiamond.withdrawMaxStake()).to.be.revertedWith('NOT_ENOUGHT_BALANCE');
   });
   it('lock and unlock', async () => {
-    const {users, TDFDiamond, TDFToken, deployer} = await setup();
+    const context = await setup();
+    const {users, TDFDiamond, TDFToken} = context;
 
-    const user = users[0];
-    const {test, TLF} = await diamondTest({
-      diamond: TDFDiamond,
-      tokenContract: TDFToken,
-      user: user,
-      admin: deployer,
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
     });
-    const {deposit, withdrawMax, withdraw} = TLF;
 
-    expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
+    const test = await userTesters({user: users[0], ...context});
+
+    expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
-    await user.TDFToken.approve(user.TDFDiamond.address, parseEther('10'));
+    await users[0].TDFToken.approve(users[0].TDFDiamond.address, parseEther('10'));
 
     ///////////////////////////////////////////////
     //                DAY 0
@@ -111,9 +70,9 @@ describe('TokenLockFacet', () => {
     // After:
     //     - 1 token unlockable
     ///////////////////////////////////////////////
-    await deposit('1');
+    await user.depositStake('1').success();
     await test.balances('1', '1', '9999');
-    await withdraw.reverted('0.5');
+    await user.withdrawStake('0.5').reverted();
     // Does not change the balances, nothing to unlock
     await test.balances('1', '1', '9999');
 
@@ -121,19 +80,19 @@ describe('TokenLockFacet', () => {
     //  DAY 1
     ///////////////////////////////////////////////
     await incDays(1);
-    await deposit('1');
+    await user.depositStake('1').success();
 
     await test.balances('2', '2', '9998');
 
-    expect(await TDFDiamond.unlockedStake(user.address)).to.eq(parseEther('1'));
+    expect(await TDFDiamond.unlockedStake(users[0].address)).to.eq(parseEther('1'));
     // we only have available 1
     // we are not able to redeem more than 1
     // So trying to remove more will be reverted
-    await withdraw.reverted('1.5');
+    await user.withdrawStake('1.5').reverted();
     // With the balances unchaded
     await test.balances('2', '2', '9998');
     // remove in lower bound of pocket
-    await withdraw.success('0.5');
+    await user.withdrawStake('0.5').success();
     await test.balances('1.5', '1.5', '9998.5');
 
     ///////////////////////////////////////////////
@@ -147,83 +106,80 @@ describe('TokenLockFacet', () => {
     // reminder of 0.25
     ///////////////////////////////////////////////
     await incDays(1);
-    await withdraw.success('1.25');
+    await user.withdrawStake('1.25').success();
 
     await test.balances('0.25', '0.25', '9999.75');
     // Add more balance to stress test
-    await deposit('1.5');
+    await user.depositStake('1.5').success();
 
     await test.balances('1.75', '1.75', '9998.25');
-    await withdrawMax.success('0.25');
+    await user.withdrawMaxStake().successWithAmount('0.25');
     await test.balances('1.5', '1.5', '9998.50');
     await incDays(1);
     ///////////////////////////////////////////////
     //  DAY 3
     // Unlock all
     ///////////////////////////////////////////////
-    await withdraw.success('1.3');
+    await user.withdrawStake('1.3').success();
 
     await test.balances('0.2', '0.2', '9999.8');
-    await withdrawMax.success('0.2');
+    await user.withdrawMaxStake().successWithAmount('0.2');
     await test.balances('0', '0', '10000');
   });
 
   it('restakeMax', async () => {
-    const {users, TDFDiamond, TDFToken, deployer} = await setup();
-    const user = users[0];
+    const context = await setup();
+    const {users, TDFToken} = context;
 
-    const {test, TLF} = await diamondTest({
-      diamond: TDFDiamond,
-      tokenContract: TDFToken,
-      user: user,
-      admin: deployer,
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
     });
-    const {deposit, withdrawMax, restakeMax} = TLF;
+    const test = await userTesters({user: users[0], ...context});
 
-    expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
+    expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
-    await user.TDFToken.approve(user.TDFDiamond.address, parseEther('10'));
-    await deposit('1');
+    await users[0].TDFToken.approve(users[0].TDFDiamond.address, parseEther('10'));
+    await user.depositStake('1').success();
 
     await test.balances('1', '1', '9999');
     await test.stake('1', '0');
     await incDays(1);
-    await deposit('0.5');
+    await user.depositStake('0.5').success();
     await test.balances('1.5', '1.5', '9998.5');
     await test.stake('0.5', '1');
-    await restakeMax();
+    await user.restakeMax().success();
     await test.balances('1.5', '1.5', '9998.5');
     await test.stake('1.5', '0');
     await incDays(1);
-    await withdrawMax.success('1.5');
+    await user.withdrawMaxStake().successWithAmount('1.5');
     await test.balances('0', '0', '10000');
     await test.stake('0', '0');
   });
   it('restake(uint256 amount)', async () => {
-    const {users, TDFDiamond, TDFToken, deployer} = await setup();
-    const user = users[0];
-    const {test, TLF} = await diamondTest({
-      diamond: TDFDiamond,
-      tokenContract: TDFToken,
-      user: user,
-      admin: deployer,
-    });
-    const {deposit, withdrawMax, restakeMax, restake, withdraw} = TLF;
+    const context = await setup();
+    const {users, TDFToken} = context;
 
-    expect(await TDFToken.balanceOf(user.address)).to.eq(parseEther('10000'));
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
+    });
+    const test = await userTesters({user: users[0], ...context});
+
+    expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
-    await user.TDFToken.approve(user.TDFDiamond.address, parseEther('10'));
+    await users[0].TDFToken.approve(users[0].TDFDiamond.address, parseEther('10'));
     ///////////////////////////////////////////////
     //                DAY 0
     ///////////////////////////////////////////////
-    await deposit('1');
+    await user.depositStake('1').success();
 
     await test.balances('1', '1', '9999');
     await test.stake('1', '0');
     // Restake max without any untied amount
-    await restakeMax();
+    await user.restakeMax().success();
     // Results in nothing changes
     await test.balances('1', '1', '9999');
     await test.stake('1', '0');
@@ -232,12 +188,12 @@ describe('TokenLockFacet', () => {
     ///////////////////////////////////////////////
     //                DAY 1
     ///////////////////////////////////////////////
-    await deposit('0.5');
+    await user.depositStake('0.5').success();
 
     await test.balances('1.5', '1.5', '9998.5');
     await test.stake('0.5', '1');
     // Trying to restake more than unlocked will revert
-    await restake.reverted('1.5');
+    await user.restake('1.5').reverted.notEnoughtBalance();
     await test.balances('1.5', '1.5', '9998.5');
     await test.stake('0.5', '1');
     await incDays(1);
@@ -247,28 +203,22 @@ describe('TokenLockFacet', () => {
     await test.balances('1.5', '1.5', '9998.5');
     await test.stake('0', '1.5');
 
-    await restake.success('0.5');
+    await user.restake('0.5').success();
     await test.balances('1.5', '1.5', '9998.5');
     await test.stake('0.5', '1');
-    await withdraw.success('0.25');
+    await user.withdrawStake('0.25').success();
     // await user.TDFDiamond.withdraw(parseEther('0.25'));
     await test.balances('1.25', '1.25', '9998.75');
     await test.stake('0.5', '0.75');
-    await withdrawMax.success('0.75');
+    await user.withdrawMaxStake().successWithAmount('0.75');
     await test.balances('0.5', '0.5', '9999.5');
     await test.stake('0.5', '0');
     ///////////////////////////////////////////////
     //                DAY 3
     ///////////////////////////////////////////////
     await incDays(1);
-    await withdrawMax.success('0.5');
+    await user.withdrawMaxStake().successWithAmount('0.5');
     await test.balances('0', '0', '10000');
     await test.stake('0', '0');
   });
-
-  it('getters', async () => {});
-
-  it('ownable', async () => {});
-
-  it('pausable', async () => {});
 });

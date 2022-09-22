@@ -17,7 +17,7 @@ contract ProofOfPresenceFacet is Modifiers {
     event YearRemoved(uint16 number);
     event YearUpdated(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
 
-    function bookAccommodation(uint16[2][] calldata dates) external whenNotPaused {
+    function bookAccommodation(uint16[2][] calldata dates) external whenNotPaused onlyMember {
         uint256 lastDate;
         for (uint256 i = 0; i < dates.length; i++) {
             uint256 price = 1 ether;

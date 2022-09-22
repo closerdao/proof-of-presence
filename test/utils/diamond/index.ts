@@ -1,37 +1,54 @@
 import {expect} from '../../chai-setup';
 import {parseEther} from 'ethers/lib/utils';
-import {ethers, network} from 'hardhat';
-import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
-import {soliditySha3} from 'web3-utils';
+import {ethers, network, deployments, getUnnamedAccounts} from 'hardhat';
+import {TDFToken, TDFDiamond} from '../../../typechain';
 
-import {HelpersInput, DatesTestData} from './types';
+import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
+import {setupUser, setupUsers} from '..';
+
+import {DatesTestData} from './types';
 import * as TLH from './tokenlockFacet';
 import * as POPH from './proofOfPresenceFacet';
+import * as Members from './membershipFacet';
+import * as Admin from './adminFacet';
+
+export {ROLES} from './adminFacet';
 
 const BN = ethers.BigNumber;
 
-const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
+export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => {
   return {
-    balances: async (TK: string, tkU: string, u: string) => {
-      expect(await tokenContract.balanceOf(diamond.address)).to.eq(parseEther(TK));
-      expect(await diamond.stakedBalanceOf(user.address)).to.eq(parseEther(tkU));
-      expect(await tokenContract.balanceOf(user.address)).to.eq(parseEther(u));
+    balances: async (diamondTokenBalance: string, stakedBalance: string, userTokenBalance: string) => {
+      expect(
+        await TDFToken.balanceOf(TDFDiamond.address),
+        `balances diamondTokenBalance to Eq(${diamondTokenBalance})`
+      ).to.eq(parseEther(diamondTokenBalance));
+      expect(await TDFDiamond.stakedBalanceOf(user.address), `balances stakedBalance to Eq(${stakedBalance})`).to.eq(
+        parseEther(stakedBalance)
+      );
+      expect(await TDFToken.balanceOf(user.address), `balances userTokenBalance to Eq(${userTokenBalance})`).to.eq(
+        parseEther(userTokenBalance)
+      );
     },
     stake: async (locked: string, unlocked: string) => {
-      expect(await diamond.lockedStake(user.address)).to.eq(parseEther(locked));
-      expect(await diamond.unlockedStake(user.address)).to.eq(parseEther(unlocked));
+      expect(await TDFDiamond.lockedStake(user.address), `stake locked to Eq(${locked})`).to.eq(parseEther(locked));
+      expect(await TDFDiamond.unlockedStake(user.address), `stake unlocked to Eq(${unlocked})`).to.eq(
+        parseEther(unlocked)
+      );
     },
     deposits: async (examples: [string, number][]) => {
-      const deposits = await diamond.depositsStakedFor(user.address);
+      const deposits = await TDFDiamond.depositsStakedFor(user.address);
       for (let i = 0; i < deposits.length; i++) {
-        expect(deposits[i].amount).to.eq(parseEther(examples[i][0]));
-        expect(deposits[i].timestamp).to.eq(BN.from(examples[i][1]));
+        expect(deposits[i].amount, `deposits Index(${i}) Amount(${examples[i][0]})`).to.eq(parseEther(examples[i][0]));
+        expect(deposits[i].timestamp, `deposits Index(${i}) timestamp(${examples[i][1]})`).to.eq(
+          BN.from(examples[i][1])
+        );
       }
     },
     bookings: async (dates: DatesTestData, price: string) => {
       await Promise.all(
         dates.data.map(async (e) => {
-          const [success, booking] = await diamond.getAccommodationBooking(user.address, e.year, e.day);
+          const [success, booking] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
           return Promise.all([
             expect(booking.price).to.eq(parseEther(price)),
             expect(booking.year).to.eq(e.year),
@@ -41,29 +58,6 @@ const testHelpers = async ({tokenContract, diamond, user}: HelpersInput) => {
         })
       );
     },
-  };
-};
-
-export const diamondTest = async (input: HelpersInput) => {
-  return {
-    getRoles: async () => {
-      const {diamond} = input;
-      const val = await diamond.getRoles();
-      const out: {[key: string]: string} = {};
-      console.log(val);
-      console.log('before val');
-      console.log(val[0], 'val[0][1]');
-      console.log('after val');
-      for (let i = 0; i < val.length; i++) {
-        console.log('<begin>LOOP');
-        out[val[i][0]] = 'boo'; //val[i][1];
-        console.log('<end>LOOP');
-      }
-      return out;
-    },
-    test: await testHelpers(input),
-    TLF: await TLH.setupHelpers(input),
-    POPH: await POPH.setupHelpers(input),
   };
 };
 
@@ -106,10 +100,70 @@ export const yearData = () => {
   };
 };
 
-export const roles = {
-  DEFAULT_ADMIN_ROLE: '0x0000000000000000000000000000000000000000000000000000000000000000',
-  MINTER_ROLE: soliditySha3('MINTER_ROLE'),
-  BOOKING_MANAGER_ROLE: soliditySha3('BOOKING_MANAGER_ROLE'),
-  STAKE_MANAGER_ROLE: soliditySha3('STAKE_MANAGER_ROLE'),
-  VAULT_MANAGER_ROLE: soliditySha3('VAULT_MANAGER_ROLE'),
+export const setupContext = deployments.createFixture(async (hre) => {
+  const {deployments, getNamedAccounts, ethers} = hre;
+  await deployments.fixture();
+
+  const accounts = await getNamedAccounts();
+  const users = await getUnnamedAccounts();
+  const {deployer, TDFTokenBeneficiary} = accounts;
+
+  const token: TDFToken = await ethers.getContract('TDFToken', deployer);
+  const contracts = {
+    TDFToken: token,
+    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', deployer),
+  };
+
+  const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);
+
+  const conf = {
+    ...contracts,
+    users: await setupUsers(users, contracts),
+    deployer: await setupUser(deployer, contracts),
+    TDFTokenBeneficiary: tokenBeneficiary,
+    accounts,
+  };
+  // fund users with TDF token
+  await Promise.all(
+    users.map((e) => {
+      return conf.TDFTokenBeneficiary.TDFToken.transfer(e, parseEther('10000'));
+    })
+  );
+  return conf;
+});
+type setupReturnType = Awaited<ReturnType<typeof setupContext>>;
+export type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
+
+export const setDiamondUser = async (testContext: TestContext) => {
+  return {
+    ...(await TLH.setupHelpers(testContext)),
+    ...(await POPH.setupHelpers(testContext)),
+    ...(await Members.setupHelpers(testContext)),
+    ...(await Admin.setupHelpers(testContext)),
+  };
+};
+
+export const getterHelpers = async (testContext: TestContext) => {
+  return {
+    ...(await POPH.getterHelpers(testContext)),
+    ...(await Admin.getterHelpers(testContext)),
+  };
+};
+
+export const roleTesters = async (testContext: TestContext) => {
+  const booking = await POPH.roleTesters(testContext);
+  const admin = await Admin.roleTesters(testContext);
+  const members = await Members.roleTesters(testContext);
+  return {
+    can: {
+      ...members.can,
+      ...booking.can,
+      ...admin.can,
+    },
+    cannot: {
+      ...members.cannot,
+      ...booking.cannot,
+      ...admin.cannot,
+    },
+  };
 };

@@ -18,6 +18,7 @@ import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol"
 
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AccessControlLib.sol";
+import "../libraries/MembershipLib.sol";
 
 // It is expected that this contract is customized if you want to deploy your diamond
 // with data from a deployment script. Use the init function to initialize state variables
@@ -26,6 +27,7 @@ import "../libraries/AccessControlLib.sol";
 contract DiamondInit is Modifiers {
     using BookingMapLib for BookingMapLib.YearsStore;
     using AccessControlLib for AccessControlLib.RoleStore;
+    using MembershipLib for MembershipLib.Store;
 
     // You can add parameters to this function in order to pass in
     // data to set your own state variables
@@ -62,6 +64,9 @@ contract DiamondInit is Modifiers {
         s._roleStore.grantRole(AccessControlLib.BOOKING_MANAGER_ROLE, msg.sender);
         s._roleStore.grantRole(AccessControlLib.STAKE_MANAGER_ROLE, msg.sender);
         s._roleStore.grantRole(AccessControlLib.VAULT_MANAGER_ROLE, msg.sender);
+        s._roleStore.grantRole(AccessControlLib.MEMBERSHIP_MANAGER_ROLE, msg.sender);
+
+        s.members.add(msg.sender);
         // Set the contract as initialized
         s.initialized = true;
 
