@@ -27,34 +27,10 @@ library StakeLib {
         uint256 stakeLockingPeriod;
     }
 
-    // Memory structs for Aggregations and Calculations
-    // This are internal, should not be used outside
-    struct StakedDepositTemp {
-        uint256 timestamp;
-        uint256 amount;
-    }
-
     struct WithdrawingResult {
         uint256 untiedAmount;
         uint256 remainingBalance;
         StakedDeposit[] remainingDeposits;
-    }
-
-    enum Command {
-        Add,
-        Update,
-        Delete
-    }
-    struct DepositsCommand {
-        Command command;
-        bytes32 key;
-        uint256 amount;
-        uint256 tm;
-    }
-    struct WithdrawingResultOptimized {
-        uint256 untiedAmount;
-        uint256 remainingBalance;
-        DepositsCommand[] commands;
     }
 
     event DepositedTokens(address account, uint256 amount);
