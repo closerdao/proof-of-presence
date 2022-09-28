@@ -12,7 +12,7 @@ import * as bookingHelpers from './bookingHelpers';
 import * as membershipHelpers from './membershipHelpers';
 import * as adminHelpers from './adminHelpers';
 
-export {ROLES} from './adminHelpers';
+export {ROLES} from '../../../utils';
 
 const BN = ethers.BigNumber;
 

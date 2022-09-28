@@ -31,7 +31,7 @@ contract DiamondInit is Modifiers {
 
     // You can add parameters to this function in order to pass in
     // data to set your own state variables
-    function init(address token, uint256 daysLocked) external onlyOwner whenNotInitalized {
+    function init(address token, uint256 secondsLocked) external onlyOwner whenNotInitalized {
         // adding ERC165 data
         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
         ds.supportedInterfaces[type(IERC165).interfaceId] = true;
@@ -57,7 +57,7 @@ contract DiamondInit is Modifiers {
         s._accommodationYears.add(
             BookingMapLib.Year({number: 2027, leapYear: false, start: 1798761600, end: 1830297599, enabled: true})
         );
-        s.staking.stakeLockingPeriod = daysLocked * 86400;
+        s.staking.stakeLockingPeriod = secondsLocked;
 
         s._roleStore.grantRole(AccessControlLib.DEFAULT_ADMIN_ROLE, msg.sender);
         s._roleStore.grantRole(AccessControlLib.MINTER_ROLE, msg.sender);
