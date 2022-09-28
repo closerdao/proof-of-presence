@@ -9,6 +9,7 @@ import 'solidity-coverage';
 import 'hardhat-deploy-tenderly';
 import {task} from 'hardhat/config';
 import {addForkConfiguration} from './utils/network';
+import './hardhatExtensions';
 
 // const mnemonicPath = "m/44'/52752'/0'/0"; // derivation path used by Celo
 

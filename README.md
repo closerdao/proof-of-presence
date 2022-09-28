@@ -8,14 +8,31 @@ yarn
 
 ## TEST
 
-There are 3 flavors of tests: hardhat, dapptools and forge
-
-### hardhat
-
 - One using hardhat that can leverage hardhat-deploy to reuse deployment procedures and named accounts:
 
 ```bash
 yarn test
+```
+
+## Hardhat tasks
+
+### deploy
+
+```
+npx hardhat deploy --network alfajores
+```
+
+### Grant role
+
+```
+npx hardhat diamond:grant-role 0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716 --network alfajores
+```
+
+### Set locking time period
+
+```
+npx hardhat diamond:set_locking_period 1 --days --network alfajores
+=> Setting staking locking time period to: 1 days
 ```
 
 ## SCRIPTS
