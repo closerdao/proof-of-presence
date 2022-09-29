@@ -7,111 +7,7 @@ import "@openzeppelin/contracts/utils/structs/DoubleEndedQueue.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "hardhat/console.sol";
-
-// TODO: make clearer public and private methods removing `_`
-library OrderedStakeLib {
-    using DoubleEndedQueue for DoubleEndedQueue.Bytes32Deque;
-
-    // ONLY MEMORY!!
-    struct Deposit {
-        uint256 timestamp;
-        uint256 amount;
-    }
-
-    struct Store {
-        uint256 _balance;
-        DoubleEndedQueue.Bytes32Deque _queue;
-        mapping(bytes32 => uint256) _amounts;
-    }
-
-    function _pushFront(
-        Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
-        bytes32 key = bytes32(timestamp);
-        store._queue.pushFront(key);
-        store._amounts[key] = amount;
-        store._balance += amount;
-    }
-
-    // PRIVATE do not use use _pushBackOrdered instead
-    function _pushBack(
-        Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
-        bytes32 key = bytes32(timestamp);
-        require(store._amounts[key] == uint256(0), "CAN NOT OVERRIDE TIMESTAMPS");
-        store._queue.pushBack(key);
-        store._amounts[key] = amount;
-        store._balance += amount;
-    }
-
-    // PRIVATE do not use use _pushBackOrdered instead
-    function _incrementBack(
-        Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
-        bytes32 key = bytes32(timestamp);
-        require(store._amounts[key] != uint256(0), "Trying to update empty");
-        store._amounts[key] += amount;
-        store._balance += amount;
-    }
-
-    function pushBackOrdered(
-        Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
-        if (store._queue.empty()) {
-            _pushBack(store, amount, timestamp);
-        } else {
-            uint256 backTm = uint256(store._queue.back());
-            if (backTm < timestamp) {
-                _pushBack(store, amount, timestamp);
-            } else if (backTm == timestamp) {
-                _incrementBack(store, amount, timestamp);
-            } else {
-                bytes32 last = store._queue.popBack();
-                pushBackOrdered(store, amount, timestamp);
-                store._queue.pushBack(last);
-            }
-        }
-    }
-
-    function popFront(Store storage store) internal returns (Deposit memory deposit) {
-        bytes32 key = store._queue.popFront();
-        uint256 val = store._amounts[key];
-        delete store._amounts[key];
-        store._balance -= val;
-        deposit.timestamp = uint256(key);
-        deposit.amount = val;
-    }
-
-    function length(Store storage store) internal view returns (uint256) {
-        return store._queue.length();
-    }
-
-    function at(Store storage store, uint256 index) internal view returns (Deposit memory deposit) {
-        bytes32 key = store._queue.at(index);
-        deposit.timestamp = uint256(key);
-        deposit.amount = uint256(store._amounts[key]);
-    }
-
-    function list(Store storage store) internal view returns (OrderedStakeLib.Deposit[] memory) {
-        Deposit[] memory deposits_ = new Deposit[](length(store));
-        for (uint256 i; i < length(store); i++) {
-            deposits_[i] = at(store, i);
-        }
-        return deposits_;
-    }
-
-    function empty(Store storage store) internal view returns (bool) {
-        return store._queue.empty();
-    }
-}
+import "../OrderedStakeLib.sol";
 
 library StakeLibV2 {
     using SafeERC20 for IERC20;
@@ -167,7 +63,7 @@ library StakeLibV2 {
         uint256 amount,
         uint256 depositTm
     ) internal {
-        store.pushBackOrdered(amount, depositTm);
+        store.push(amount, depositTm);
         token.safeTransferFrom(account, address(this), amount);
         emit DepositedTokens(account, amount);
     }
@@ -178,33 +74,11 @@ library StakeLibV2 {
         address account,
         uint256 requested
     ) internal {
-        require(requested > uint256(0), "Nothing Requested");
-        require(store._balance > requested, "NOT_ENOUGH_BALANCE");
-        uint256 current_extracted;
         // TODO: move to orderedStakeLib
-        while (current_extracted < requested) {
-            OrderedStakeLib.Deposit memory current_deposit = store.popFront();
-            if (_isReleasable(current_deposit)) {
-                if (current_deposit.amount + current_extracted == requested) {
-                    current_extracted += current_deposit.amount;
-                } else if (current_deposit.amount + current_extracted > requested) {
-                    // substract front
-                    uint256 reminder = current_deposit.amount + current_extracted - requested;
-                    store._pushFront(reminder, current_deposit.timestamp);
-                    current_extracted = requested;
-                } else {
-                    current_extracted += current_deposit.amount;
-                }
-            } else {
-                revert("NOT_ENOUGHT_UNLOCKABLE_BALANCE");
-            }
-        }
+        store.takeUntil(block.timestamp + 1 * 86400, requested);
+
         communityToken.safeTransferFrom(address(this), account, requested);
         emit WithdrawnTokens(account, requested);
-    }
-
-    function _isReleasable(OrderedStakeLib.Deposit memory deposit) internal view returns (bool) {
-        return true;
     }
 
     // @dev
@@ -276,9 +150,7 @@ library StakeLibV2 {
 
 contract StakeLibV2Mock {
     using StakeLibV2 for OrderedStakeLib.Store;
-    // This is just for testing, Should never be used in the real contract
-    // Only use StakeLibV2
-    using OrderedStakeLib for OrderedStakeLib.Store;
+
     mapping(address => OrderedStakeLib.Store) staking;
     IERC20 token;
     event DepositedTokens(address account, uint256 amount);
@@ -288,19 +160,6 @@ contract StakeLibV2Mock {
 
     constructor(address token_) {
         token = IERC20(token_);
-    }
-
-    // -------------------------------
-    // OrderedStakeLib TESTS
-    // -------------------------------
-    function _pushBackOrdered(uint256 amount, uint256 timestamp) public {
-        staking[msg.sender].pushBackOrdered(amount, timestamp);
-        emit PushBack(true);
-    }
-
-    function _popFront() public {
-        OrderedStakeLib.Deposit memory _deposit = staking[msg.sender].popFront();
-        emit PopFront(_deposit.amount, _deposit.timestamp);
     }
 
     // -------------------------------
