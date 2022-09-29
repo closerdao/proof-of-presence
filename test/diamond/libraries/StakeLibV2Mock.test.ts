@@ -1,6 +1,6 @@
 import {expect} from '../../chai-setup';
 import {deployments, getUnnamedAccounts, network, ethers} from 'hardhat';
-import {StakeLibV2Mock, ERC20TestMock} from '../../../typechain';
+import {StakeLibV2Mock, ERC20TestMock, OrderedStakeLibMock} from '../../../typechain';
 import {setupUser, setupUsers, getMock} from '../../utils';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays, getUnixTime} from 'date-fns';
@@ -25,6 +25,7 @@ const setup = deployments.createFixture(async (hre) => {
 
   const contracts = {
     token: token,
+    map: <OrderedStakeLibMock>await getMock('OrderedStakeLibMock', deployer, []),
     stake: <StakeLibV2Mock>await getMock('StakeLibV2Mock', deployer, [token.address]),
   };
 
@@ -125,69 +126,7 @@ const tokenManagement = ({token, user, stake}: TestContext) => {
   };
 };
 
-describe('StakeLibV2Mock', () => {
-  it('_pushBackOrdered', async () => {
-    const context = await setup();
-    const {users, stake} = context;
-    const {test, deposit, tokenManagement} = setupTest({...context, user: users[0]});
-
-    const pushBack = async (amount: string, tm: number) => {
-      await expect(users[0].stake._pushBackOrdered(parseEther(amount), tm))
-        .to.emit(stake, 'PushBack')
-        .withArgs(true);
-    };
-
-    const popFront = async (amount: string, tm: number) => {
-      await expect(users[0].stake._popFront()).to.emit(stake, 'PopFront').withArgs(parseEther(amount), BN.from(tm));
-    };
-    const balance = async (amount: string) => {
-      const val = await stake.balanceOf(users[0].address);
-      expect(val).to.eq(parseEther(amount));
-    };
-
-    await pushBack('1', 1);
-    await pushBack('3', 3);
-    await pushBack('2', 2);
-    await test.deposits([
-      ['1', 1],
-      ['2', 2],
-      ['3', 3],
-    ]);
-    await balance('6');
-    await pushBack('5', 5);
-    await pushBack('4', 4);
-    await test.deposits([
-      ['1', 1],
-      ['2', 2],
-      ['3', 3],
-      ['4', 4],
-      ['5', 5],
-    ]);
-    await balance('15');
-    await popFront('1', 1);
-    await popFront('2', 2);
-    await popFront('3', 3);
-    await test.deposits([
-      ['4', 4],
-      ['5', 5],
-    ]);
-    await balance('9');
-    await pushBack('1', 1);
-    await test.deposits([
-      ['1', 1],
-      ['4', 4],
-      ['5', 5],
-    ]);
-    await balance('10');
-    // Update timestamps
-    await pushBack('4', 4);
-    await balance('14');
-    await test.deposits([
-      ['1', 1],
-      ['8', 4],
-      ['5', 5],
-    ]);
-  });
+describe('StakingLibV2Mock', () => {
   it('deposit', async () => {
     const context = await setup();
     const {users} = context;
