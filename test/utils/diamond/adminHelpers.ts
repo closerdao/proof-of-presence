@@ -50,7 +50,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(user.TDFDiamond.setLockingTimePeriodDays(days), `setLockingTimePeriodDays: should succeed ${days}`)
           .to.emit(TDFDiamond, 'LockingTimePeriodChanged')
-          .withArgs(days, user.address);
+          .withArgs(days * 86400, user.address);
       },
       reverted: {
         onlyRole: async () => {
