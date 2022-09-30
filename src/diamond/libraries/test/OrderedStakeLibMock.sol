@@ -23,7 +23,7 @@ contract OrderedStakeLibMock {
     }
 
     function balance() public view returns (uint256) {
-        return store._balance;
+        return store.balance();
     }
 
     function deposits() public view returns (OrderedStakeLib.Deposit[] memory) {

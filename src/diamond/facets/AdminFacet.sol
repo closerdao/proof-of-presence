@@ -53,14 +53,14 @@ contract AdminFacet is Modifiers {
     function setLockingTimePeriodDays(uint256 daysLocked) public onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) {
         require(daysLocked > uint256(0), "AdminFaucet: days should be bigger than ZERO");
         // TODO: when updating solidity change 86400 for days keyword
-        s.staking.stakeLockingPeriod = daysLocked * 86400;
+        s._lockingTimePeriod = daysLocked * 86400;
         emit LockingTimePeriodChanged(daysLocked * 86400, _msgSender());
     }
 
     // TODO: deprecate when deployed to main chain to avoid errors providing small numbers
     function setLockingTimePeriodSeconds(uint256 seconds_) public onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) {
         require(seconds_ > uint256(0), "AdminFaucet: seconds should be bigger than ZERO");
-        s.staking.stakeLockingPeriod = seconds_;
+        s._lockingTimePeriod = seconds_;
         emit LockingTimePeriodChanged(seconds_, _msgSender());
     }
 

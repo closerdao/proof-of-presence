@@ -8,7 +8,7 @@ import "../libraries/AppStorage.sol";
 contract BookingFacet is Modifiers {
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
-    using StakeLib for StakeLib.StakeStore;
+    using StakeLibV2 for StakeLibV2.Context;
 
     event NewBookings(address account, uint16[2][] bookings);
     event CanceledBookings(address account, uint16[2][] bookings);
@@ -25,8 +25,12 @@ contract BookingFacet is Modifiers {
 
             if (lastDate < value.timestamp) lastDate = value.timestamp;
         }
-
-        s.staking.restakeOrDepositAtFor(s.communityToken, _msgSender(), _expectedStaked(_msgSender()), lastDate);
+        _stakeLibContext(_msgSender()).restakeOrDepositAt(
+            s.staking[_msgSender()],
+            _expectedStaked(_msgSender()),
+            lastDate
+        );
+        // s.staking.restakeOrDepositAtFor(s.communityToken, _msgSender(), _expectedStaked(_msgSender()), lastDate);
         emit NewBookings(_msgSender(), dates);
     }
 

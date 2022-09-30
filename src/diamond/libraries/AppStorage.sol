@@ -10,13 +10,8 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AccessControlLib.sol";
-import "../libraries/StakeLib.sol";
 import "../libraries/MembershipLib.sol";
-
-struct StakedDeposit {
-    uint256 timestamp;
-    uint256 amount;
-}
+import "../libraries/StakeLibV2.sol";
 
 struct AppStorage {
     bool initialized;
@@ -30,7 +25,8 @@ struct AppStorage {
     mapping(address => BookingMapLib.UserStore) _accommodationBookings;
     BookingMapLib.YearsStore _accommodationYears;
     // Stake
-    StakeLib.StakeStore staking;
+    mapping(address => OrderedStakeLib.Store) staking;
+    uint256 _lockingTimePeriod;
     // Members
     MembershipLib.Store members;
 }
@@ -46,6 +42,7 @@ library LibAppStorage {
 contract Modifiers {
     using AccessControlLib for AccessControlLib.RoleStore;
     using MembershipLib for MembershipLib.Store;
+    using StakeLibV2 for StakeLibV2.Context;
 
     AppStorage internal s;
 
@@ -121,6 +118,10 @@ contract Modifiers {
      */
     function _requirePaused() internal view virtual {
         require(s.paused, "Pausable: not paused");
+    }
+
+    function _stakeLibContext(address account) internal view returns (StakeLibV2.Context memory) {
+        return StakeLibV2.Context({account: account, token: s.communityToken, lockingTimePeriod: s._lockingTimePeriod});
     }
 
     function _msgSender() internal view virtual returns (address) {

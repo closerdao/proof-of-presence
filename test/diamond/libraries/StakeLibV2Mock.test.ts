@@ -1,6 +1,6 @@
 import {expect} from '../../chai-setup';
 import {deployments, getUnnamedAccounts, network, ethers} from 'hardhat';
-import {StakeLibV2Mock, ERC20TestMock, OrderedStakeLibMock} from '../../../typechain';
+import {StakeLibV2Mock, ERC20TestMock} from '../../../typechain';
 import {setupUser, setupUsers, getMock} from '../../utils';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays, getUnixTime} from 'date-fns';
@@ -25,7 +25,6 @@ const setup = deployments.createFixture(async (hre) => {
 
   const contracts = {
     token: token,
-    map: <OrderedStakeLibMock>await getMock('OrderedStakeLibMock', deployer, []),
     stake: <StakeLibV2Mock>await getMock('StakeLibV2Mock', deployer, [token.address]),
   };
 
@@ -46,13 +45,14 @@ const setupTest = (context: TestContext) => {
     test: {
       balances: async (TK: string, tkU: string, u: string) => {
         expect(await token.balanceOf(stake.address), `balances: staking Contract owns token`).to.eq(parseEther(TK));
-        expect(await stake.balanceOf(user.address), `balances: user amount staked`).to.eq(parseEther(tkU));
+        expect(await stake.balance(), `balances: user amount staked`).to.eq(parseEther(tkU));
         expect(await token.balanceOf(user.address), 'balances: user amount of token').to.eq(parseEther(u));
       },
 
       deposits: async (examples: [string, number][]) => {
-        const deposits = await stake.depositsFor(user.address);
-        for (let i = 0; i < deposits.length; i++) {
+        const deposits = await stake.deposits();
+        for (let i = 0; i < examples.length; i++) {
+          expect(deposits[i], `deposit should exits amount=${examples[i][0]} tm=${examples[i][1]}`).to.not.be.undefined;
           expect(deposits[i].amount, 'deposits amount').to.eq(parseEther(examples[i][0]));
           expect(deposits[i].timestamp, 'deposits timestamp').to.eq(BN.from(examples[i][1]));
         }
@@ -63,11 +63,8 @@ const setupTest = (context: TestContext) => {
       },
     },
     tokenManagement: tokenManagement(context),
-    restakeOrDepositAtFor: async (a: string, tm: number) => {
-      await expect(user.stake.restakeOrDepositAtFor(user.address, parseEther(a), tm)).to.emit(
-        stake,
-        'RestakeOrDepositedAtForStatus'
-      );
+    restakeOrDepositAt: async (a: string, tm: number) => {
+      await expect(user.stake.restakeOrDepositAt(parseEther(a), tm)).to.emit(stake, 'RestakeOrDepositedAtForStatus');
     },
     deposit: {
       success: async (amount: string) => {
@@ -165,75 +162,74 @@ describe('StakingLibV2Mock', () => {
     // --------------------------------------------
     //
     ///////////////////////////////////////////////
+    await test.balances('1', '1', '999');
     await incDays(1);
     await withdraw('1').success();
+    await test.balances('0', '0', '1000');
   });
-  xit('restakeOrDepositAt', async () => {
-    // const context = await setup();
-    // const {users, stake, token, deployer} = context;
-    // const user = users[0];
-    // const {test, restakeOrDepositAtFor, withdraw, withdrawMax} = setupTest({...context, user});
-    // await user.token.faucet(parseEther('10000'));
-    // expect(await token.balanceOf(user.address), 'user to have initial balance').to.eq(parseEther('10000'));
-    // await test.balances('0', '0', '10000');
-    // // await user.TDFToken.approve(deployer.address, parseEther('10'));
-    // await user.token.approve(stake.address, parseEther('10'));
-    // let initLockAt = buildDate(3);
-    // ///////////////////////////////////////////////
-    // //                DAY 0
-    // // --------------------------------------------
-    // // With 0 stake, restake transfers Token to contract
-    // ///////////////////////////////////////////////
-    // await restakeOrDepositAtFor('1', initLockAt);
-    // await test.balances('1', '1', '9999');
-    // await test.deposits([['1', initLockAt]]);
-    // await test.stake('1', '0');
-    // ///////////////////////////////////////////////
-    // //                DAY 1
-    // // --------------------------------------------
-    // // Can not unstake since we staked in the future
-    // ///////////////////////////////////////////////
-    // await incDays(1);
-    // await withdraw.reverted('0.5');
-    // await test.balances('1', '1', '9999');
-    // await test.deposits([['1', initLockAt]]);
-    // await test.stake('1', '0');
-    // ///////////////////////////////////////////////
-    // //                DAY 4
-    // // --------------------------------------------
-    // // Can withdraw 1
-    // //
-    // ///////////////////////////////////////////////
-    // await incDays(4);
-    // await withdraw.success('0.5');
-    // await test.balances('0.5', '0.5', '9999.5');
-    // await test.deposits([['0.5', initLockAt]]);
-    // await test.stake('0', '0.5');
-    // // ------ Can reStake to the future current staked
-    // initLockAt = buildDate(6);
-    // await restakeOrDepositAtFor('0.5', initLockAt);
-    // await test.balances('0.5', '0.5', '9999.5');
-    // await test.deposits([['0.5', initLockAt]]);
-    // await test.stake('0.5', '0');
-    // // can not unstake
-    // await withdrawMax.none();
-    // await test.balances('0.5', '0.5', '9999.5');
-    // await test.deposits([['0.5', initLockAt]]);
-    // await test.stake('0.5', '0');
-    // ///////////////////////////////////////////////
-    // //                DAY 4 - CONT Restake locked
-    // // --------------------------------------------
-    // // mixed restake (token transfer, restake)
-    // // locked 0.5
-    // ///////////////////////////////////////////////
-    // initLockAt = buildDate(8);
-    // await restakeOrDepositAtFor('1', initLockAt);
-    // await test.balances('1', '1', '9999');
-    // await test.stake('1', '0');
-    // await test.deposits([
-    //   ['0.5', initLockAt],
-    //   ['0.5', initLockAt],
-    // ]);
+  it('restakeOrDepositAt', async () => {
+    const context = await setup();
+    const {users, stake, token} = context;
+    const user = users[0];
+    const {test, restakeOrDepositAt, withdraw, withdrawMax} = setupTest({...context, user});
+    await user.token.faucet(parseEther('10000'));
+    expect(await token.balanceOf(user.address), 'user to have initial balance').to.eq(parseEther('10000'));
+    await test.balances('0', '0', '10000');
+    // await user.TDFToken.approve(deployer.address, parseEther('10'));
+    await user.token.approve(stake.address, parseEther('10'));
+    let initLockAt = buildDate(3);
+    ///////////////////////////////////////////////
+    //                DAY 0
+    // --------------------------------------------
+    // With 0 stake, restake transfers Token to contract
+    ///////////////////////////////////////////////
+    await restakeOrDepositAt('1', initLockAt);
+    await test.balances('1', '1', '9999');
+    await test.deposits([['1', initLockAt]]);
+    await test.stake('1', '0');
+    ///////////////////////////////////////////////
+    //                DAY 1
+    // --------------------------------------------
+    // Can not unstake since we staked in the future
+    ///////////////////////////////////////////////
+    await incDays(1);
+    await withdraw('0.5').reverted.unlockable();
+    await test.balances('1', '1', '9999');
+    await test.deposits([['1', initLockAt]]);
+    await test.stake('1', '0');
+    ///////////////////////////////////////////////
+    //                DAY 4
+    // --------------------------------------------
+    // Can withdraw 1
+    //
+    ///////////////////////////////////////////////
+    await incDays(4);
+    await withdraw('0.5').success();
+    await test.balances('0.5', '0.5', '9999.5');
+    await test.deposits([['0.5', initLockAt]]);
+    await test.stake('0', '0.5');
+    // ------ Can reStake to the future current staked
+    initLockAt = buildDate(6);
+    await restakeOrDepositAt('0.5', initLockAt);
+    await test.balances('0.5', '0.5', '9999.5');
+    await test.deposits([['0.5', initLockAt]]);
+    await test.stake('0.5', '0');
+    // can not unstake
+    await withdrawMax.none();
+    await test.balances('0.5', '0.5', '9999.5');
+    await test.deposits([['0.5', initLockAt]]);
+    await test.stake('0.5', '0');
+    ///////////////////////////////////////////////
+    //                DAY 4 - CONT Restake locked
+    // --------------------------------------------
+    // mixed restake (token transfer, restake)
+    // locked 0.5
+    ///////////////////////////////////////////////
+    initLockAt = buildDate(8);
+    await restakeOrDepositAt('1', initLockAt);
+    await test.balances('1', '1', '9999');
+    await test.stake('1', '0');
+    await test.deposits([['1', initLockAt]]);
   });
 });
 

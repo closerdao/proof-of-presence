@@ -117,6 +117,10 @@ library OrderedStakeLib {
         return store._balance - balanceUntil(store, fromTm);
     }
 
+    function balance(Store storage store) internal view returns (uint256) {
+        return store._balance;
+    }
+
     // ===================================
     // PRIVATE FUNCTIONS
     // ===================================
