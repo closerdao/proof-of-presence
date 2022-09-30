@@ -57,7 +57,7 @@ contract DiamondInit is Modifiers {
         s._accommodationYears.add(
             BookingMapLib.Year({number: 2027, leapYear: false, start: 1798761600, end: 1830297599, enabled: true})
         );
-        s.staking.stakeLockingPeriod = secondsLocked;
+        s._lockingTimePeriod = secondsLocked;
 
         s._roleStore.grantRole(AccessControlLib.DEFAULT_ADMIN_ROLE, msg.sender);
         s._roleStore.grantRole(AccessControlLib.MINTER_ROLE, msg.sender);

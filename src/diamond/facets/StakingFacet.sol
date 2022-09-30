@@ -8,56 +8,54 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../libraries/AppStorage.sol";
-import "../libraries/StakeLib.sol";
 
 contract StakingFacet is Modifiers, ReentrancyGuard {
     using SafeERC20 for IERC20;
-    using StakeLib for StakeLib.StakeStore;
+    using StakeLibV2 for StakeLibV2.Context;
+    using StakeLibV2 for OrderedStakeLib.Store;
 
     event DepositedTokens(address account, uint256 amount);
     event WithdrawnTokens(address account, uint256 amount);
 
     function depositStake(uint256 amount) public {
-        _deposit(_msgSender(), amount, block.timestamp);
+        _stakeLibContext(_msgSender()).add(s.staking[_msgSender()], amount);
     }
 
-    function _deposit(
-        address account,
-        uint256 amount,
-        uint256 depositTm
-    ) internal {
-        s.staking.deposit(s.communityToken, account, amount, depositTm);
+    function withdrawMaxStake() public {
+        _stakeLibContext(_msgSender()).takeMax(s.staking[_msgSender()]);
+
+        // return s.staking.withdrawMax(s.communityToken, _msgSender());
     }
 
-    function withdrawMaxStake() public returns (uint256) {
-        return s.staking.withdrawMax(s.communityToken, _msgSender());
+    function withdrawStake(uint256 requested) public {
+        _stakeLibContext(_msgSender()).remove(s.staking[_msgSender()], requested);
+
+        // return s.staking.withdraw(s.communityToken, _msgSender(), requested);
     }
 
-    function withdrawStake(uint256 requested) public returns (uint256) {
-        return s.staking.withdraw(s.communityToken, _msgSender(), requested);
-    }
+    // function restakeMax() public {
+    //     _stakeLibContext(_msgSender()).restakeMax(s.staking[_msgSender()]);
 
-    function restakeMax() public {
-        s.staking.restakeMax(_msgSender());
-    }
+    //     // s.staking.restakeMax(_msgSender());
+    // }
 
-    function restake(uint256 requestedAmount) public {
-        s.staking.restake(_msgSender(), requestedAmount);
-    }
+    // function restake(uint256 requestedAmount) public {
+    //     s.staking.restake(_msgSender(), requestedAmount);
+    // }
 
     function unlockedStake(address account) public view returns (uint256) {
-        return s.staking.unlocked(account);
+        return _stakeLibContext(_msgSender()).releasable(s.staking[account]);
     }
 
     function lockedStake(address account) public view returns (uint256) {
-        return s.staking.locked(account);
+        return _stakeLibContext(_msgSender()).locked(s.staking[account]);
     }
 
     function stakedBalanceOf(address account) public view returns (uint256) {
-        return s.staking.balanceOf(account);
+        return s.staking[account].balance();
     }
 
-    function depositsStakedFor(address account) public view returns (StakeLib.StakedDeposit[] memory) {
-        return s.staking.depositsFor(account);
+    function depositsStakedFor(address account) public view returns (OrderedStakeLib.Deposit[] memory) {
+        return s.staking[account].deposits();
     }
 }
