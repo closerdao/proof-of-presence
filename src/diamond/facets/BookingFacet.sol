@@ -30,7 +30,6 @@ contract BookingFacet is Modifiers {
             _expectedStaked(_msgSender()),
             lastDate
         );
-        // s.staking.restakeOrDepositAtFor(s.communityToken, _msgSender(), _expectedStaked(_msgSender()), lastDate);
         emit NewBookings(_msgSender(), dates);
     }
 
@@ -52,20 +51,29 @@ contract BookingFacet is Modifiers {
     }
 
     function cancelAccommodation(uint16[2][] calldata dates) external whenNotPaused {
+        uint256 lastDate;
         for (uint256 i = 0; i < dates.length; i++) {
-            _cancel(_msgSender(), dates[i][0], dates[i][1]);
+            (bool succesBuild, uint256 tm) = s._accommodationYears.buildTimestamp(dates[i][0], dates[i][1]);
+            require(succesBuild, "BookingFacet: unable to build Timestamp");
+            _cancel(_msgSender(), tm, dates[i][0], dates[i][1]);
+            if (lastDate < tm) lastDate = tm;
         }
+        _stakeLibContext(_msgSender()).keepUntilRemoveRest(
+            s.staking[_msgSender()],
+            _expectedStaked(_msgSender()),
+            lastDate
+        );
+
         emit CanceledBookings(_msgSender(), dates);
     }
 
     function _cancel(
         address account,
+        uint256 timestamp,
         uint16 yearNum,
         uint16 dayOfYear
     ) internal {
-        (bool succesBuild, uint256 tm) = s._accommodationYears.buildTimestamp(yearNum, dayOfYear);
-        require(succesBuild, "BookingFacet: unable to build Timestamp");
-        require(tm > block.timestamp, "BookingFacet: Can not cancel past booking");
+        require(timestamp > block.timestamp, "BookingFacet: Can not cancel past booking");
         (bool success, ) = s._accommodationBookings[account].remove(yearNum, dayOfYear);
         require(success, "BookingFacet: Booking does not exists");
     }

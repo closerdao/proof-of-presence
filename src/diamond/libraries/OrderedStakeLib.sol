@@ -2,10 +2,11 @@
 
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/utils/structs/DoubleEndedQueue.sol";
+import "../../Libraries/CustomDoubleEndedQueue.sol";
+import "hardhat/console.sol";
 
 library OrderedStakeLib {
-    using DoubleEndedQueue for DoubleEndedQueue.Bytes32Deque;
+    using CustomDoubleEndedQueue for CustomDoubleEndedQueue.Bytes32Deque;
 
     // ONLY MEMORY!!
     struct Deposit {
@@ -16,7 +17,7 @@ library OrderedStakeLib {
     // TODO rename to Account
     struct Store {
         uint256 _balance;
-        DoubleEndedQueue.Bytes32Deque _queue;
+        CustomDoubleEndedQueue.Bytes32Deque _queue;
         mapping(bytes32 => uint256) _amounts;
     }
 
@@ -95,6 +96,18 @@ library OrderedStakeLib {
         takeUntil(store, amount, untilTm);
     }
 
+    // We have know the real key to use this method
+    function moveFront(
+        Store storage store,
+        uint256 amount,
+        uint256 from,
+        uint256 to
+    ) internal {
+        require(from > to, "WrongRange");
+        if (store._queue.empty()) revert("Empty");
+        _moveFront(store, amount, from, to);
+    }
+
     // @dev
     // Including current timestamp
     function balanceUntil(Store storage store, uint256 untilTm) internal view returns (uint256 amount) {
@@ -125,6 +138,32 @@ library OrderedStakeLib {
     // PRIVATE FUNCTIONS
     // ===================================
 
+    // We have to be sure that we know the key to execute this function
+    function _moveFront(
+        Store storage store,
+        uint256 amount,
+        uint256 from,
+        uint256 to
+    ) internal {
+        Deposit memory back = _popBack(store);
+        if (back.timestamp == from) {
+            if (back.amount == amount) {
+                _pushBackOrdered(store, amount, to);
+            } else if (back.amount > amount) {
+                _pushBackOrdered(store, amount, to);
+                _pushBackOrdered(store, back.amount - amount, back.timestamp);
+            } else {
+                // amount is bigger than current
+                _pushBackOrdered(store, back.amount, to);
+                require(uint256(store._queue.back()) != from, "OutOfBounds");
+                _moveFront(store, amount - back.amount, uint256(store._queue.back()), to);
+            }
+        } else {
+            _moveFront(store, amount, from, to);
+            _pushBackOrdered(store, back.amount, back.timestamp);
+        }
+    }
+
     function _pushBackOrdered(
         Store storage store,
         uint256 amount,
@@ -140,7 +179,7 @@ library OrderedStakeLib {
                 _addAmountToBack(store, amount, timestamp);
             } else {
                 bytes32 last = store._queue.popBack();
-                push(store, amount, timestamp);
+                _pushBackOrdered(store, amount, timestamp);
                 store._queue.pushBack(last);
             }
         }
@@ -164,6 +203,14 @@ library OrderedStakeLib {
         store._queue.pushFront(key);
         store._amounts[key] = amount;
         store._balance += amount;
+    }
+
+    function _popBack(Store storage store) internal returns (Deposit memory deposit) {
+        bytes32 key = store._queue.popBack();
+        deposit.timestamp = uint256(key);
+        deposit.amount = store._amounts[key];
+        store._balance -= deposit.amount;
+        delete store._amounts[key];
     }
 
     // PRIVATE do not use use _pushBackOrdered instead

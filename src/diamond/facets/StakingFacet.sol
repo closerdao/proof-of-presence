@@ -23,25 +23,19 @@ contract StakingFacet is Modifiers, ReentrancyGuard {
 
     function withdrawMaxStake() public {
         _stakeLibContext(_msgSender()).takeMax(s.staking[_msgSender()]);
-
-        // return s.staking.withdrawMax(s.communityToken, _msgSender());
     }
 
     function withdrawStake(uint256 requested) public {
         _stakeLibContext(_msgSender()).remove(s.staking[_msgSender()], requested);
-
-        // return s.staking.withdraw(s.communityToken, _msgSender(), requested);
     }
 
-    // function restakeMax() public {
-    //     _stakeLibContext(_msgSender()).restakeMax(s.staking[_msgSender()]);
+    function restakeMax() public {
+        _stakeLibContext(_msgSender()).restakeMax(s.staking[_msgSender()]);
+    }
 
-    //     // s.staking.restakeMax(_msgSender());
-    // }
-
-    // function restake(uint256 requestedAmount) public {
-    //     s.staking.restake(_msgSender(), requestedAmount);
-    // }
+    function restake(uint256 requestedAmount) public {
+        _stakeLibContext(_msgSender()).restakeAmount(s.staking[_msgSender()], requestedAmount);
+    }
 
     function unlockedStake(address account) public view returns (uint256) {
         return _stakeLibContext(_msgSender()).releasable(s.staking[account]);

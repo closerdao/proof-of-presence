@@ -29,6 +29,7 @@ library StakeLibV2 {
         uint256 amount
     ) internal {
         _addAt(context, store, amount, block.timestamp);
+        emit DepositedTokens(context.account, amount);
     }
 
     function remove(
@@ -36,9 +37,7 @@ library StakeLibV2 {
         OrderedStakeLib.Store storage store,
         uint256 requested
     ) internal {
-        store.takeUntil(requested, _currentReleaseTimestamp(context));
-        context.token.safeTransfer(context.account, requested);
-        emit WithdrawnTokens(context.account, requested);
+        _remove(context, store, requested);
     }
 
     function restakeOrDepositAt(
@@ -63,11 +62,48 @@ library StakeLibV2 {
             // get the rest from the external account
             store.push(toDeposit, tm);
             context.token.safeTransferFrom(context.account, address(this), toDeposit);
+            emit DepositedTokens(context.account, toDeposit);
         }
     }
 
-    function takeMax(Context memory context, OrderedStakeLib.Store storage store) internal {
-        store.takeMaxUntil(_currentReleaseTimestamp(context));
+    function _pushOne(
+        Context memory context,
+        OrderedStakeLib.Store storage store,
+        uint256 requested,
+        uint256 tm
+    ) internal {}
+
+    function keepUntilRemoveRest(
+        Context memory context,
+        OrderedStakeLib.Store storage store,
+        uint256 keepAmount,
+        uint256 tm
+    ) internal {
+        // if (store.balance() > keepAmount) {
+        //     uint256 lt = store.length();
+        //     for (uint256 i = lt; i > 0; i--) {
+        //         store.at(i - 1);
+        //     }
+        // }
+    }
+
+    function takeMax(Context memory context, OrderedStakeLib.Store storage store) internal returns (uint256) {
+        uint256 amount = releasable(context, store);
+
+        if (amount > 0) {
+            _remove(context, store, amount);
+        }
+        return amount;
+    }
+
+    function _remove(
+        Context memory context,
+        OrderedStakeLib.Store storage store,
+        uint256 requested
+    ) internal {
+        store.takeUntil(requested, _currentReleaseTimestamp(context));
+        context.token.safeTransfer(context.account, requested);
+        emit WithdrawnTokens(context.account, requested);
     }
 
     function locked(Context memory context, OrderedStakeLib.Store storage store) internal view returns (uint256) {
@@ -78,12 +114,24 @@ library StakeLibV2 {
         return store.balanceUntil(_currentReleaseTimestamp(context));
     }
 
-    // function restakeMax(Context memory context, OrderedStakeLib.Store storage store) internal returns (uint256) {
-    //     uint256 amount = store.balanceUntil(_currentReleaseTimestamp(context));
-    //     store.takeUntil(amount, _currentReleaseTimestamp(context));
-    //     store.push(amount, block.timestamp);
-    //     return amount;
-    // }
+    function restakeMax(Context memory context, OrderedStakeLib.Store storage store) internal returns (uint256) {
+        uint256 amount = store.balanceUntil(_currentReleaseTimestamp(context));
+        if (amount > 0) {
+            store.takeUntil(amount, _currentReleaseTimestamp(context));
+            store.push(amount, block.timestamp);
+        }
+        return amount;
+    }
+
+    function restakeAmount(
+        Context memory context,
+        OrderedStakeLib.Store storage store,
+        uint256 amount
+    ) internal returns (uint256) {
+        store.takeUntil(amount, _currentReleaseTimestamp(context));
+        store.push(amount, block.timestamp);
+        return amount;
+    }
 
     // @dev
     // DO NOT USE IN SEND FUNCTIONS
@@ -111,6 +159,5 @@ library StakeLibV2 {
     ) internal {
         store.push(amount, timestamp);
         context.token.safeTransferFrom(context.account, address(this), amount);
-        emit DepositedTokens(context.account, amount);
     }
 }

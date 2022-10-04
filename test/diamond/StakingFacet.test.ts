@@ -42,8 +42,7 @@ describe('StakingFacet', () => {
     await incDays(1);
     await user.withdrawMaxStake().successWithAmount('1');
     await test.balances('0', '0', '10000');
-
-    await expect(users[0].TDFDiamond.withdrawMaxStake()).to.be.revertedWith('NOT_ENOUGHT_BALANCE');
+    await user.withdrawMaxStake().none();
   });
   it('lock and unlock', async () => {
     const context = await setup();
@@ -72,7 +71,7 @@ describe('StakingFacet', () => {
     ///////////////////////////////////////////////
     await user.depositStake('1').success();
     await test.balances('1', '1', '9999');
-    await user.withdrawStake('0.5').reverted();
+    await user.withdrawStake('0.5').reverted.notEnoughtBalance();
     // Does not change the balances, nothing to unlock
     await test.balances('1', '1', '9999');
 
@@ -88,7 +87,7 @@ describe('StakingFacet', () => {
     // we only have available 1
     // we are not able to redeem more than 1
     // So trying to remove more will be reverted
-    await user.withdrawStake('1.5').reverted();
+    await user.withdrawStake('1.5').reverted.notEnoughtBalance();
     // With the balances unchaded
     await test.balances('2', '2', '9998');
     // remove in lower bound of pocket
@@ -185,9 +184,9 @@ describe('StakingFacet', () => {
     await test.stake('1', '0');
 
     await incDays(1);
-    ///////////////////////////////////////////////
+    // /////////////////////////////////////////////
     //                DAY 1
-    ///////////////////////////////////////////////
+    // /////////////////////////////////////////////
     await user.depositStake('0.5').success();
 
     await test.balances('1.5', '1.5', '9998.5');

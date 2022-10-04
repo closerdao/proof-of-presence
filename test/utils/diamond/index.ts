@@ -1,5 +1,5 @@
 import {expect} from '../../chai-setup';
-import {parseEther} from 'ethers/lib/utils';
+import {parseEther, formatEther} from 'ethers/lib/utils';
 import {ethers, network, deployments, getUnnamedAccounts} from 'hardhat';
 import {ERC20TestMock, TDFDiamond} from '../../../typechain';
 
@@ -19,14 +19,16 @@ const BN = ethers.BigNumber;
 export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => {
   return {
     balances: async (diamondTokenBalance: string, stakedBalance: string, userTokenBalance: string) => {
-      expect(
-        await TDFToken.balanceOf(TDFDiamond.address),
-        `balances diamondTokenBalance to Eq(${diamondTokenBalance})`
-      ).to.eq(parseEther(diamondTokenBalance));
-      expect(await TDFDiamond.stakedBalanceOf(user.address), `balances stakedBalance to Eq(${stakedBalance})`).to.eq(
+      let current = await TDFToken.balanceOf(TDFDiamond.address);
+      expect(current, `balances diamondTokenBalance to Eq(${diamondTokenBalance}), GOT(${formatEther(current)})`).to.eq(
+        parseEther(diamondTokenBalance)
+      );
+      current = await TDFDiamond.stakedBalanceOf(user.address);
+      expect(current, `balances stakedBalance to Eq(${stakedBalance}), GOT(${formatEther(current)})`).to.eq(
         parseEther(stakedBalance)
       );
-      expect(await TDFToken.balanceOf(user.address), `balances userTokenBalance to Eq(${userTokenBalance})`).to.eq(
+      current = await TDFToken.balanceOf(user.address);
+      expect(current, `balances userTokenBalance to Eq(${userTokenBalance}), GOT(${formatEther(current)})`).to.eq(
         parseEther(userTokenBalance)
       );
     },
