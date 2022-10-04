@@ -11,6 +11,7 @@ contract OrderedStakeLibMock {
     event PushBack(bool success);
     event PopFront(uint256 amount, uint256 timestamp);
     event Released(uint256 amount, uint256 timestamp);
+    event Moved(uint256 amount, uint256 from, uint256 to);
 
     function push(uint256 amount, uint256 timestamp) public {
         store.push(amount, timestamp);
@@ -24,6 +25,15 @@ contract OrderedStakeLibMock {
 
     function balance() public view returns (uint256) {
         return store.balance();
+    }
+
+    function moveFront(
+        uint256 amount,
+        uint256 from,
+        uint256 to
+    ) public {
+        store.moveFront(amount, from, to);
+        emit Moved(amount, from, to);
     }
 
     function deposits() public view returns (OrderedStakeLib.Deposit[] memory) {

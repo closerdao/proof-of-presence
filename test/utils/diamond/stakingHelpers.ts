@@ -30,14 +30,14 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
           .to.emit(TDFDiamond, 'WithdrawnTokens')
           .withArgs(user.address, parseEther(amount));
       },
-      reverted: () => ({
+      reverted: {
         notEnoughtBalance: async () => {
           await expect(
             user.TDFDiamond.withdrawStake(parseEther(amount)),
             `withdraw.reverted ${amount}`
           ).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
         },
-      }),
+      },
     }),
     restakeMax: () => ({
       // TODO:
