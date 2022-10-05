@@ -52,6 +52,28 @@ describe('OrderedStakeLibMock', () => {
         },
       },
     }),
+    takeAt: (amount: string, tm: number) => ({
+      success: async () => {
+        const prev = await map.balance();
+        await expect(user.map.takeAt(parseEther(amount), tm)).to.emit(map, 'Released');
+        const after = await map.balance();
+        expect(prev.sub(after), `takeAt toTake=${amount} at(${tm})`).to.eq(parseEther(amount));
+      },
+      reverted: {
+        notFound: async () => {
+          await expect(
+            user.map.takeAt(parseEther(amount), tm),
+            `takeAt reverted notFound amount(${amount}) at(${tm})`
+          ).to.be.revertedWith('NotFound');
+        },
+        notEnough: async () => {
+          await expect(
+            user.map.takeAt(parseEther(amount), tm),
+            `takeAt notEnough amount(${amount}) at(${tm})`
+          ).to.be.revertedWith('InsufficientDeposit');
+        },
+      },
+    }),
     moveFront: (amount: string, from: number, to: number) => ({
       success: async () => {
         await expect(user.map.moveFront(parseEther(amount), from, to))
@@ -211,6 +233,36 @@ describe('OrderedStakeLibMock', () => {
     await test.deposits([
       ['1.75', 2],
       ['3', 3],
+    ]);
+  });
+  it('takeAt', async () => {
+    const context = await setup();
+    const {users} = context;
+    const {push, test, takeAt} = testers({...context, user: users[0]});
+    // END SETUP
+
+    await push('1', 10);
+    await push('1', 20);
+    await push('1', 30);
+
+    await takeAt('1', 10).success();
+
+    await test.deposits([
+      ['1', 20],
+      ['1', 30],
+    ]);
+    await test.balance().toEq('2');
+    await takeAt('1', 29).reverted.notFound();
+    await test.deposits([
+      ['1', 20],
+      ['1', 30],
+    ]);
+    await takeAt('2', 30).reverted.notEnough();
+    await takeAt('0.5', 20).success();
+    await takeAt('0.5', 30).success();
+    await test.deposits([
+      ['0.5', 20],
+      ['0.5', 30],
     ]);
   });
   it('takeMaxUntil', async () => {
@@ -386,6 +438,28 @@ describe('OrderedStakeLibMock', () => {
       await moveFront('3', 19, 9).success();
       await test.deposits([['3', 9]]);
       await test.balance().toEq('3');
+    });
+  });
+
+  describe('cancel behaviour at data structure level', () => {
+    describe('Case 1: No reservations in the future', () => {
+      xit('remove one', async () => {
+        const context = await setup();
+        const {users} = context;
+        const {push, test} = testers({...context, user: users[0]});
+        await push('1', 10);
+        await push('1', 20);
+        await push('1', 30);
+
+        // map.takeAt(amount, at)
+      });
+      xit('remove sequenced group', async () => {
+        // for loop
+        // map.takeAt(amount, at)
+      });
+      xit('remove bunch separated with time periods in between', async () => {
+        // same, iterator
+      });
     });
   });
 });

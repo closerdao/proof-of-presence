@@ -61,6 +61,26 @@ library OrderedStakeLib {
         return true;
     }
 
+    function takeAt(
+        Store storage store,
+        uint256 amount,
+        uint256 tm
+    ) internal {
+        Deposit memory back = _popBack(store);
+        if (back.timestamp == tm) {
+            if (back.amount < amount) revert("InsufficientDeposit");
+            if (back.amount > amount) {
+                _pushBackOrdered(store, back.amount - amount, back.timestamp);
+            }
+            // return;
+        } else if (back.timestamp < tm) {
+            revert("NotFound");
+        } else {
+            takeAt(store, amount, tm);
+            _pushBackOrdered(store, back.amount, back.timestamp);
+        }
+    }
+
     function takeUntil(
         Store storage store,
         uint256 requested,

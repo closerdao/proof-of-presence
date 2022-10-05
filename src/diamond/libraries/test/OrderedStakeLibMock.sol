@@ -40,6 +40,11 @@ contract OrderedStakeLibMock {
         return store.list();
     }
 
+    function takeAt(uint256 amount, uint256 tm) public {
+        store.takeAt(amount, tm);
+        emit Released(amount, tm);
+    }
+
     function takeUntil(uint256 amount, uint256 untilTm) public {
         store.takeUntil(amount, untilTm);
         emit Released(amount, untilTm);

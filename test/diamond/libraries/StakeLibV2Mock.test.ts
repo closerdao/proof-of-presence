@@ -2,7 +2,7 @@ import {expect} from '../../chai-setup';
 import {deployments, getUnnamedAccounts, network, ethers} from 'hardhat';
 import {StakeLibV2Mock, ERC20TestMock} from '../../../typechain';
 import {setupUser, setupUsers, getMock} from '../../utils';
-import {parseEther} from 'ethers/lib/utils';
+import {parseEther, formatEther} from 'ethers/lib/utils';
 import {addDays, getUnixTime} from 'date-fns';
 import {ZERO_ADDRESS} from '../../utils';
 
@@ -53,7 +53,12 @@ const setupTest = (context: TestContext) => {
         const deposits = await stake.deposits();
         for (let i = 0; i < examples.length; i++) {
           expect(deposits[i], `deposit should exits amount=${examples[i][0]} tm=${examples[i][1]}`).to.not.be.undefined;
-          expect(deposits[i].amount, 'deposits amount').to.eq(parseEther(examples[i][0]));
+          const amount = deposits[i].amount;
+          const exAmount = parseEther(examples[i][0]);
+          expect(
+            amount,
+            `deposits amount at(${deposits[i].timestamp}) toEq(${examples[i][0]}) but Got(${formatEther(amount)})`
+          ).to.eq(exAmount);
           expect(deposits[i].timestamp, 'deposits timestamp').to.eq(BN.from(examples[i][1]));
         }
       },
