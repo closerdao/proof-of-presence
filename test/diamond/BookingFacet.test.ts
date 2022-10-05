@@ -78,19 +78,19 @@ describe('BookingFacet', () => {
     // -------------------------------------------------------
     await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
-    // await test.bookings(dates, '1');
+    await test.bookings(dates, '1');
 
-    // const cDates = collectDates(dates, [0, 4]);
-    // await user.cancelAccommodation(cDates.inputs).success();
-    // await test.balances('5', '5', '9995');
-    // const restcDates = collectDates(dates, [1, 2, 3]);
+    const cDates = collectDates(dates, [0, 4]);
+    await user.cancelAccommodation(cDates.inputs).success();
+    await test.balances('5', '5', '9995');
+    const restcDates = collectDates(dates, [1, 2, 3]);
 
-    // await test.bookings(restcDates, '1');
-    // await user.cancelAccommodation(cDates.inputs).reverted.noneExisting();
+    await test.bookings(restcDates, '1');
+    await user.cancelAccommodation(cDates.inputs).reverted.noneExisting();
 
-    // await timeTravelTo(dates.data[4].unix + 2 * 86400);
+    await timeTravelTo(dates.data[4].unix + 2 * 86400);
 
-    // await user.cancelAccommodation(collectDates(dates, [1, 2, 3]).inputs).reverted.inThepast();
+    await user.cancelAccommodation(collectDates(dates, [1, 2, 3]).inputs).reverted.inThepast();
   });
 
   it('getters', async () => {

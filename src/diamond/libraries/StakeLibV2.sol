@@ -32,6 +32,25 @@ library StakeLibV2 {
         emit DepositedTokens(context.account, amount);
     }
 
+    function addAt(
+        Context memory context,
+        OrderedStakeLib.Store storage store,
+        uint256 amount,
+        uint256 timestamp
+    ) internal {
+        _addAt(context, store, amount, timestamp);
+    }
+
+    function removeAt(
+        Context memory context,
+        OrderedStakeLib.Store storage store,
+        uint256 amount,
+        uint256 timestamp
+    ) internal {
+        store.takeAt(amount, timestamp);
+        context.token.safeTransfer(context.account, amount);
+    }
+
     function remove(
         Context memory context,
         OrderedStakeLib.Store storage store,
@@ -65,13 +84,6 @@ library StakeLibV2 {
             emit DepositedTokens(context.account, toDeposit);
         }
     }
-
-    function _pushOne(
-        Context memory context,
-        OrderedStakeLib.Store storage store,
-        uint256 requested,
-        uint256 tm
-    ) internal {}
 
     function keepUntilRemoveRest(
         Context memory context,

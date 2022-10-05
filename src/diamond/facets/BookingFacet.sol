@@ -18,18 +18,12 @@ contract BookingFacet is Modifiers {
     event YearUpdated(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
 
     function bookAccommodation(uint16[2][] calldata dates) external whenNotPaused onlyMember {
-        uint256 lastDate;
         for (uint256 i = 0; i < dates.length; i++) {
             uint256 price = 1 ether;
             BookingMapLib.Booking memory value = _insertBooking(_msgSender(), dates[i][0], dates[i][1], price);
-
-            if (lastDate < value.timestamp) lastDate = value.timestamp;
+            _stakeLibContext(_msgSender()).addAt(s.staking[_msgSender()], price, value.timestamp);
         }
-        _stakeLibContext(_msgSender()).restakeOrDepositAt(
-            s.staking[_msgSender()],
-            _expectedStaked(_msgSender()),
-            lastDate
-        );
+
         emit NewBookings(_msgSender(), dates);
     }
 
@@ -53,16 +47,26 @@ contract BookingFacet is Modifiers {
     function cancelAccommodation(uint16[2][] calldata dates) external whenNotPaused {
         uint256 lastDate;
         for (uint256 i = 0; i < dates.length; i++) {
-            (bool succesBuild, uint256 tm) = s._accommodationYears.buildTimestamp(dates[i][0], dates[i][1]);
-            require(succesBuild, "BookingFacet: unable to build Timestamp");
-            _cancel(_msgSender(), tm, dates[i][0], dates[i][1]);
-            if (lastDate < tm) lastDate = tm;
+            (bool exists, BookingMapLib.Booking memory booking) = s._accommodationBookings[_msgSender()].get(
+                dates[i][0],
+                dates[i][1]
+            );
+            _cancel(_msgSender(), booking.timestamp, dates[i][0], dates[i][1]);
+            _stakeLibContext(_msgSender()).removeAt(s.staking[_msgSender()], booking.price, booking.timestamp);
         }
-        _stakeLibContext(_msgSender()).keepUntilRemoveRest(
-            s.staking[_msgSender()],
-            _expectedStaked(_msgSender()),
-            lastDate
-        );
+
+        // we should get how many and when should be moved to
+        // _expectedStaked(_msgSender())
+        // to remove: balance - expectedStake
+        // to move is :
+        // - for
+        // how many we have to give back to the user
+
+        // _stakeLibContext(_msgSender()).keepUntilRemoveRest(
+        //     s.staking[_msgSender()],
+        //     _expectedStaked(_msgSender()),
+        //     lastDate
+        // );
 
         emit CanceledBookings(_msgSender(), dates);
     }
