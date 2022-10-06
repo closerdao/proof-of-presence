@@ -1,6 +1,7 @@
 import {expect} from '../chai-setup';
 import {parseEther} from 'ethers/lib/utils';
 import {addDays} from 'date-fns';
+import {DateTime} from 'luxon';
 import {
   buildDates,
   collectDates,
@@ -11,7 +12,7 @@ import {
   setDiamondUser,
   getterHelpers,
   userTesters,
-  roleTesters,
+  newBuildDates,
 } from '../utils/diamond';
 import * as _ from 'lodash';
 
@@ -42,55 +43,99 @@ describe('BookingFacet', () => {
     await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
   });
-  it('book and cancel', async () => {
-    const context = await setup();
-    const {users, TDFDiamond, deployer} = context;
+  describe('book and cancel', () => {
+    it('book and cancel same year', async () => {
+      const context = await setup();
+      const {users, TDFDiamond, deployer} = context;
 
-    const user = await setDiamondUser({
-      user: users[0],
-      ...context,
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      await admin.addMember(users[0].address).success();
+
+      const test = await userTesters({user: users[0], ...context});
+
+      await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 5);
+
+      // -------------------------------------------------------
+      //  Book and cancel all the dates
+      // -------------------------------------------------------
+      await user.bookAccommodation(dates.inputs).success();
+      await test.balances('5', '5', '9995');
+      await test.bookings(dates, '1');
+
+      await user.cancelAccommodation(dates.inputs).success();
+
+      await test.balances('0', '0', '10000');
+      // -------------------------------------------------------
+      //  Book and cancel few dates
+      // -------------------------------------------------------
+      await user.bookAccommodation(dates.inputs).success();
+      await test.balances('5', '5', '9995');
+      await test.bookings(dates, '1');
+
+      const cDates = collectDates(dates, [0, 4]);
+      await user.cancelAccommodation(cDates.inputs).success();
+      await test.balances('3', '3', '9997');
+      const restcDates = collectDates(dates, [1, 2, 3]);
+
+      await test.bookings(restcDates, '1');
+      // TODO test errors
+      // await user.cancelAccommodation(cDates.inputs).reverted.noneExisting();
+
+      await timeTravelTo(dates.data[4].unix + 2 * 86400);
+
+      await user.cancelAccommodation(collectDates(dates, [1, 2, 3]).inputs).reverted.inThepast();
     });
-    const admin = await setDiamondUser({
-      user: deployer,
-      ...context,
+
+    it('book and cancel different years having bookings in future year', async () => {
+      const context = await setup();
+      const {users, TDFDiamond, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      await admin.addMember(users[0].address).success();
+
+      const test = await userTesters({user: users[0], ...context});
+
+      await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 5);
+
+      // -------------------------------------------------------
+      //  Booking dates current Year
+      // -------------------------------------------------------
+      await user.bookAccommodation(dates.inputs).success();
+      await test.balances('5', '5', '9995');
+      await test.bookings(dates, '1');
+
+      // -------------------------------------------------------
+      //  Booking dates for next year
+      // -------------------------------------------------------
+      const nextYear = DateTime.now().plus({year: 1}).startOf('year').plus({day: 134});
+      // console.log(moment((365 * 86400).toString(), 'YYYYMMDD').fromNow());
+      const init2 = nextYear.plus({days: 10});
+      const dates2 = newBuildDates(init2, 5);
+      await user.bookAccommodation(dates2.inputs).success();
+      await test.balances('5', '5', '9995');
+      await test.bookings(dates2, '1');
+      await test.bookings(dates, '1');
     });
-
-    await admin.addMember(users[0].address).success();
-
-    const test = await userTesters({user: users[0], ...context});
-
-    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
-    const init = addDays(Date.now(), 10);
-    const dates = buildDates(init, 5);
-
-    // -------------------------------------------------------
-    //  Book and cancel all the dates
-    // -------------------------------------------------------
-    await user.bookAccommodation(dates.inputs).success();
-    await test.balances('5', '5', '9995');
-    await test.bookings(dates, '1');
-
-    await user.cancelAccommodation(dates.inputs).success();
-
-    await test.balances('0', '0', '10000');
-    // -------------------------------------------------------
-    //  Book and cancel few dates
-    // -------------------------------------------------------
-    await user.bookAccommodation(dates.inputs).success();
-    await test.balances('5', '5', '9995');
-    await test.bookings(dates, '1');
-
-    const cDates = collectDates(dates, [0, 4]);
-    await user.cancelAccommodation(cDates.inputs).success();
-    await test.balances('5', '5', '9995');
-    const restcDates = collectDates(dates, [1, 2, 3]);
-
-    await test.bookings(restcDates, '1');
-    await user.cancelAccommodation(cDates.inputs).reverted.noneExisting();
-
-    await timeTravelTo(dates.data[4].unix + 2 * 86400);
-
-    await user.cancelAccommodation(collectDates(dates, [1, 2, 3]).inputs).reverted.inThepast();
   });
 
   it('getters', async () => {
@@ -274,18 +319,5 @@ describe('BookingFacet', () => {
     init = addDays(Date.now(), 11);
     dates = buildDates(init, 5);
     await user.bookAccommodation(dates.inputs).reverted.onlyMember();
-  });
-
-  it('role testing example', async () => {
-    const context = await setup();
-    const {users, TDFDiamond, deployer} = context;
-
-    const user = await roleTesters({
-      user: users[0],
-      ...context,
-    });
-    const yearAttrs = yearData()['2028'];
-    await user.cannot.addAccommodationYear({...yearAttrs, enabled: false});
-    // await user.can.addAccommodationYear({...yearAttrs, enabled: false});
   });
 });

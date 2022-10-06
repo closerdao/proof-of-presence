@@ -43,6 +43,8 @@ contract Modifiers {
     using AccessControlLib for AccessControlLib.RoleStore;
     using MembershipLib for MembershipLib.Store;
     using StakeLibV2 for StakeLibV2.Context;
+    using BookingMapLib for BookingMapLib.UserStore;
+    using BookingMapLib for BookingMapLib.YearsStore;
 
     AppStorage internal s;
 
@@ -121,7 +123,25 @@ contract Modifiers {
     }
 
     function _stakeLibContext(address account) internal view returns (StakeLibV2.Context memory) {
-        return StakeLibV2.Context({account: account, token: s.communityToken, lockingTimePeriod: s._lockingTimePeriod});
+        return
+            StakeLibV2.Context({
+                account: account,
+                token: s.communityToken,
+                lockingTimePeriod: s._lockingTimePeriod,
+                requiredBalance: _expectedStaked(account)
+            });
+    }
+
+    function _expectedStaked(address account) internal view returns (uint256) {
+        uint256 max;
+        BookingMapLib.Year[] memory _yearList = s._accommodationYears.values();
+        for (uint16 i = 0; i < _yearList.length; i++) {
+            // TODO: should it be + 1 year?
+            if (_yearList[i].end < block.timestamp) continue;
+            uint256 amount = s._accommodationBookings[account].getBalance(_yearList[i].number);
+            if (amount > max) max = amount;
+        }
+        return max;
     }
 
     function _msgSender() internal view virtual returns (address) {

@@ -38,6 +38,11 @@ describe('OrderedStakeLibMock', () => {
         .to.emit(map, 'PushBack')
         .withArgs(true);
     },
+    pushFront: async (amount: string, tm: number) => {
+      await expect(user.map.pushFront(parseEther(amount), tm))
+        .to.emit(map, 'PushFront')
+        .withArgs(true);
+    },
 
     _popFront: async (amount: string, tm: number) => {
       await expect(user.map._popFront()).to.emit(map, 'PopFront').withArgs(parseEther(amount), BN.from(tm));
@@ -150,6 +155,7 @@ describe('OrderedStakeLibMock', () => {
       },
     },
   });
+
   it('push', async () => {
     const context = await setup();
     const {users} = context;
@@ -191,6 +197,54 @@ describe('OrderedStakeLibMock', () => {
     await test.balance().toEq('10');
     // Update timestamps
     await push('4', 4);
+    await test.balance().toEq('14');
+    await test.deposits([
+      ['1', 1],
+      ['8', 4],
+      ['5', 5],
+    ]);
+  });
+  it('pushFront', async () => {
+    const context = await setup();
+    const {users} = context;
+    const {pushFront, test, _popFront} = testers({...context, user: users[0]});
+
+    await pushFront('1', 1);
+    await pushFront('3', 3);
+    await pushFront('2', 2);
+    await test.deposits([
+      ['1', 1],
+      ['2', 2],
+      ['3', 3],
+    ]);
+    await test.balance().toEq('6');
+    await pushFront('5', 5);
+    await pushFront('4', 4);
+    await test.deposits([
+      ['1', 1],
+      ['2', 2],
+      ['3', 3],
+      ['4', 4],
+      ['5', 5],
+    ]);
+    await test.balance().toEq('15');
+    await _popFront('1', 1);
+    await _popFront('2', 2);
+    await _popFront('3', 3);
+    await test.deposits([
+      ['4', 4],
+      ['5', 5],
+    ]);
+    await test.balance().toEq('9');
+    await pushFront('1', 1);
+    await test.deposits([
+      ['1', 1],
+      ['4', 4],
+      ['5', 5],
+    ]);
+    await test.balance().toEq('10');
+    // Update timestamps
+    await pushFront('4', 4);
     await test.balance().toEq('14');
     await test.deposits([
       ['1', 1],

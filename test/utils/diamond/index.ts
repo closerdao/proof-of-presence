@@ -1,6 +1,8 @@
 import {expect} from '../../chai-setup';
 import {parseEther, formatEther} from 'ethers/lib/utils';
 import {ethers, network, deployments, getUnnamedAccounts} from 'hardhat';
+import {DateTime} from 'luxon';
+
 import {ERC20TestMock, TDFDiamond} from '../../../typechain';
 
 import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
@@ -73,6 +75,20 @@ export const buildDates = (initDate: Date, amount: number): DatesTestData => {
       unix: getUnixTime(nDate),
     });
     acc.inputs.push([nDate.getUTCFullYear(), getDayOfYear(nDate)]);
+  }
+  return acc;
+};
+
+export const newBuildDates = (date: DateTime, amount: number) => {
+  const acc: DatesTestData = {data: [], inputs: []};
+  for (let i = 0; i < amount; i++) {
+    const nDate = date.plus({days: i});
+    acc.data.push({
+      year: nDate.year,
+      day: getDayOfYear(nDate.toJSDate()),
+      unix: nDate.toUnixInteger(),
+    });
+    acc.inputs.push([nDate.year, getDayOfYear(nDate.toJSDate())]);
   }
   return acc;
 };

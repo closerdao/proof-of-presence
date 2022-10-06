@@ -29,6 +29,14 @@ library OrderedStakeLib {
         _pushBackOrdered(store, amount, timestamp);
     }
 
+    function pushFront(
+        OrderedStakeLib.Store storage store,
+        uint256 amount,
+        uint256 tm
+    ) internal {
+        _pushFrontOrdered(store, amount, tm);
+    }
+
     function length(Store storage store) internal view returns (uint256) {
         return store._queue.length();
     }
@@ -184,6 +192,31 @@ library OrderedStakeLib {
         }
     }
 
+    function _moveBack(
+        Store storage store,
+        uint256 amount,
+        uint256 from,
+        uint256 to
+    ) internal {
+        Deposit memory front = _popFront(store);
+        if (front.timestamp == from) {
+            if (front.amount == amount) {
+                _pushBackOrdered(store, amount, to);
+            } else if (front.amount > amount) {
+                _pushBackOrdered(store, amount, to);
+                _pushBackOrdered(store, front.amount - amount, front.timestamp);
+            } else {
+                // amount is bigger than current
+                _pushBackOrdered(store, front.amount, to);
+                require(uint256(store._queue.front()) != from, "OutOfBounds");
+                _moveFront(store, amount - front.amount, uint256(store._queue.front()), to);
+            }
+        } else {
+            _moveFront(store, amount, from, to);
+            _pushBackOrdered(store, front.amount, front.timestamp);
+        }
+    }
+
     function _pushBackOrdered(
         Store storage store,
         uint256 amount,
@@ -196,11 +229,32 @@ library OrderedStakeLib {
             if (backTm < timestamp) {
                 _pushBack(store, amount, timestamp);
             } else if (backTm == timestamp) {
-                _addAmountToBack(store, amount, timestamp);
+                _addBalanceTo(store, amount, timestamp);
             } else {
                 bytes32 last = store._queue.popBack();
                 _pushBackOrdered(store, amount, timestamp);
                 store._queue.pushBack(last);
+            }
+        }
+    }
+
+    function _pushFrontOrdered(
+        Store storage store,
+        uint256 amount,
+        uint256 timestamp
+    ) internal {
+        if (store._queue.empty()) {
+            _pushFront(store, amount, timestamp);
+        } else {
+            uint256 frontTm = uint256(store._queue.front());
+            if (frontTm > timestamp) {
+                _pushFront(store, amount, timestamp);
+            } else if (frontTm == timestamp) {
+                _addBalanceTo(store, amount, timestamp);
+            } else {
+                bytes32 first = store._queue.popFront();
+                _pushFrontOrdered(store, amount, timestamp);
+                store._queue.pushFront(first);
             }
         }
     }
@@ -246,7 +300,7 @@ library OrderedStakeLib {
         store._balance += amount;
     }
 
-    function _addAmountToBack(
+    function _addBalanceTo(
         Store storage store,
         uint256 amount,
         uint256 timestamp
