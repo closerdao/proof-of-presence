@@ -20,6 +20,7 @@ library StakeLibV2 {
         address account;
         IERC20 token;
         uint256 lockingTimePeriod;
+        uint256 requiredBalance;
     }
 
     // function buildContext(address account, IERC20 token, uint256 lockingTimePeriod) returns
@@ -38,7 +39,15 @@ library StakeLibV2 {
         uint256 amount,
         uint256 timestamp
     ) internal {
-        _addAt(context, store, amount, timestamp);
+        if (context.requiredBalance < store.balance() && store.balance() - context.requiredBalance == amount) {
+            // I need to know how many reservations per year the user has in general
+            // if max year balance < current balance ad
+            _addAt(context, store, amount, timestamp);
+        } else if (context.requiredBalance > store.balance() && context.requiredBalance - store.balance() == amount) {
+            // if current future balance < expected move to current tm
+            // store.mo
+            revert("moveFront not implemented");
+        }
     }
 
     function removeAt(

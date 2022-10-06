@@ -6,9 +6,9 @@ import "../libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
 
 contract BookingFacet is Modifiers {
+    using StakeLibV2 for StakeLibV2.Context;
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
-    using StakeLibV2 for StakeLibV2.Context;
 
     event NewBookings(address account, uint16[2][] bookings);
     event CanceledBookings(address account, uint16[2][] bookings);
@@ -80,18 +80,6 @@ contract BookingFacet is Modifiers {
         require(timestamp > block.timestamp, "BookingFacet: Can not cancel past booking");
         (bool success, ) = s._accommodationBookings[account].remove(yearNum, dayOfYear);
         require(success, "BookingFacet: Booking does not exists");
-    }
-
-    function _expectedStaked(address account) internal view returns (uint256) {
-        uint256 max;
-        BookingMapLib.Year[] memory _yearList = s._accommodationYears.values();
-        for (uint16 i = 0; i < _yearList.length; i++) {
-            // TODO: should it be + 1 year?
-            if (_yearList[i].end < block.timestamp) continue;
-            uint256 amount = s._accommodationBookings[account].getBalance(_yearList[i].number);
-            if (amount > max) max = amount;
-        }
-        return max;
     }
 
     function getAccommodationBooking(

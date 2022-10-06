@@ -236,6 +236,10 @@ describe('StakingLibV2Mock', () => {
     await test.stake('1', '0');
     await test.deposits([['1', initLockAt]]);
   });
+
+  describe('Cancel behaviour', () => {
+    it('Case 1')
+  })
 });
 
 const incDays = async (days: number) => {
