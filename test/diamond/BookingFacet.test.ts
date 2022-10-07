@@ -44,7 +44,7 @@ describe('BookingFacet', () => {
     await test.balances('5', '5', '9995');
   });
   describe('book and cancel', () => {
-    it('book and cancel same year', async () => {
+    it('same year', async () => {
       const context = await setup();
       const {users, TDFDiamond, deployer} = context;
 
@@ -96,7 +96,7 @@ describe('BookingFacet', () => {
       await user.cancelAccommodation(collectDates(dates, [1, 2, 3]).inputs).reverted.inThepast();
     });
 
-    it('book and cancel different years having bookings in future year', async () => {
+    it('different years having bookings in future year', async () => {
       const context = await setup();
       const {users, TDFDiamond, deployer} = context;
 
@@ -133,8 +133,93 @@ describe('BookingFacet', () => {
       const dates2 = newBuildDates(init2, 5);
       await user.bookAccommodation(dates2.inputs).success();
       await test.balances('5', '5', '9995');
+      await test.deposits([]);
       await test.bookings(dates2, '1');
       await test.bookings(dates, '1');
+    });
+    it('booking next year, current year and canceling current', async () => {
+      const context = await setup();
+      const {users, TDFDiamond, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      await admin.addMember(users[0].address).success();
+
+      const test = await userTesters({user: users[0], ...context});
+
+      await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
+      // -------------------------------------------------------
+      //  Booking dates for next year
+      // -------------------------------------------------------
+      const nextYear = DateTime.now().plus({year: 1}).startOf('year').plus({day: 134});
+      const init2 = nextYear.plus({days: 10});
+      const dates2 = newBuildDates(init2, 5);
+      await user.bookAccommodation(dates2.inputs).success();
+      await test.balances('5', '5', '9995');
+      await test.bookings(dates2, '1');
+      // TODO: test locked balance
+
+      // -------------------------------------------------------
+      //  Booking dates current Year
+      // -------------------------------------------------------
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 5);
+      await user.bookAccommodation(dates.inputs).success();
+      await test.balances('5', '5', '9995');
+      await test.bookings(dates, '1');
+      await test.stake('5', '0');
+      await user.cancelAccommodation(dates.inputs).success();
+      await test.balances('5', '5', '9995');
+      await test.stake('5', '0');
+    });
+    xit('booking next year, current year and canceling current with different prices', async () => {
+      const context = await setup();
+      const {users, TDFDiamond, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      await admin.addMember(users[0].address).success();
+
+      const test = await userTesters({user: users[0], ...context});
+
+      await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
+      // -------------------------------------------------------
+      //  Booking dates for next year
+      // -------------------------------------------------------
+      const nextYear = DateTime.now().plus({year: 1}).startOf('year').plus({day: 134});
+      const init2 = nextYear.plus({days: 10});
+      const dates2 = newBuildDates(init2, 5);
+      await user.bookAccommodation(dates2.inputs).success();
+      await test.balances('5', '5', '9995');
+      await test.bookings(dates2, '1');
+      // TODO: test locked balance
+
+      // -------------------------------------------------------
+      //  Booking dates current Year
+      // -------------------------------------------------------
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 5);
+      await user.bookAccommodation(dates.inputs).success();
+      await test.balances('5', '5', '9995');
+      await test.bookings(dates, '1');
+      await test.stake('5', '0');
+      await user.cancelAccommodation(dates.inputs).success();
+      await test.balances('5', '5', '9995');
+      await test.stake('5', '0');
     });
   });
 

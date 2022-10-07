@@ -42,7 +42,8 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
     },
     deposits: async (examples: [string, number][]) => {
       const deposits = await TDFDiamond.depositsStakedFor(user.address);
-      for (let i = 0; i < deposits.length; i++) {
+      console.log(deposits.map((d) => ({timestamp: d.timestamp.toString(), amount: formatEther(d.amount)})));
+      for (let i = 0; i < examples.length; i++) {
         expect(deposits[i].amount, `deposits Index(${i}) Amount(${examples[i][0]})`).to.eq(parseEther(examples[i][0]));
         expect(deposits[i].timestamp, `deposits Index(${i}) timestamp(${examples[i][1]})`).to.eq(
           BN.from(examples[i][1])
@@ -54,10 +55,10 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
         dates.data.map(async (e) => {
           const [success, booking] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
           return Promise.all([
+            expect(success).to.be.true,
             expect(booking.price).to.eq(parseEther(price)),
             expect(booking.year).to.eq(e.year),
             expect(booking.dayOfYear).to.eq(e.day),
-            expect(success).to.be.true,
           ]);
         })
       );

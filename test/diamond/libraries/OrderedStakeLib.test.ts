@@ -97,6 +97,24 @@ describe('OrderedStakeLibMock', () => {
         },
       },
     }),
+    moveBack: (amount: string, from: number, to: number) => ({
+      success: async () => {
+        await expect(user.map.moveBack(parseEther(amount), from, to))
+          .to.emit(map, 'Moved')
+          .withArgs(parseEther(amount), from, to);
+      },
+      reverted: {
+        empty: async () => {
+          await expect(user.map.moveBack(parseEther(amount), from, to)).to.be.revertedWith('Empty');
+        },
+        outOfBounds: async () => {
+          await expect(user.map.moveBack(parseEther(amount), from, to)).to.be.revertedWith('OutOfBounds');
+        },
+        wrongRange: async () => {
+          await expect(user.map.moveBack(parseEther(amount), from, to)).to.be.revertedWith('WrongRange');
+        },
+      },
+    }),
     takeUntil: (amount: string, untilTm: number) => ({
       success: async () => {
         await expect(
@@ -491,6 +509,106 @@ describe('OrderedStakeLibMock', () => {
       ]);
       await moveFront('3', 19, 9).success();
       await test.deposits([['3', 9]]);
+      await test.balance().toEq('3');
+    });
+  });
+  describe('moveBack', () => {
+    it('reverted', async () => {
+      const context = await setup();
+      const {users} = context;
+      const {moveBack, push, test} = testers({...context, user: users[0]});
+      await moveBack('1', 1, 100).reverted.empty();
+      await moveBack('3', 10, 1).reverted.wrongRange();
+      await push('1', 10);
+      await push('1', 20);
+      await push('1', 30);
+      await moveBack('3', 30, 40).reverted.outOfBounds();
+      await test.balance().toEq('3');
+    });
+    it('whole amount to new bucket', async () => {
+      const context = await setup();
+      const {users} = context;
+      const {moveBack, push, test} = testers({...context, user: users[0]});
+      await push('1', 10);
+      await push('1', 20);
+      await push('1', 30);
+      // Move whole amount to new bucket
+      await moveBack('1', 10, 23).success();
+      await test.deposits([
+        ['1', 20],
+        ['1', 23],
+        ['1', 30],
+      ]);
+      await test.balance().toEq('3');
+
+      await moveBack('1', 20, 24).success();
+      await test.deposits([
+        ['1', 23],
+        ['1', 24],
+        ['1', 30],
+      ]);
+      await test.balance().toEq('3');
+    });
+    it('partial amount to new bucket', async () => {
+      const context = await setup();
+      const {users} = context;
+      const {moveBack, push, test} = testers({...context, user: users[0]});
+      await push('1', 10);
+      await push('1', 20);
+      await push('1', 30);
+
+      // Move part of bucket to new bucket
+      await test.deposits([
+        ['1', 10],
+        ['1', 20],
+        ['1', 30],
+      ]);
+      await test.balance().toEq('3');
+
+      await moveBack('0.5', 20, 24).success();
+      await test.deposits([
+        ['1', 10],
+        ['0.5', 20],
+        ['0.5', 24],
+        ['1', 30],
+      ]);
+      await test.balance().toEq('3');
+
+      await moveBack('0.5', 10, 30).success();
+      await test.deposits([
+        ['0.5', 10],
+        ['0.5', 20],
+        ['0.5', 24],
+        ['1.5', 30],
+      ]);
+      await test.balance().toEq('3');
+    });
+    it('bigger amount to new bucket', async () => {
+      const context = await setup();
+      const {users} = context;
+      const {moveBack, push, test} = testers({...context, user: users[0]});
+      await push('1', 10);
+      await push('1', 20);
+      await push('1', 30);
+
+      // Move part of bucket to new bucket
+      await test.deposits([
+        ['1', 10],
+        ['1', 20],
+        ['1', 30],
+      ]);
+      await moveBack('1.5', 10, 30).success();
+      await test.deposits([
+        ['0.5', 20],
+        ['2.5', 30],
+      ]);
+      await moveBack('1', 20, 31).success();
+      await test.deposits([
+        ['2', 30],
+        ['1', 31],
+      ]);
+      await moveBack('3', 30, 33).success();
+      await test.deposits([['3', 33]]);
       await test.balance().toEq('3');
     });
   });

@@ -39,14 +39,16 @@ library StakeLibV2 {
         uint256 amount,
         uint256 timestamp
     ) internal {
-        if (context.requiredBalance < store.balance() && store.balance() - context.requiredBalance == amount) {
-            // I need to know how many reservations per year the user has in general
-            // if max year balance < current balance ad
-            _addAt(context, store, amount, timestamp);
+        if (context.requiredBalance == store.balance()) {
+            if (store.balanceUntil(timestamp - 1) >= amount) {
+                store.moveBack(amount, store.at(0).timestamp, timestamp);
+            }
         } else if (context.requiredBalance > store.balance() && context.requiredBalance - store.balance() == amount) {
             // if current future balance < expected move to current tm
             // store.mo
-            revert("moveFront not implemented");
+            _addAt(context, store, amount, timestamp);
+        } else {
+            revert("not implemented");
         }
     }
 
@@ -56,8 +58,18 @@ library StakeLibV2 {
         uint256 amount,
         uint256 timestamp
     ) internal {
-        store.takeAt(amount, timestamp);
-        context.token.safeTransfer(context.account, amount);
+        if (context.requiredBalance == store.balance()) {
+            if (store.balanceFrom(timestamp - 1) >= amount) {
+                store.moveFront(amount, store.back().timestamp, timestamp);
+            }
+        } else if (context.requiredBalance < store.balance() && store.balance() - context.requiredBalance == amount) {
+            // if current future balance < expected move to current tm
+            // store.mo
+            store.takeAt(amount, timestamp);
+            context.token.safeTransfer(context.account, amount);
+        } else {
+            revert("not implemented");
+        }
     }
 
     function remove(

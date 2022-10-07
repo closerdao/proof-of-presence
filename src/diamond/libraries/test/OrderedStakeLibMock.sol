@@ -42,6 +42,15 @@ contract OrderedStakeLibMock {
         emit Moved(amount, from, to);
     }
 
+    function moveBack(
+        uint256 amount,
+        uint256 from,
+        uint256 to
+    ) public {
+        store.moveBack(amount, from, to);
+        emit Moved(amount, from, to);
+    }
+
     function deposits() public view returns (OrderedStakeLib.Deposit[] memory) {
         return store.list();
     }
