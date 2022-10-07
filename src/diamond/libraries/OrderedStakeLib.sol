@@ -21,6 +21,32 @@ library OrderedStakeLib {
         mapping(bytes32 => uint256) _amounts;
     }
 
+    function back(Store storage store) internal view returns (Deposit memory deposit) {
+        bytes32 key = store._queue.back();
+        deposit.timestamp = uint256(key);
+        deposit.amount = uint256(store._amounts[key]);
+    }
+
+    function front(Store storage store) internal view returns (Deposit memory deposit) {
+        bytes32 key = store._queue.front();
+        deposit.timestamp = uint256(key);
+        deposit.amount = uint256(store._amounts[key]);
+    }
+
+    function tryBack(Store storage store) internal view returns (bool, Deposit memory) {
+        if (!empty(store)) {
+            return (true, back(store));
+        }
+        return (false, Deposit(0, 0));
+    }
+
+    function tryFront(Store storage store) internal view returns (bool, Deposit memory) {
+        if (!empty(store)) {
+            return (true, front(store));
+        }
+        return (false, Deposit(0, 0));
+    }
+
     function push(
         Store storage store,
         uint256 amount,
@@ -125,6 +151,7 @@ library OrderedStakeLib {
     }
 
     // We have know the real key to use this method
+    // TODO: rename _moveBackToFront
     function moveFront(
         Store storage store,
         uint256 amount,
@@ -134,6 +161,17 @@ library OrderedStakeLib {
         require(from > to, "WrongRange");
         if (store._queue.empty()) revert("Empty");
         _moveFront(store, amount, from, to);
+    }
+
+    function moveBack(
+        Store storage store,
+        uint256 amount,
+        uint256 from,
+        uint256 to
+    ) internal {
+        require(from < to, "WrongRange");
+        if (store._queue.empty()) revert("Empty");
+        _moveBack(store, amount, from, to);
     }
 
     // @dev
