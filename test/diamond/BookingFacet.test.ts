@@ -70,7 +70,7 @@ describe('BookingFacet', () => {
       // -------------------------------------------------------
       await user.bookAccommodation(dates.inputs).success();
       await test.balances('5', '5', '9995');
-      await test.bookings(dates, '1');
+      await test.bookings.toExists(dates, '1');
 
       await user.cancelAccommodation(dates.inputs).success();
 
@@ -80,14 +80,14 @@ describe('BookingFacet', () => {
       // -------------------------------------------------------
       await user.bookAccommodation(dates.inputs).success();
       await test.balances('5', '5', '9995');
-      await test.bookings(dates, '1');
+      await test.bookings.toExists(dates, '1');
 
       const cDates = collectDates(dates, [0, 4]);
       await user.cancelAccommodation(cDates.inputs).success();
       await test.balances('3', '3', '9997');
       const restcDates = collectDates(dates, [1, 2, 3]);
 
-      await test.bookings(restcDates, '1');
+      await test.bookings.toExists(restcDates, '1');
       // TODO test errors
       // await user.cancelAccommodation(cDates.inputs).reverted.noneExisting();
 
@@ -122,7 +122,7 @@ describe('BookingFacet', () => {
       // -------------------------------------------------------
       await user.bookAccommodation(dates.inputs).success();
       await test.balances('5', '5', '9995');
-      await test.bookings(dates, '1');
+      await test.bookings.toExists(dates, '1');
 
       // -------------------------------------------------------
       //  Booking dates for next year
@@ -134,8 +134,8 @@ describe('BookingFacet', () => {
       await user.bookAccommodation(dates2.inputs).success();
       await test.balances('5', '5', '9995');
       await test.deposits([]);
-      await test.bookings(dates2, '1');
-      await test.bookings(dates, '1');
+      await test.bookings.toExists(dates2, '1');
+      await test.bookings.toExists(dates, '1');
     });
     it('booking next year, current year and canceling current', async () => {
       const context = await setup();
@@ -163,7 +163,7 @@ describe('BookingFacet', () => {
       const dates2 = newBuildDates(init2, 5);
       await user.bookAccommodation(dates2.inputs).success();
       await test.balances('5', '5', '9995');
-      await test.bookings(dates2, '1');
+      await test.bookings.toExists(dates2, '1');
       // TODO: test locked balance
 
       // -------------------------------------------------------
@@ -173,13 +173,13 @@ describe('BookingFacet', () => {
       const dates = buildDates(init, 5);
       await user.bookAccommodation(dates.inputs).success();
       await test.balances('5', '5', '9995');
-      await test.bookings(dates, '1');
+      await test.bookings.toExists(dates, '1');
       await test.stake('5', '0');
       await user.cancelAccommodation(dates.inputs).success();
       await test.balances('5', '5', '9995');
       await test.stake('5', '0');
     });
-    xit('booking next year, current year and canceling current with different prices', async () => {
+    it('booking next year, current year and canceling current with different prices', async () => {
       const context = await setup();
       const {users, TDFDiamond, deployer} = context;
 
@@ -205,7 +205,7 @@ describe('BookingFacet', () => {
       const dates2 = newBuildDates(init2, 5);
       await user.bookAccommodation(dates2.inputs).success();
       await test.balances('5', '5', '9995');
-      await test.bookings(dates2, '1');
+      await test.bookings.toExists(dates2, '1');
       // TODO: test locked balance
 
       // -------------------------------------------------------
@@ -215,11 +215,71 @@ describe('BookingFacet', () => {
       const dates = buildDates(init, 5);
       await user.bookAccommodation(dates.inputs).success();
       await test.balances('5', '5', '9995');
-      await test.bookings(dates, '1');
+      await test.bookings.toExists(dates, '1');
       await test.stake('5', '0');
       await user.cancelAccommodation(dates.inputs).success();
       await test.balances('5', '5', '9995');
       await test.stake('5', '0');
+    });
+
+    describe('test cases', () => {
+      it('Y1 add | Y2 cancel, add | Y3 add', async () => {
+        // |Case|2022  |FIELD3  |2023  |FIELD5  |2024  |FIELD7  |2025  |FIELD9  |Init locking TM|End Locking TM|Locked Years                    |
+        // |----|------|--------|------|--------|------|--------|------|--------|---------------|--------------|--------------------------------|
+        // |    |Locked|Bookings|Locked|Bookings|Locked|Bookings|Locked|Bookings|               |              |                                |
+        // |C   |1     |1       |1     |1       |      |        |      |        |2023           |2024          |2022 \ 2023                     |
+        // |C'  |1     |1       |0     |0       |      |        |      |        |2022           |2023          |2022                            |
+        // |C'' |1     |1       |1     |0       |1     |1       |      |        |2024           |2025          |2022 \ 2023 \ 2024              |
+        const context = await setup();
+        const {users, TDFDiamond, deployer} = context;
+
+        const user = await setDiamondUser({
+          user: users[0],
+          ...context,
+        });
+        const admin = await setDiamondUser({
+          user: deployer,
+          ...context,
+        });
+
+        await admin.addMember(users[0].address).success();
+
+        const test = await userTesters({user: users[0], ...context});
+
+        await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
+        // -------------------------------------------------------
+        //  Set bookings for this and next year
+        // -------------------------------------------------------
+        const init = DateTime.now().plus({days: 10});
+        const dates = newBuildDates(init, 1);
+        await user.bookAccommodation(dates.inputs).success();
+        const nextYear = DateTime.now().plus({year: 1}).startOf('year').plus({day: 134});
+        const init2 = nextYear.plus({days: 10});
+        const dates2 = newBuildDates(init2, 1);
+        await user.bookAccommodation(dates2.inputs).success();
+        await test.balances('1', '1', '9999');
+        await test.bookings.toExists(dates, '1');
+        await test.bookings.toExists(dates2, '1');
+
+        await user.cancelAccommodation(dates2.inputs).success();
+
+        const thirdYear = DateTime.now().plus({year: 2}).startOf('year').plus({day: 134});
+        const init3 = thirdYear.plus({days: 10});
+        const dates3 = newBuildDates(init3, 1);
+        await user.bookAccommodation(dates3.inputs).success();
+        await test.balances('1', '1', '9999');
+        await test.bookings.toExists(dates, '1');
+        await test.bookings.toExists(dates3, '1');
+      });
+      it('case D', async () => {
+        // |Case|2022  |FIELD3  |2023  |FIELD5  |2024  |FIELD7  |2025  |FIELD9  |Init locking TM|End Locking TM|Locked Years                    |
+        // |----|------|--------|------|--------|------|--------|------|--------|---------------|--------------|--------------------------------|
+        // |    |Locked|Bookings|Locked|Bookings|Locked|Bookings|Locked|Bookings|               |              |                                |
+        // |D   |5     |0       |5     |5       |4     |4       |      |        |2024           |2025          |2023 \ 2023 \ 2024 \ 2025       |
+        // |D'  |6     |0       |6     |5       |6     |4       |6     |6       |2025           |2026          |2024 \ 2023 \ 2024 \ 2025 \ 2026|
+        // |D'' |5     |0       |5     |5       |4     |4       |2     |2       |2025           |2026          |2025 \ 2023 \ 2024 \ 2025 \ 2026|
+        // |D'''|4     |0       |4     |3       |4     |4       |2     |2       |2025           |2026          |2026 \ 2023 \ 2024 \ 2025 \ 2026|
+      });
     });
   });
 
@@ -251,7 +311,7 @@ describe('BookingFacet', () => {
     // -------------------------------------------------------
     await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
-    await test.bookings(dates, '1');
+    await test.bookings.toExists(dates, '1');
     await call.getAccommodationBookings(users[0], 0).exactMatch(dates);
 
     const years = await TDFDiamond.getAccommodationYears();
