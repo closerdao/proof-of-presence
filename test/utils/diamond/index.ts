@@ -50,18 +50,28 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
         );
       }
     },
-    bookings: async (dates: DatesTestData, price: string) => {
-      await Promise.all(
-        dates.data.map(async (e) => {
-          const [success, booking] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
-          return Promise.all([
-            expect(success).to.be.true,
-            expect(booking.price).to.eq(parseEther(price)),
-            expect(booking.year).to.eq(e.year),
-            expect(booking.dayOfYear).to.eq(e.day),
-          ]);
-        })
-      );
+    bookings: {
+      toExists: async (dates: DatesTestData, price: string) => {
+        await Promise.all(
+          dates.data.map(async (e) => {
+            const [success, booking] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
+            return Promise.all([
+              expect(success).to.be.true,
+              expect(booking.price).to.eq(parseEther(price)),
+              expect(booking.year).to.eq(e.year),
+              expect(booking.dayOfYear).to.eq(e.day),
+            ]);
+          })
+        );
+      },
+      toNotExits: async (dates: DatesTestData) => {
+        await Promise.all(
+          dates.data.map(async (e) => {
+            const [exists, _booking] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
+            return Promise.all([expect(exists).to.be.false]);
+          })
+        );
+      },
     },
   };
 };
