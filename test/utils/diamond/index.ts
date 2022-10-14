@@ -40,9 +40,18 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
         parseEther(unlocked)
       );
     },
+    stakeAt: async (year: number, day: number, locked: string, unlocked: string) => {
+      expect(
+        await TDFDiamond.lockedStakeAt(user.address, year, day),
+        `stakedAt locked(${locked}), year(${year}), day(${day})`
+      ).to.eq(parseEther(locked));
+      expect(
+        await TDFDiamond.unlockedStakeAt(user.address, year, day),
+        `stakedAt unLocked(${unlocked}), year(${year}), day(${day})`
+      ).to.eq(parseEther(unlocked));
+    },
     deposits: async (examples: [string, number][]) => {
       const deposits = await TDFDiamond.depositsStakedFor(user.address);
-      console.log(deposits.map((d) => ({timestamp: d.timestamp.toString(), amount: formatEther(d.amount)})));
       for (let i = 0; i < examples.length; i++) {
         expect(deposits[i].amount, `deposits Index(${i}) Amount(${examples[i][0]})`).to.eq(parseEther(examples[i][0]));
         expect(deposits[i].timestamp, `deposits Index(${i}) timestamp(${examples[i][1]})`).to.eq(

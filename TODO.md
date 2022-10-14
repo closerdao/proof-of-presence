@@ -3,6 +3,18 @@
 ## Features
 
 - [ ] members
+- price problem does not exists
+- [ ] booking request
+
+  - user cyphers tx for booking
+  - space host approves and sends executes the booking
+
+- [ ] ERC20
+
+  - before transfer
+  - diamond pre-approved
+
+- [ ] public sale
 
 ## Tools
 

@@ -106,20 +106,6 @@ library StakeLibV2 {
         }
     }
 
-    function keepUntilRemoveRest(
-        Context memory context,
-        OrderedStakeLib.Store storage store,
-        uint256 keepAmount,
-        uint256 tm
-    ) internal {
-        // if (store.balance() > keepAmount) {
-        //     uint256 lt = store.length();
-        //     for (uint256 i = lt; i > 0; i--) {
-        //         store.at(i - 1);
-        //     }
-        // }
-    }
-
     function takeMax(Context memory context, OrderedStakeLib.Store storage store) internal returns (uint256) {
         uint256 amount = releasable(context, store);
 
@@ -145,6 +131,22 @@ library StakeLibV2 {
 
     function releasable(Context memory context, OrderedStakeLib.Store storage store) internal view returns (uint256) {
         return store.balanceUntil(_currentReleaseTimestamp(context));
+    }
+
+    function lockedAt(
+        Context memory context,
+        OrderedStakeLib.Store storage store,
+        uint256 at
+    ) internal view returns (uint256) {
+        return store.balanceFrom(_releaseTimestampAt(context, at));
+    }
+
+    function releasableAt(
+        Context memory context,
+        OrderedStakeLib.Store storage store,
+        uint256 at
+    ) internal view returns (uint256) {
+        return store.balanceUntil(_releaseTimestampAt(context, at));
     }
 
     function restakeMax(Context memory context, OrderedStakeLib.Store storage store) internal returns (uint256) {
@@ -181,7 +183,11 @@ library StakeLibV2 {
     // =========================================
 
     function _currentReleaseTimestamp(Context memory context) internal view returns (uint256) {
-        return block.timestamp - context.lockingTimePeriod;
+        return _releaseTimestampAt(context, block.timestamp);
+    }
+
+    function _releaseTimestampAt(Context memory context, uint256 at) internal pure returns (uint256) {
+        return at - context.lockingTimePeriod;
     }
 
     function _addAt(
