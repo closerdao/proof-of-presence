@@ -260,8 +260,12 @@ describe('BookingFacet', () => {
         await test.balances('1', '1', '9999');
         await test.bookings.toExists(dates, '1');
         await test.bookings.toExists(dates2, '1');
+        await test.stakeAt(dates2.inputs[0][0], dates2.inputs[0][1], '1', '0');
+        await test.stakeAt(dates2.inputs[0][0] + 1, dates2.inputs[0][1] + 1, '0', '1');
 
         await user.cancelAccommodation(dates2.inputs).success();
+        await test.stakeAt(dates2.inputs[0][0], dates2.inputs[0][1], '0', '1');
+        await test.stakeAt(dates.inputs[0][0], dates.inputs[0][1] + 10, '0', '1');
 
         const thirdYear = DateTime.now().plus({year: 2}).startOf('year').plus({day: 134});
         const init3 = thirdYear.plus({days: 10});

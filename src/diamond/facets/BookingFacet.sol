@@ -45,14 +45,24 @@ contract BookingFacet is Modifiers {
     }
 
     function cancelAccommodation(uint16[2][] calldata dates) external whenNotPaused {
-        uint256 lastDate;
+        // uint256 lastDate;
         for (uint256 i = 0; i < dates.length; i++) {
             (bool exists, BookingMapLib.Booking memory booking) = s._accommodationBookings[_msgSender()].get(
                 dates[i][0],
                 dates[i][1]
             );
+            require(exists, "Reservation does not exits");
             _cancel(_msgSender(), booking.timestamp, dates[i][0], dates[i][1]);
-            _stakeLibContext(_msgSender()).removeAt(s.staking[_msgSender()], booking.price, booking.timestamp);
+            BookingMapLib.Booking[] memory prevYear = s._accommodationBookings[_msgSender()].list(dates[i][0]);
+            uint256 prevTm;
+            if (prevYear.length == 0) {
+                console.log("there is bookings in previous year");
+                prevTm = booking.timestamp - s._lockingTimePeriod;
+            } else {
+                console.log("no bookings in previous year");
+                prevTm = prevYear[prevYear.length - 1].timestamp;
+            }
+            _stakeLibContext(_msgSender()).removeAt(s.staking[_msgSender()], booking.price, prevTm);
         }
 
         // we should get how many and when should be moved to
@@ -80,6 +90,26 @@ contract BookingFacet is Modifiers {
         require(timestamp > block.timestamp, "BookingFacet: Can not cancel past booking");
         (bool success, ) = s._accommodationBookings[account].remove(yearNum, dayOfYear);
         require(success, "BookingFacet: Booking does not exists");
+    }
+
+    function unlockedStakeAt(
+        address account,
+        uint16 year,
+        uint16 day
+    ) public view returns (uint256) {
+        (bool success, uint256 tm) = s._accommodationYears.buildTimestamp(year, day);
+        require(success, "unable to build timestamp");
+        return _stakeLibContext(_msgSender()).releasableAt(s.staking[account], tm);
+    }
+
+    function lockedStakeAt(
+        address account,
+        uint16 year,
+        uint16 day
+    ) public view returns (uint256) {
+        (bool success, uint256 tm) = s._accommodationYears.buildTimestamp(year, day);
+        require(success, "unable to build timestamp");
+        return _stakeLibContext(_msgSender()).lockedAt(s.staking[account], tm);
     }
 
     function getAccommodationBooking(

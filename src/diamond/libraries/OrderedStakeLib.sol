@@ -158,6 +158,7 @@ library OrderedStakeLib {
         uint256 from,
         uint256 to
     ) internal {
+        if (from == to) return;
         require(from > to, "WrongRange");
         if (store._queue.empty()) revert("Empty");
         _moveFront(store, amount, from, to);
@@ -169,6 +170,7 @@ library OrderedStakeLib {
         uint256 from,
         uint256 to
     ) internal {
+        if (from == to) return;
         require(from < to, "WrongRange");
         if (store._queue.empty()) revert("Empty");
         _moveBack(store, amount, from, to);
