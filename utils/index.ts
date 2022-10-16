@@ -10,3 +10,5 @@ export const ROLES = {
   MEMBERSHIP_MANAGER_ROLE: soliditySha3('MEMBERSHIP_MANAGER_ROLE')!,
   /* eslint-enable @typescript-eslint/no-non-null-assertion */
 } as const;
+
+export * from './Constants';
