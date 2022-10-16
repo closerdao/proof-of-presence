@@ -1,18 +1,19 @@
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {DeployFunction} from 'hardhat-deploy/types';
-import {parseEther} from 'ethers/lib/utils';
+import {ZERO_ADDRESS} from '../utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
   const {deploy} = deployments;
 
-  const {deployer, TDFTokenBeneficiary} = await getNamedAccounts();
+  const {deployer} = await getNamedAccounts();
 
   await deploy('TDFToken', {
     from: deployer,
-    args: [TDFTokenBeneficiary, parseEther('1000000000')],
-    log: true,
-    autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
+    proxy: {
+      proxyContract: 'OptimizedTransparentProxy',
+      execute: {init: {methodName: `initialize`, args: [ZERO_ADDRESS]}},
+    },
   });
 };
 export default func;

@@ -37,4 +37,20 @@ contract MembershipFacet is Modifiers {
     function memberList() public view returns (address[] memory) {
         return s.members.values();
     }
+
+    function isTokenTransferPermitted(
+        address from,
+        address to,
+        uint256
+    ) external view returns (bool) {
+        // minting
+        if (from == address(0)) return true;
+        // burning
+        if (to == address(0)) return true;
+        // from this contract
+        if (from == address(this)) return true;
+        // to this contract
+        if (to == address(this)) return true;
+        return false;
+    }
 }

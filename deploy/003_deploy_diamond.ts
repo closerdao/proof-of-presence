@@ -1,5 +1,7 @@
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {DeployFunction} from 'hardhat-deploy/types';
+import {ethers} from 'hardhat';
+import {TDFToken} from '../typechain';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
@@ -9,8 +11,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const TDFToken = await deployments.deploy('ERC20TestMock', {from: deployer});
   const minutes = (n: number) => n * 3600;
   const days = (n: number) => n * 86400;
+  const realTDFToken = (await ethers.getContract('TDFToken', deployer)).connect(
+    await ethers.getSigner(deployer)
+  ) as TDFToken;
 
-  await diamond.deploy('TDFDiamond', {
+  const contract = await diamond.deploy('TDFDiamond', {
     from: deployer,
     owner: deployer,
     facets: [
@@ -26,9 +31,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       args: [TDFToken.address, minutes(5)], // TODO: be 365 and change in tests
     },
   });
-  // TODO:
-  // Set the
-  // deployed
+  await realTDFToken.setDAOContract(contract.address);
 };
 export default func;
 func.tags = ['Diamond'];

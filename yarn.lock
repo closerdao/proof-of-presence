@@ -1515,6 +1515,11 @@
   resolved "https://registry.yarnpkg.com/hardhat-deploy-ethers/-/hardhat-deploy-ethers-0.3.0-beta.12.tgz#2b18d8c689413984262a12393cada3011c356b7a"
   integrity sha512-sgx4cdhZwb8xDnuni6S0aturxgphMBGUaB1D3em73phhy8+RO9z7KiYeQvZhruXWydM6fdDX4NwGpaSy+MGcqA==
 
+"@openzeppelin/contracts-upgradeable@^4.8.0-rc.1":
+  version "4.8.0-rc.1"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.8.0-rc.1.tgz#2f8dfa64ce04f92f7e7409117b82e051bb4d1caa"
+  integrity sha512-yywl0OC8ZGyRLDf0hQqGt2qtm5DZcDf6CggfE+J0bNw2mF6ySaXW6lovAZwXI/frtevUGog4WKNm6EPXtpoh3A==
+
 "@openzeppelin/contracts@^4.7.0":
   version "4.7.2"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.7.2.tgz#7587416fe2d35abf574193515b8971bfe9f64bc7"
