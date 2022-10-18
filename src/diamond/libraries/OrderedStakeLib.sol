@@ -100,18 +100,18 @@ library OrderedStakeLib {
         uint256 amount,
         uint256 tm
     ) internal {
-        Deposit memory back = _popBack(store);
-        if (back.timestamp == tm) {
-            if (back.amount < amount) revert("InsufficientDeposit");
-            if (back.amount > amount) {
-                _pushBackOrdered(store, back.amount - amount, back.timestamp);
+        Deposit memory _back = _popBack(store);
+        if (_back.timestamp == tm) {
+            if (_back.amount < amount) revert("InsufficientDeposit");
+            if (_back.amount > amount) {
+                _pushBackOrdered(store, _back.amount - amount, _back.timestamp);
             }
             // return;
-        } else if (back.timestamp < tm) {
+        } else if (_back.timestamp < tm) {
             revert("NotFound");
         } else {
             takeAt(store, amount, tm);
-            _pushBackOrdered(store, back.amount, back.timestamp);
+            _pushBackOrdered(store, _back.amount, _back.timestamp);
         }
     }
 
@@ -213,22 +213,22 @@ library OrderedStakeLib {
         uint256 from,
         uint256 to
     ) internal {
-        Deposit memory back = _popBack(store);
-        if (back.timestamp == from) {
-            if (back.amount == amount) {
+        Deposit memory _back = _popBack(store);
+        if (_back.timestamp == from) {
+            if (_back.amount == amount) {
                 _pushBackOrdered(store, amount, to);
-            } else if (back.amount > amount) {
+            } else if (_back.amount > amount) {
                 _pushBackOrdered(store, amount, to);
-                _pushBackOrdered(store, back.amount - amount, back.timestamp);
+                _pushBackOrdered(store, _back.amount - amount, _back.timestamp);
             } else {
                 // amount is bigger than current
-                _pushBackOrdered(store, back.amount, to);
+                _pushBackOrdered(store, _back.amount, to);
                 require(uint256(store._queue.back()) != from, "OutOfBounds");
-                _moveFront(store, amount - back.amount, uint256(store._queue.back()), to);
+                _moveFront(store, amount - _back.amount, uint256(store._queue.back()), to);
             }
         } else {
             _moveFront(store, amount, from, to);
-            _pushBackOrdered(store, back.amount, back.timestamp);
+            _pushBackOrdered(store, _back.amount, _back.timestamp);
         }
     }
 
@@ -238,22 +238,22 @@ library OrderedStakeLib {
         uint256 from,
         uint256 to
     ) internal {
-        Deposit memory front = _popFront(store);
-        if (front.timestamp == from) {
-            if (front.amount == amount) {
+        Deposit memory _front = _popFront(store);
+        if (_front.timestamp == from) {
+            if (_front.amount == amount) {
                 _pushBackOrdered(store, amount, to);
-            } else if (front.amount > amount) {
+            } else if (_front.amount > amount) {
                 _pushBackOrdered(store, amount, to);
-                _pushBackOrdered(store, front.amount - amount, front.timestamp);
+                _pushBackOrdered(store, _front.amount - amount, _front.timestamp);
             } else {
                 // amount is bigger than current
-                _pushBackOrdered(store, front.amount, to);
+                _pushBackOrdered(store, _front.amount, to);
                 require(uint256(store._queue.front()) != from, "OutOfBounds");
-                _moveFront(store, amount - front.amount, uint256(store._queue.front()), to);
+                _moveFront(store, amount - _front.amount, uint256(store._queue.front()), to);
             }
         } else {
             _moveFront(store, amount, from, to);
-            _pushBackOrdered(store, front.amount, front.timestamp);
+            _pushBackOrdered(store, _front.amount, _front.timestamp);
         }
     }
 
