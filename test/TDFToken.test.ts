@@ -1,6 +1,6 @@
 import {expect} from './chai-setup';
 import {ethers, deployments, getUnnamedAccounts, getNamedAccounts} from 'hardhat';
-import {IERC20, DAOAllowTransfersMock, TDFToken} from '../typechain';
+import {IERC20, DAOAllowTransfersMock, TDFToken, TDFDiamond} from '../typechain';
 import {setupUser, setupUsers, getMock} from './utils';
 import {MAX_UINT256, ZERO_ADDRESS} from '../utils';
 import {parseEther} from 'ethers/lib/utils';
@@ -10,6 +10,7 @@ const setup = deployments.createFixture(async () => {
   const {TDFTokenBeneficiary, deployer} = await getNamedAccounts();
   const contracts = {
     TDFToken: <TDFToken>await ethers.getContract('TDFToken'),
+    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond'),
     DAOMock: <DAOAllowTransfersMock>await getMock('DAOAllowTransfersMock', deployer, []),
   };
   const users = await setupUsers(await getUnnamedAccounts(), contracts);
@@ -63,40 +64,33 @@ describe('TDFToken', function () {
       expect(await TDFToken.allowance(users[2].address, DAOMock.address)).to.eq(MAX_UINT256);
     });
   });
-  describe('Default DAO', () => {
-    const setMock = async (): Promise<ReturnType<typeof setup>> => {
-      const context = await setup();
-      const {DAOMock, deployer} = context;
-      await deployer.TDFToken.setDAOContract(DAOMock.address);
-      return context;
-    };
-    it('when only allowed transfers are allowed', async () => {
-      // mint
-      const {deployer, users, TDFToken, DAOMock} = await setMock();
-      await expect(deployer.TDFToken.mint(users[0].address, parseEther('10'))).to.be.revertedWith('DAO');
-      await deployer.DAOMock.addPermit(ZERO_ADDRESS, users[0].address, MAX_UINT256);
+  describe('TDFDiamond transfer permitter', () => {
+    it('Allowed Transfers', async () => {
+      const {deployer, users, TDFToken, TDFDiamond} = await setup();
+      // minting
       await expect(deployer.TDFToken.mint(users[0].address, parseEther('10'))).to.emit(TDFToken, 'Transfer');
-      await expect(users[0].TDFToken.transfer(DAOMock.address, parseEther('1'))).to.be.revertedWith('DAO');
-      await deployer.DAOMock.addPermit(users[0].address, DAOMock.address, MAX_UINT256);
-      await expect(users[0].TDFToken.transfer(DAOMock.address, parseEther('1'))).to.emit(TDFToken, 'Transfer');
-      expect(await TDFToken.balanceOf(DAOMock.address)).to.eq(parseEther('1'));
+      expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10'));
+      // Burning
+      await expect(users[0].TDFToken.burn(parseEther('1')))
+        .to.emit(TDFToken, 'Transfer')
+        .withArgs(users[0].address, ZERO_ADDRESS, parseEther('1'));
+      expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('9'));
+
+      // Send to DAO
+      expect(await TDFToken.balanceOf(TDFDiamond.address)).to.eq(parseEther('0'));
+      await expect(users[0].TDFToken.transfer(TDFDiamond.address, parseEther('1')))
+        .to.emit(TDFToken, 'Transfer')
+        .withArgs(users[0].address, TDFDiamond.address, parseEther('1'));
+      expect(await TDFToken.balanceOf(TDFDiamond.address)).to.eq(parseEther('1'));
     });
-    it('DAO transfering to user works');
-    it('minting from owner is allowed');
-    it('minting from DAO is allowed');
-    it('rest of transfers are not allowed');
-  });
-  xit('transfer fails', async function () {
-    const {users} = await setup();
-    await expect(users[0].TDFToken.transfer(users[1].address, 1)).to.be.revertedWith('NOT_ENOUGH_TOKENS');
-  });
-
-  xit('transfer succeed', async function () {
-    const {users, TDFTokenBeneficiary, TDFToken} = await setup();
-    await TDFTokenBeneficiary.TDFToken.transfer(users[1].address, 1);
-
-    await expect(TDFTokenBeneficiary.TDFToken.transfer(users[1].address, 1))
-      .to.emit(TDFToken, 'Transfer')
-      .withArgs(TDFTokenBeneficiary.address, users[1].address, 1);
+    it('Not allowed transfers', async () => {
+      const {deployer, users, TDFToken} = await setup();
+      // minting
+      await expect(deployer.TDFToken.mint(users[0].address, parseEther('10'))).to.emit(TDFToken, 'Transfer');
+      await expect(users[10].TDFToken.transfer(users[1].address, parseEther('1'))).to.be.revertedWith('DAO');
+      await expect(users[10].TDFToken.transfer(users[2].address, parseEther('1'))).to.be.revertedWith('DAO');
+      await expect(users[10].TDFToken.transfer(users[3].address, parseEther('1'))).to.be.revertedWith('DAO');
+      await expect(users[10].TDFToken.transfer(users[4].address, parseEther('1'))).to.be.revertedWith('DAO');
+    });
   });
 });

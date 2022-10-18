@@ -61,7 +61,7 @@ const setup = deployments.createFixture(async (hre) => {
 });
 
 describe('Crowdsale', () => {
-  it('[buy] - price 350 - with two decimals', async () => {
+  xit('[buy] - price 350 - with two decimals', async () => {
     // SETUP
     const config = await setup();
     const {users, TDFTokenBeneficiary, FakeEURToken, TDFToken} = config;
@@ -135,7 +135,7 @@ describe('Crowdsale', () => {
     await expect(user.Sale.unpause()).to.emit(Sale, 'Unpaused');
   });
 
-  it('pausable', async () => {
+  xit('pausable', async () => {
     // SETUP
     const config = await setup();
     const {users} = config;
