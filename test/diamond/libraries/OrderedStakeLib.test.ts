@@ -115,6 +115,21 @@ describe('OrderedStakeLibMock', () => {
         },
       },
     }),
+    moveFrontRanged: (amount: string, from: number, to: number) => ({
+      success: async () => {
+        await expect(user.map.moveFrontRanged(parseEther(amount), from, to))
+          .to.emit(map, 'Moved')
+          .withArgs(parseEther(amount), from, to);
+      },
+      reverted: {
+        empty: async () => {
+          await expect(
+            user.map.moveFrontRanged(parseEther(amount), from, to),
+            `moveFrontRanged.reverted.notEnoughBalance amount=${amount}, from=${from}, to=${to}`
+          ).to.be.revertedWith('Empty');
+        },
+      },
+    }),
     takeUntil: (amount: string, untilTm: number) => ({
       success: async () => {
         await expect(
@@ -158,8 +173,11 @@ describe('OrderedStakeLibMock', () => {
           expect(val, `balance toEq(${amount}) but Got(${formatEther(val)})`).to.eq(parseEther(amount));
         },
       }),
-      deposits: async (examples: [string, number][]) => {
+      deposits: async (examples: [string, number][], debug = false) => {
         const deposits = await map.deposits();
+        if (debug) {
+          console.log(deposits.map((e) => `amount: ${formatEther(e.amount)}, tm: ${e.timestamp}`));
+        }
         for (let i = 0; i < examples.length; i++) {
           expect(deposits[i], `deposit should exits amount=${examples[i][0]} tm=${examples[i][1]}`).to.not.be.undefined;
           const amount = deposits[i].amount;
@@ -174,6 +192,100 @@ describe('OrderedStakeLibMock', () => {
     },
   });
 
+  describe('moveFrontRanged', () => {
+    it('success', async () => {
+      const context = await setup();
+      const {users} = context;
+      const {push, test, moveFrontRanged} = testers({...context, user: users[0]});
+
+      await push('1', 10);
+      await push('1', 30);
+      await push('1', 20);
+      await push('1', 40);
+      await push('1', 50);
+      await test.deposits([
+        ['1', 10],
+        ['1', 20],
+        ['1', 30],
+        ['1', 40],
+        ['1', 50],
+      ]);
+      await test.balance().toEq('5');
+      await moveFrontRanged('1', 33, 22).success();
+      await test.deposits([
+        ['1', 10],
+        ['1', 20],
+        ['1', 22],
+        ['1', 40],
+        ['1', 50],
+      ]);
+      await test.balance().toEq('5');
+      await moveFrontRanged('0.5', 55, 22).success();
+      await test.deposits([
+        ['1', 10],
+        ['1', 20],
+        ['1.5', 22],
+        ['1', 40],
+        ['0.5', 50],
+      ]);
+      await test.balance().toEq('5');
+      await moveFrontRanged('2', 45, 22).success();
+      await test.deposits([
+        ['1', 10],
+        ['1', 20],
+        ['2.5', 22],
+        ['0.5', 50],
+      ]);
+      await test.balance().toEq('5');
+      await moveFrontRanged('2', 45, 7).success();
+      await test.deposits([
+        ['2', 7],
+        ['1', 10],
+        ['1', 20],
+        ['0.5', 22],
+        ['0.5', 50],
+      ]);
+      await test.balance().toEq('5');
+    });
+    it('optimistic success', async () => {
+      const context = await setup();
+      const {users} = context;
+      const {push, test, moveFrontRanged} = testers({...context, user: users[0]});
+
+      await push('1', 10);
+      await push('1', 20);
+      await push('1', 30);
+      await push('1', 40);
+      await push('1', 50);
+      await test.balance().toEq('5');
+      await moveFrontRanged('4', 30, 4).success();
+      await test.deposits([
+        ['3', 4],
+        ['1', 40],
+        ['1', 50],
+      ]);
+      await test.balance().toEq('5');
+      await moveFrontRanged('3', 50, 40).success();
+      await test.deposits([
+        ['3', 4],
+        ['2', 40],
+      ]);
+      await test.balance().toEq('5');
+    });
+    it('reverts', async () => {
+      const context = await setup();
+      const {users} = context;
+      const {push, test, moveFrontRanged} = testers({...context, user: users[0]});
+
+      await push('1', 10);
+      await push('1', 20);
+      await push('1', 30);
+      await push('1', 40);
+      await push('1', 50);
+      await moveFrontRanged('3', 7, 4).reverted.empty();
+      await test.balance().toEq('5');
+    });
+  });
   it('push', async () => {
     const context = await setup();
     const {users} = context;
@@ -421,7 +533,12 @@ describe('OrderedStakeLibMock', () => {
       await push('1', 10);
       await push('1', 20);
       await push('1', 30);
-      await moveFront('3', 10, 1).reverted.outOfBounds();
+      await moveFront('3', 10, 1).success();
+      await test.deposits([
+        ['1', 1],
+        ['1', 20],
+        ['1', 30],
+      ]);
       await test.balance().toEq('3');
     });
     it('whole amount to new bucket', async () => {
@@ -522,7 +639,12 @@ describe('OrderedStakeLibMock', () => {
       await push('1', 10);
       await push('1', 20);
       await push('1', 30);
-      await moveBack('3', 30, 40).reverted.outOfBounds();
+      await moveBack('3', 30, 40).success();
+      await test.deposits([
+        ['1', 10],
+        ['1', 20],
+        ['1', 40],
+      ]);
       await test.balance().toEq('3');
     });
     it('whole amount to new bucket', async () => {

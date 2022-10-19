@@ -74,7 +74,7 @@ describe('BookingFacet', () => {
 
       await user.cancelAccommodation(dates.inputs).success();
 
-      await test.balances('0', '0', '10000');
+      await test.balances('5', '5', '9995');
       // -------------------------------------------------------
       //  Book and cancel few dates
       // -------------------------------------------------------
@@ -84,7 +84,7 @@ describe('BookingFacet', () => {
 
       const cDates = collectDates(dates, [0, 4]);
       await user.cancelAccommodation(cDates.inputs).success();
-      await test.balances('3', '3', '9997');
+      await test.balances('5', '5', '9997');
       const restcDates = collectDates(dates, [1, 2, 3]);
 
       await test.bookings.toExists(restcDates, '1');

@@ -45,7 +45,8 @@ contract BookingFacet is Modifiers {
     }
 
     function cancelAccommodation(uint16[2][] calldata dates) external whenNotPaused {
-        // uint256 lastDate;
+        uint256 lastDate;
+        uint256 firstDate = type(uint256).max;
         for (uint256 i = 0; i < dates.length; i++) {
             (bool exists, BookingMapLib.Booking memory booking) = s._accommodationBookings[_msgSender()].get(
                 dates[i][0],
@@ -53,17 +54,21 @@ contract BookingFacet is Modifiers {
             );
             require(exists, "Reservation does not exits");
             _cancel(_msgSender(), booking.timestamp, dates[i][0], dates[i][1]);
-            BookingMapLib.Booking[] memory prevYear = s._accommodationBookings[_msgSender()].list(dates[i][0]);
-            uint256 prevTm;
-            if (prevYear.length == 0) {
-                console.log("there is bookings in previous year");
-                prevTm = booking.timestamp - s._lockingTimePeriod;
-            } else {
-                console.log("no bookings in previous year");
-                prevTm = prevYear[prevYear.length - 1].timestamp;
-            }
-            _stakeLibContext(_msgSender()).removeAt(s.staking[_msgSender()], booking.price, prevTm);
+            if (booking.timestamp > lastDate) lastDate = booking.timestamp;
+            if (booking.timestamp < firstDate) firstDate = booking.timestamp;
+
+            // BookingMapLib.Booking[] memory prevYear = s._accommodationBookings[_msgSender()].list(dates[i][0]);
+
+            // uint256 prevTmtarget;
+            // if (prevYear.length == 0) {
+            //     console.log("there is bookings in previous year");
+            //     prevTmtarget = booking.timestamp - s._lockingTimePeriod;
+            // } else {
+            //     console.log("no bookings in previous year");
+            //     prevTmtarget = prevYear[prevYear.length - 1].timestamp;
+            // }
         }
+        _stakeLibContext(_msgSender()).handleCancelations(s.staking[_msgSender()], firstDate, lastDate);
 
         // we should get how many and when should be moved to
         // _expectedStaked(_msgSender())
