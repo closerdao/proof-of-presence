@@ -77,4 +77,13 @@ contract OrderedStakeLibMock {
     function balanceFrom(uint256 untilTm) public view returns (uint256) {
         return store.balanceFrom(untilTm);
     }
+
+    function moveFrontRanged(
+        uint256 amount,
+        uint256 initScanTm,
+        uint256 to
+    ) public {
+        store.moveFrontRanged(amount, initScanTm, to);
+        emit Moved(amount, initScanTm, to);
+    }
 }

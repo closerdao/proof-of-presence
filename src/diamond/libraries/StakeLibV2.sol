@@ -48,29 +48,53 @@ library StakeLibV2 {
             // store.mo
             _addAt(context, store, amount, timestamp);
         } else {
-            revert("not implemented");
+            revert("StakeLibV2: addAt, unhandled error");
         }
     }
 
-    function removeAt(
+    function handleCancelations(
         Context memory context,
         OrderedStakeLib.Store storage store,
-        uint256 amount,
-        uint256 timestamp
+        uint256 firstDate,
+        uint256 lastDate
     ) internal {
-        if (context.requiredBalance == store.balance()) {
-            if (store.balanceFrom(timestamp - 1) >= amount) {
-                store.moveFront(amount, store.back().timestamp, timestamp);
-            }
-        } else if (context.requiredBalance < store.balance() && store.balance() - context.requiredBalance == amount) {
+        if (context.requiredBalance == store.balance()) return;
+        // do nothing
+        // if (store.balanceFrom(timestamp - 1) >= amount) {
+        //     store.moveFront(amount, store.back().timestamp, timestamp);
+        // }
+        if (context.requiredBalance < store.balance()) {
+            uint256 amount = store.balance() - context.requiredBalance;
+            store.moveFrontRanged(amount, lastDate, firstDate - context.lockingTimePeriod);
             // if current future balance < expected move to current tm
             // store.mo
-            store.takeAt(amount, timestamp);
-            context.token.safeTransfer(context.account, amount);
+            // store.takeFromBackToFrontRange(amount, timestamp);
+            // context.token.safeTransfer(context.account, amount);
         } else {
-            revert("not implemented");
+            revert("StakeLibV2: `handleCancelations` unhandled case");
         }
     }
+
+    // function removeAt(
+    //     Context memory context,
+    //     OrderedStakeLib.Store storage store,
+    //     uint256 amount,
+    //     uint256 timestamp
+    // ) internal {
+    //     if (context.requiredBalance == store.balance()) {
+    //         // do nothing
+    //         // if (store.balanceFrom(timestamp - 1) >= amount) {
+    //         //     store.moveFront(amount, store.back().timestamp, timestamp);
+    //         // }
+    //     } else if (context.requiredBalance < store.balance() && store.balance() - context.requiredBalance == amount) {
+    //         // if current future balance < expected move to current tm
+    //         // store.mo
+    //         // store.takeFromBackToFrontRange(amount, timestamp);
+    //         // context.token.safeTransfer(context.account, amount);
+    //     } else {
+    //         revert("not implemented");
+    //     }
+    // }
 
     function remove(
         Context memory context,

@@ -20,6 +20,7 @@ library BookingMapLib {
         mapping(uint16 => EnumerableMap.Bytes32ToUintMap) dates;
         mapping(bytes32 => Booking) bookings;
     }
+
     struct Year {
         uint16 number;
         bool leapYear;
