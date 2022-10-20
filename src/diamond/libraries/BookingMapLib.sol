@@ -13,11 +13,19 @@ library BookingMapLib {
         uint16 dayOfYear;
         uint256 price;
         uint256 timestamp;
+        uint256 deposit;
     }
 
     struct UserStore {
+        uint256 allBalance;
+        // Year
+        mapping(uint16 => mapping(uint256 => uint256)) deposits;
+        mapping(uint16 => uint256) deposit;
+        // year => balance
         mapping(uint16 => uint256) balance;
+        // year => timestamps
         mapping(uint16 => EnumerableMap.Bytes32ToUintMap) dates;
+        // timestamp => booking
         mapping(bytes32 => Booking) bookings;
     }
 
@@ -35,9 +43,21 @@ library BookingMapLib {
     }
 
     function add(UserStore storage store, Booking memory booking) internal returns (bool) {
+        if (store.deposit[booking.year - 1] >= booking.price) {
+            // move to next year
+            store.deposit[booking.year - 1] -= booking.price;
+            _add(store, booking);
+        } else {
+            store.allBalance += booking.price;
+            _add(store, booking);
+        }
+    }
+
+    function _add(UserStore storage store, Booking memory booking) internal returns (bool) {
         bytes32 key = _buildKey(booking.year, booking.dayOfYear);
         if (store.dates[booking.year].set(key, booking.timestamp)) {
             store.balance[booking.year] += booking.price;
+            store.deposit[booking.year] += booking.price;
             store.bookings[key] = booking; //Booking(booking.price, booking.timestamp);
             return true;
         }
@@ -53,7 +73,7 @@ library BookingMapLib {
         if (store.dates[_year].contains(key)) {
             return (true, store.bookings[key]);
         }
-        return (false, Booking(0, 0, 0, 0));
+        return (false, _defaultBooking());
     }
 
     function getBalance(UserStore storage store, uint16 _year) internal view returns (uint256) {
@@ -81,7 +101,7 @@ library BookingMapLib {
             delete store.bookings[key];
             return (true, booking);
         }
-        return (false, Booking(0, 0, 0, 0));
+        return (false, _defaultBooking());
     }
 
     function _buildKey(uint16 year, uint16 dayOfYear) internal pure returns (bytes32) {
@@ -115,9 +135,16 @@ library BookingMapLib {
     ) internal view returns (bool, Booking memory) {
         (bool success, uint256 tm) = buildTimestamp(_years, yearNum, dayOfTheYear);
         if (success) {
-            return (true, Booking(yearNum, dayOfTheYear, price, tm));
+            return (
+                true,
+                Booking({year: yearNum, dayOfYear: dayOfTheYear, price: price, timestamp: tm, deposit: price})
+            );
         }
-        return (false, Booking(0, 0, 0, 0));
+        return (false, _defaultBooking());
+    }
+
+    function _defaultBooking() internal pure returns (Booking memory) {
+        return Booking({year: 0, dayOfYear: 0, price: 0, timestamp: 0, deposit: 0});
     }
 
     /// YearsStore -------------------------------------------
