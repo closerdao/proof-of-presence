@@ -140,6 +140,19 @@ library OrderedStakeLib {
         }
     }
 
+    function balanceFromTo(
+        Store storage store,
+        uint256 from,
+        uint256 to
+    ) internal view returns (uint256 amount) {
+        for (uint256 i; i < length(store); i++) {
+            Deposit memory deposit = at(store, i);
+            if (deposit.timestamp >= from && deposit.timestamp <= to) {
+                amount += deposit.amount;
+            }
+        }
+    }
+
     // function takeFromBackToFrontRange(
     //     Store storage store,
     //     uint256 requested,
@@ -257,9 +270,9 @@ library OrderedStakeLib {
 
     // @dev
     // NonIncluded
-    // not including current TM since balanceUntil includes the current timestamp
+    // including current TM since balanceUntil includes the current timestamp
     function balanceFrom(Store storage store, uint256 fromTm) internal view returns (uint256) {
-        return store._balance - balanceUntil(store, fromTm);
+        return store._balance - balanceUntil(store, fromTm + 1);
     }
 
     function balance(Store storage store) internal view returns (uint256) {

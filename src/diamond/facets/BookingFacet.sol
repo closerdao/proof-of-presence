@@ -7,6 +7,7 @@ import "../libraries/AppStorage.sol";
 
 contract BookingFacet is Modifiers {
     using StakeLibV2 for StakeLibV2.Context;
+    using StakeLibV2 for StakeLibV2.BookingContext;
     using BookingMapLib for BookingMapLib.UserStore;
     using BookingMapLib for BookingMapLib.YearsStore;
 
@@ -20,8 +21,13 @@ contract BookingFacet is Modifiers {
     function bookAccommodation(uint16[2][] calldata dates) external whenNotPaused onlyMember {
         for (uint256 i = 0; i < dates.length; i++) {
             uint256 price = 1 ether;
+
             BookingMapLib.Booking memory value = _insertBooking(_msgSender(), dates[i][0], dates[i][1], price);
-            _stakeLibContext(_msgSender()).addAt(s.staking[_msgSender()], price, value.timestamp);
+            _stakeLibBookingContext(_msgSender(), value.timestamp, dates[i][0]).handleBooking(
+                s.staking[_msgSender()],
+                price,
+                value.timestamp
+            );
         }
 
         emit NewBookings(_msgSender(), dates);
@@ -56,6 +62,11 @@ contract BookingFacet is Modifiers {
             _cancel(_msgSender(), booking.timestamp, dates[i][0], dates[i][1]);
             if (booking.timestamp > lastDate) lastDate = booking.timestamp;
             if (booking.timestamp < firstDate) firstDate = booking.timestamp;
+            _stakeLibBookingContext(_msgSender(), booking.timestamp, dates[i][0]).handleCancelation(
+                s.staking[_msgSender()],
+                booking.price,
+                booking.timestamp
+            );
 
             // BookingMapLib.Booking[] memory prevYear = s._accommodationBookings[_msgSender()].list(dates[i][0]);
 
@@ -68,7 +79,6 @@ contract BookingFacet is Modifiers {
             //     prevTmtarget = prevYear[prevYear.length - 1].timestamp;
             // }
         }
-        _stakeLibContext(_msgSender()).handleCancelations(s.staking[_msgSender()], firstDate, lastDate);
 
         // we should get how many and when should be moved to
         // _expectedStaked(_msgSender())

@@ -132,6 +132,26 @@ contract Modifiers {
             });
     }
 
+    function _stakeLibBookingContext(
+        address account,
+        uint256 bookingTm,
+        uint16 year_
+    ) internal view returns (StakeLibV2.BookingContext memory) {
+        (, BookingMapLib.Year memory year) = s._accommodationYears.get(year_);
+        return
+            StakeLibV2.BookingContext({
+                account: account,
+                token: s.communityToken,
+                lockingTimePeriod: s._lockingTimePeriod,
+                requiredBalance: _expectedStaked(account),
+                fromReservationFutureRequiredBalance: _fromReservationExpectedStaked(account, bookingTm),
+                fromReservationPastRequiredBalance: _fromReservationPastRequiredBalance(account, bookingTm),
+                initYearTm: year.start,
+                endYearTm: year.end,
+                onYearBoookingsAmount: _reservationYearExpectedBalance(account, year_)
+            });
+    }
+
     function _expectedStaked(address account) internal view returns (uint256) {
         uint256 max;
         BookingMapLib.Year[] memory _yearList = s._accommodationYears.values();
@@ -142,6 +162,34 @@ contract Modifiers {
             if (amount > max) max = amount;
         }
         return max;
+    }
+
+    function _fromReservationExpectedStaked(address account, uint256 bookingTm) internal view returns (uint256) {
+        uint256 max;
+        BookingMapLib.Year[] memory _yearList = s._accommodationYears.values();
+        for (uint16 i = 0; i < _yearList.length; i++) {
+            // TODO: should it be + 1 year?
+            if (_yearList[i].end < bookingTm) continue;
+            uint256 amount = s._accommodationBookings[account].getBalance(_yearList[i].number);
+            if (amount > max) max = amount;
+        }
+        return max;
+    }
+
+    function _fromReservationPastRequiredBalance(address account, uint256 bookingTm) internal view returns (uint256) {
+        uint256 max;
+        BookingMapLib.Year[] memory _yearList = s._accommodationYears.values();
+        for (uint16 i = 0; i < _yearList.length; i++) {
+            // TODO: should it be + 1 year?
+            if (_yearList[i].end > bookingTm) continue;
+            uint256 amount = s._accommodationBookings[account].getBalance(_yearList[i].number);
+            if (amount > max) max = amount;
+        }
+        return max;
+    }
+
+    function _reservationYearExpectedBalance(address account, uint16 year) internal view returns (uint256) {
+        return s._accommodationBookings[account].getBalance(year);
     }
 
     function _msgSender() internal view virtual returns (address) {
