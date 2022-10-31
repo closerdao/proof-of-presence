@@ -86,17 +86,61 @@ const setupTest = (context: TestContext) => {
         expect(await token.balanceOf(user.address), 'balances: user amount of token').to.eq(parseEther(u));
       },
 
-      deposits: async (examples: [string, number][]) => {
+      deposits: async (examples: [string, number][], debug = false) => {
         const deposits = await stake.deposits();
-        for (let i = 0; i < examples.length; i++) {
-          expect(deposits[i], `deposit should exits amount=${examples[i][0]} tm=${examples[i][1]}`).to.not.be.undefined;
-          const amount = deposits[i].amount;
-          const exAmount = parseEther(examples[i][0]);
-          expect(
-            amount,
-            `deposits amount at(${deposits[i].timestamp}) toEq(${examples[i][0]}) but Got(${formatEther(amount)})`
-          ).to.eq(exAmount);
-          expect(deposits[i].timestamp, 'deposits timestamp').to.eq(BN.from(examples[i][1]));
+        if (debug) {
+          const data: {tm: string; ex_tm: string; amount: string; ex_amount: string}[] = [];
+          const max = deposits.length > examples.length ? deposits.length : examples.length;
+
+          console.log('== Examples ==');
+          console.table(
+            examples.map((e) => ({
+              amount: e[0],
+              date: new Date(e[1] * 1000).toDateString(),
+            }))
+          );
+          console.log('== lengths ==');
+          console.table({examples: examples.length, deposits: deposits.length});
+
+          for (let i = 0; i < max; i++) {
+            if (i < deposits.length && i < examples.length) {
+              data.push({
+                tm: new Date(deposits[i].timestamp.toNumber() * 1000).toDateString(),
+                ex_tm: new Date(examples[i][1] * 1000).toDateString(),
+                amount: formatEther(deposits[i].amount.toString()).toString(),
+                ex_amount: examples[i][0],
+              });
+            } else if (i < deposits.length) {
+              data.push({
+                tm: new Date(deposits[i].timestamp.toNumber() * 1000).toDateString(),
+                ex_tm: 'NULL',
+                amount: formatEther(deposits[i].amount.toString()).toString(),
+                ex_amount: 'NULL',
+              });
+            } else {
+              data.push({
+                tm: 'NULL',
+                ex_tm: new Date(examples[i][1] * 1000).toDateString(),
+                amount: 'NULL',
+                ex_amount: examples[i][0],
+              });
+            }
+          }
+          console.log('== Comparisons ==');
+          console.table(data);
+
+          // TEST!!!
+          for (let i = 0; i < examples.length; i++) {
+            expect(deposits[i], `deposit should exits amount=${examples[i][0]} tm=${examples[i][1]}`).to.not.be
+              .undefined;
+            const amount = deposits[i].amount;
+            const exAmount = parseEther(examples[i][0]);
+            expect(
+              amount,
+              `deposits amount at(${deposits[i].timestamp}) toEq(${examples[i][0]}) but Got(${formatEther(amount)})`
+            ).to.eq(exAmount);
+            expect(deposits[i].timestamp, 'deposits timestamp').to.eq(BN.from(examples[i][1]));
+          }
         }
       },
       stake: async (locked: string, unlocked: string) => {
@@ -251,6 +295,86 @@ describe('StakingLibV2Mock', () => {
       ).success();
 
       await test.deposits([['1', helpers.yearAndDayTM('2024', 20)]]);
+      await handleBooking(
+        helpers.bookingContext({
+          requiredBalance: '1',
+          year: '2025',
+          futureRequiredBalance: '0',
+          pastRequiredBalance: '1',
+          yearlyAmount: '1',
+        }),
+        '1',
+        80
+      ).success();
+
+      await test.deposits([['1', helpers.yearAndDayTM('2025', 80)]]);
+      await handleBooking(
+        helpers.bookingContext({
+          requiredBalance: '2',
+          year: '2024',
+          futureRequiredBalance: '1',
+          pastRequiredBalance: '1',
+          yearlyAmount: '2',
+        }),
+        '2',
+        30
+      ).success();
+
+      await test.deposits([
+        ['1', helpers.yearAndDayTM('2024', 30)],
+        ['1', helpers.yearAndDayTM('2025', 80)],
+      ]);
+      await handleBooking(
+        helpers.bookingContext({
+          requiredBalance: '2',
+          year: '2023',
+          futureRequiredBalance: '2',
+          pastRequiredBalance: '1',
+          yearlyAmount: '2',
+        }),
+        '1',
+        30
+      ).success();
+      await test.deposits([
+        ['1', helpers.yearAndDayTM('2024', 30)],
+        ['1', helpers.yearAndDayTM('2025', 80)],
+      ]);
+      await handleBooking(
+        helpers.bookingContext({
+          requiredBalance: '7',
+          year: '2023',
+          futureRequiredBalance: '2',
+          pastRequiredBalance: '1',
+          yearlyAmount: '2',
+        }),
+        '5',
+        50
+      ).success();
+      await test.deposits([
+        ['5', helpers.yearAndDayTM('2023', 50)],
+        ['1', helpers.yearAndDayTM('2024', 30)],
+        ['1', helpers.yearAndDayTM('2025', 80)],
+      ]);
+      await handleBooking(
+        helpers.bookingContext({
+          requiredBalance: '5',
+          year: '2024',
+          futureRequiredBalance: '2',
+          pastRequiredBalance: '1',
+          yearlyAmount: '2',
+        }),
+        '2',
+        60
+      ).success();
+      await test.deposits(
+        [
+          ['5', helpers.yearAndDayTM('2023', 50)],
+          ['1', helpers.yearAndDayTM('2024', 30)],
+          ['1', helpers.yearAndDayTM('2024', 60)],
+          ['1', helpers.yearAndDayTM('2025', 80)],
+        ],
+        true
+      );
     });
   });
 
