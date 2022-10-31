@@ -47,14 +47,18 @@ library StakeLibV2 {
         uint256 thisAndNextYearsBalance = store.balanceFrom(context.initYearTm);
         uint256 prevYearsBalance = store.balanceUntil(context.initYearTm);
         // has balances in the future
-        if (thisAndNextYearsBalance == context.requiredBalance) return;
+        if (nextYearsBalance == context.requiredBalance) return;
+        console.log("no return");
         // We only have to work with current and past years
         if (nextYearsBalance == uint256(0)) {
             if (prevYearsBalance > 0) {
+                console.log("prevYearsBalance > 0");
                 uint256 pastMovable;
                 if (prevYearsBalance >= context.requiredBalance) {
                     if (prevYearsBalance >= amount) {
-                        store.moveFrontRanged(amount, uint256(0), timestamp);
+                        console.log("prevYearsBalance >= amount");
+                        console.log(timestamp);
+                        store.moveBackRanged(amount, uint256(0), timestamp);
                     } else {
                         store.moveBack(prevYearsBalance, store.front().timestamp, timestamp);
                         store.push(amount - prevYearsBalance, timestamp);

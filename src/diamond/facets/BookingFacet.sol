@@ -18,7 +18,12 @@ contract BookingFacet is Modifiers {
     event YearRemoved(uint16 number);
     event YearUpdated(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
 
+    // TODO: add preview Booking action
+
     function bookAccommodation(uint16[2][] calldata dates) external whenNotPaused onlyMember {
+        // TODO:
+        // members booking is confirmed
+        // guests is pending
         for (uint256 i = 0; i < dates.length; i++) {
             uint256 price = 1 ether;
 
@@ -50,7 +55,10 @@ contract BookingFacet is Modifiers {
         return value;
     }
 
+    // TODO: candelation from space host
+
     function cancelAccommodation(uint16[2][] calldata dates) external whenNotPaused {
+        // TODO: not checkin ones
         uint256 lastDate;
         uint256 firstDate = type(uint256).max;
         for (uint256 i = 0; i < dates.length; i++) {

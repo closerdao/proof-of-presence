@@ -18,6 +18,23 @@ import * as _ from 'lodash';
 
 const setup = setupContext;
 
+const setupTestYears = () => {
+  const list: {past: DateTime[]; current: DateTime; future: DateTime[]} = {
+    past: [],
+    current: DateTime.now().startOf('year'),
+    future: [],
+  };
+  for (let i = 1; i < 7; i++) {
+    list.future.push(DateTime.now().plus({year: i}).startOf('year'));
+    list.past.push(
+      DateTime.now()
+        .plus({year: i * -1})
+        .startOf('year')
+    );
+  }
+  return list;
+};
+
 describe('BookingFacet', () => {
   it('book', async () => {
     const context = await setup();
@@ -276,7 +293,7 @@ describe('BookingFacet', () => {
         await test.bookings.toExists(dates, '1');
         await test.bookings.toExists(dates3, '1');
       });
-      xit('case D', async () => {
+      it('case D', async () => {
         // |Case|2022  |FIELD3  |2023  |FIELD5  |2024  |FIELD7  |2025  |FIELD9  |Init locking TM|End Locking TM|Locked Years                    |
         // |----|------|--------|------|--------|------|--------|------|--------|---------------|--------------|--------------------------------|
         // |    |Locked|Bookings|Locked|Bookings|Locked|Bookings|Locked|Bookings|               |              |                                |
@@ -284,6 +301,68 @@ describe('BookingFacet', () => {
         // |D'  |6     |0       |6     |5       |6     |4       |6     |6       |2025           |2026          |2024 \ 2023 \ 2024 \ 2025 \ 2026|
         // |D'' |5     |0       |5     |5       |4     |4       |2     |2       |2025           |2026          |2025 \ 2023 \ 2024 \ 2025 \ 2026|
         // |D'''|4     |0       |4     |3       |4     |4       |2     |2       |2025           |2026          |2026 \ 2023 \ 2024 \ 2025 \ 2026|
+        const context = await setup();
+        const {users, TDFDiamond, deployer} = context;
+
+        const user = await setDiamondUser({
+          user: users[0],
+          ...context,
+        });
+        const admin = await setDiamondUser({
+          user: deployer,
+          ...context,
+        });
+
+        await admin.addMember(users[0].address).success();
+
+        const test = await userTesters({user: users[0], ...context});
+
+        await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
+
+        const years = setupTestYears();
+
+        ////
+        // NOTE: Bookings will start one year ahead of current year this is to not running in
+        // test failures when aproximating to end of year
+
+        // -------------------------------------------------------
+        //  Booking five days for next year
+        // -------------------------------------------------------
+        const init = years.future[1].plus({days: 156});
+        const dates1 = newBuildDates(init, 5);
+        await user.bookAccommodation(dates1.inputs).success();
+        await test.balances('5', '5', '9995');
+        // TODO: test:
+        // - 5 coins should be locked until init + 1 year
+
+        // -------------------------------------------------------
+        //  Booking 4 days for two years in advance
+        // -------------------------------------------------------
+        const init2 = years.future[2].plus({days: 40});
+        const dates2 = newBuildDates(init2, 4);
+        await user.bookAccommodation(dates2.inputs).success();
+        await test.balances('5', '5', '9995');
+        // TODO: test:
+        // - 5 coins should be locked until init + 1 year
+        // - 4 coins should be locked until init2 + 1 year\
+
+        // -------------------------------------------------------
+        //  Booking 6 days for three years in advance
+        // -------------------------------------------------------
+        const init3 = years.future[3].plus({days: 200});
+        const dates3 = newBuildDates(init3, 6);
+        await user.bookAccommodation(dates3.inputs).success();
+        await test.balances('6', '6', '9994');
+        // TODO: test:
+        // 6 coins are locked until 4 years in the future
+        await user.cancelAccommodation(dates3.inputs.slice(2, 5)).success();
+        await test.balances('5', '5', '9995');
+        // TODO: test:
+        // 2 coins are locked until 4 years in the future
+        // 4 coins are locked until 3 years in the future
+        // 5 coins are locked until 2 years in the future
+        await user.cancelAccommodation(dates1.inputs.slice(0, 1)).success();
+        await test.balances('5', '5', '9995');
       });
     });
   });
@@ -320,7 +399,6 @@ describe('BookingFacet', () => {
     await call.getAccommodationBookings(users[0], 0).exactMatch(dates);
 
     const years = await TDFDiamond.getAccommodationYears();
-    expect(years.length).to.eq(5);
     const y = years[0];
     let eY = _.find(yearData(), (v) => v.number == y.number);
     expect(eY).not.to.be.undefined;
@@ -352,7 +430,8 @@ describe('BookingFacet', () => {
       ...context,
     });
     let yearAttrs;
-    yearAttrs = yearData()['2028'];
+    // yearAttrs = yearData()['2028'];
+    yearAttrs = {number: 4000, start: 20202020202, end: 949393999939, leapYear: false};
 
     // Give role to user 1 for booking management
     await deployer.TDFDiamond.grantRole(ROLES.BOOKING_MANAGER_ROLE as string, users[1].address);
