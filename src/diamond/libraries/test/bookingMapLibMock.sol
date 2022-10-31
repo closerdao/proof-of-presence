@@ -18,6 +18,21 @@ contract BookingMapLibMock {
         _years.add(BookingMapLib.Year(2023, false, 1672531200, 1704067199, true));
         _years.add(BookingMapLib.Year(2024, true, 1704067200, 1735689599, true));
         _years.add(BookingMapLib.Year(2025, false, 1735689600, 1767225599, true));
+        _years.add(
+            BookingMapLib.Year({number: 2026, leapYear: false, start: 1767225600, end: 1798761599, enabled: true})
+        );
+        _years.add(
+            BookingMapLib.Year({number: 2027, leapYear: false, start: 1798761600, end: 1830297599, enabled: true})
+        );
+        _years.add(
+            BookingMapLib.Year({number: 2028, leapYear: true, start: 1830297600, end: 1861919999, enabled: true})
+        );
+        _years.add(
+            BookingMapLib.Year({number: 2029, leapYear: false, start: 1861920000, end: 1893455999, enabled: true})
+        );
+        _years.add(
+            BookingMapLib.Year({number: 2030, leapYear: false, start: 1893456000, end: 1924991999, enabled: true})
+        );
     }
 
     function book(

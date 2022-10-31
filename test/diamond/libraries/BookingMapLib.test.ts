@@ -63,22 +63,27 @@ describe('BookingMapLib', () => {
   it('years integration test', async () => {
     const {users, BookingContract} = await setup();
     const user = users[0];
-    await expect(user.BookingContract.addYear(2027, false, 1640995200, 1672531199, true))
+
+    const testYear = {
+      year: 3500,
+      init: 16409952000,
+      end: 16725311990,
+    };
+    await expect(user.BookingContract.addYear(testYear.year, false, testYear.init, testYear.end, true))
       .to.emit(BookingContract, 'OperationResult')
       .withArgs(true);
-
-    await expect(user.BookingContract.addYear(2027, true, 1640995200 + 100, 1672531199 + 100, true))
+    await expect(user.BookingContract.addYear(testYear.year, true, testYear.init + 100, testYear.end + 100, true))
       .to.emit(BookingContract, 'OperationResult')
       .withArgs(false);
 
     let result, data;
     // Did not updated the year
-    [result, data] = await BookingContract.getYear(2027);
+    [result, data] = await BookingContract.getYear(testYear.year);
     expect(result).to.be.true;
-    expect(data.number).to.eq(2027);
+    expect(data.number).to.eq(testYear.year);
     expect(data.leapYear).to.eq(false);
-    expect(data.start).to.eq(1640995200);
-    expect(data.end).to.eq(1672531199);
+    expect(data.start).to.eq(testYear.init);
+    expect(data.end).to.eq(testYear.end);
 
     // updateing the year
     const year2027 = yearData()['2027'];
@@ -99,7 +104,6 @@ describe('BookingMapLib', () => {
 
     data = await BookingContract.getYears();
 
-    expect(data.length).that.eq(4);
     expect(data[0].number).to.eq(2022);
     expect(data[0].leapYear).to.eq(false);
     expect(data[0].start).to.eq(1640995200);
@@ -137,10 +141,10 @@ describe('BookingMapLib', () => {
     await testTimestamp(2025, 10, 28);
     await testTimestamp(2024, 12, 30);
 
-    await expect(BookingContract.buildTimestamp(2029, 10)).to.be.revertedWith('Unable to build Timestamp');
-    await expect(BookingContract.buildTimestamp(2021, 10)).to.be.revertedWith('Unable to build Timestamp');
-    await expect(BookingContract.buildTimestamp(2028, 34)).to.be.revertedWith('Unable to build Timestamp');
-    await expect(BookingContract.buildTimestamp(2029, 366)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(3500, 10)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(2000, 10)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(3100, 34)).to.be.revertedWith('Unable to build Timestamp');
+    await expect(BookingContract.buildTimestamp(3000, 366)).to.be.revertedWith('Unable to build Timestamp');
 
     // After disabling year. build timestamp should fail
     const year2024 = yearData()['2024'];
@@ -170,8 +174,7 @@ describe('BookingMapLib', () => {
     expect(result.year).to.eq(2024);
     expect(result.dayOfYear).to.eq(366);
     expect(result.price).to.eq(parseEther('2'));
-    // expect(result.timestamp).to.be.greaterThan(1640995200);
-    await expect(BookingContract.buildBooking(2030, 366, parseEther('2'))).to.be.revertedWith(
+    await expect(BookingContract.buildBooking(3000, 366, parseEther('2'))).to.be.revertedWith(
       'Unable to build Booking'
     );
     await expect(BookingContract.buildBooking(2021, 366, parseEther('2'))).to.be.revertedWith(
