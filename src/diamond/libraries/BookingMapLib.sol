@@ -8,7 +8,12 @@ library BookingMapLib {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
+    // TODO: enum status
+    // - Pending
+    // - Confirmed
+    // - CheckedIn
     struct Booking {
+        // TODO: status
         uint16 year;
         uint16 dayOfYear;
         uint256 price;

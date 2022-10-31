@@ -11,6 +11,7 @@ import "../StakeLibV2.sol";
 contract StakeLibV2Mock {
     using StakeLibV2 for OrderedStakeLib.Store;
     using StakeLibV2 for StakeLibV2.Context;
+    using StakeLibV2 for StakeLibV2.BookingContext;
 
     uint256 public constant lockingPeriod = 86400; // 1 day
 
@@ -21,6 +22,7 @@ contract StakeLibV2Mock {
     event PushBack(bool success);
     event PopFront(uint256 amount, uint256 timestamp);
     event RestakeOrDepositedAtForStatus(bool status);
+    event Success();
 
     constructor(address token_) {
         token = IERC20(token_);
@@ -29,6 +31,15 @@ contract StakeLibV2Mock {
     function _stakeLibContext(address account) internal view returns (StakeLibV2.Context memory) {
         return
             StakeLibV2.Context({account: account, token: token, lockingTimePeriod: lockingPeriod, requiredBalance: 0});
+    }
+
+    function handleBooking(
+        StakeLibV2.BookingContext memory context,
+        uint256 amount,
+        uint256 timestamp
+    ) public {
+        context.handleBooking(staking, amount, timestamp);
+        emit Success();
     }
 
     function deposit(uint256 amount) public {

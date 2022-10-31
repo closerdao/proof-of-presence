@@ -5,6 +5,8 @@ import {setupUser, setupUsers, getMock} from '../../utils';
 import {parseEther, formatEther} from 'ethers/lib/utils';
 import {addDays, getUnixTime} from 'date-fns';
 import {ZERO_ADDRESS} from '../../utils';
+import {yearData} from '../../utils/diamond';
+import {DateTime} from 'luxon';
 
 const BN = ethers.BigNumber;
 
@@ -38,10 +40,45 @@ const setup = deployments.createFixture(async (hre) => {
 
 type setupReturnType = Awaited<ReturnType<typeof setup>>;
 type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
+interface BookingContextInput {
+  requiredBalance: string;
+  futureRequiredBalance: string;
+  pastRequiredBalance: string;
+  year: keyof ReturnType<typeof yearData>;
+  yearlyAmount: string;
+}
 
 const setupTest = (context: TestContext) => {
   const {token, user, stake} = context;
+  const bookingContext = ({
+    requiredBalance,
+    futureRequiredBalance,
+    pastRequiredBalance,
+    year,
+    yearlyAmount,
+  }: BookingContextInput) => {
+    const y = yearData()[year];
+    return {
+      account: user.address,
+      token: token.address,
+      lockingTimePeriod: 86400 * 365,
+      requiredBalance: parseEther(requiredBalance),
+      fromReservationFutureRequiredBalance: parseEther(futureRequiredBalance),
+      fromReservationPastRequiredBalance: parseEther(pastRequiredBalance),
+      initYearTm: y.start,
+      endYearTm: y.end,
+      onYearBoookingsAmount: parseEther(yearlyAmount),
+    };
+  };
+  const yearAndDayTM = (year: keyof ReturnType<typeof yearData>, day: number): number => {
+    const y = yearData()[year];
+    return DateTime.fromSeconds(y.start).plus({days: day}).toSeconds();
+  };
   return {
+    helpers: {
+      yearAndDayTM: yearAndDayTM,
+      bookingContext: bookingContext,
+    },
     test: {
       balances: async (TK: string, tkU: string, u: string) => {
         expect(await token.balanceOf(stake.address), `balances: staking Contract owns token`).to.eq(parseEther(TK));
@@ -78,6 +115,12 @@ const setupTest = (context: TestContext) => {
           .withArgs(user.address, parseEther(amount));
       },
     },
+    handleBooking: (c: ReturnType<typeof bookingContext>, amount: string, day: number) => ({
+      success: async () => {
+        const timestamp = DateTime.fromSeconds(c.initYearTm).plus({days: day}).toSeconds();
+        await expect(user.stake.handleBooking(c, parseEther(amount), timestamp)).to.emit(stake, 'Success');
+      },
+    }),
     withdrawMax: {
       success: async (amount: string) => {
         await expect(user.stake.withdrawMax(), `withdrawMax.success ${amount}`)
@@ -172,6 +215,46 @@ describe('StakingLibV2Mock', () => {
     await withdraw('1').success();
     await test.balances('0', '0', '1000');
   });
+
+  describe('handleBooking', () => {
+    it('works', async () => {
+      const context = await setup();
+      const {users} = context;
+      const user = users[0];
+      yearData()['2023'];
+      const {test, handleBooking, helpers, tokenManagement} = setupTest({...context, user});
+      await tokenManagement.topUp('10');
+      await tokenManagement.approve('10');
+      await handleBooking(
+        helpers.bookingContext({
+          requiredBalance: '1',
+          year: '2023',
+          futureRequiredBalance: '0',
+          pastRequiredBalance: '0',
+          yearlyAmount: '1',
+        }),
+        '1',
+        134
+      ).success();
+      console.log(helpers.yearAndDayTM('2023', 134));
+      await test.deposits([['1', helpers.yearAndDayTM('2023', 134)]]);
+      await handleBooking(
+        helpers.bookingContext({
+          requiredBalance: '1',
+          year: '2024',
+          futureRequiredBalance: '0',
+          pastRequiredBalance: '1',
+          yearlyAmount: '1',
+        }),
+        '1',
+        20
+      ).success();
+
+      await test.deposits([['1', helpers.yearAndDayTM('2024', 20)]]);
+    });
+  });
+
+  describe('handleCancelation', async () => {});
   it('restakeOrDepositAt', async () => {
     const context = await setup();
     const {users, stake, token} = context;
@@ -238,8 +321,8 @@ describe('StakingLibV2Mock', () => {
   });
 
   describe('Cancel behaviour', () => {
-    it('Case 1')
-  })
+    it('Case 1');
+  });
 });
 
 const incDays = async (days: number) => {
