@@ -73,30 +73,6 @@ library OrderedStakeLib {
         deposit.amount = uint256(store._amounts[key]);
     }
 
-    // function findIndex(Store storage store, uint256 tm) internal returns (uint256) {
-    //     if (store._amounts[bytes32(tm)] > uint256(0)) {
-    //         return uint256(1);
-    //     } else {
-    //         return uint256(0);
-    //     }
-    // }
-
-    // function moveFrontFromTo(
-    //     Store storage store,
-    //     uint256 from,
-    //     uint256 to,
-    //     uint256 frontDestination
-    // ) internal {}
-
-    // function _moveBackToFrontFromTo(
-    //     Store storage store,
-    //     uint256 from,
-    //     uint256 to,
-    //     uint256 target
-    // ) internal {
-    //     Deposit memory _back = _popBack(store);
-    // }
-
     function list(Store storage store) internal view returns (OrderedStakeLib.Deposit[] memory) {
         Deposit[] memory deposits_ = new Deposit[](length(store));
         for (uint256 i; i < length(store); i++) {
@@ -153,17 +129,6 @@ library OrderedStakeLib {
         }
     }
 
-    // function takeFromBackToFrontRange(
-    //     Store storage store,
-    //     uint256 requested,
-    //     uint256 backTm,
-    //     uint256 frontTm
-    // ) internal {
-    //     require(requested > uint256(0), "OrderedStakeLib: Nothing Requested");
-    //     require(store._balance >= requested, "OrderedStakeLib: NOT_ENOUGH_BALANCE");
-    //     _takeFromBackToFrontRange(store, requested, backTm, frontTm);
-    // }
-
     function moveFrontRanged(
         Store storage store,
         uint256 amount,
@@ -172,10 +137,10 @@ library OrderedStakeLib {
     ) internal {
         if (to >= initScanTm) return;
         // require(initScanTm > to)
-        _moveFrontRanged(store, amount, initScanTm, to);
+        _moveBackToFrontRanged(store, amount, initScanTm, to);
     }
 
-    function _moveFrontRanged(
+    function _moveBackToFrontRanged(
         Store storage store,
         uint256 amount,
         uint256 initScanTm,
@@ -186,8 +151,35 @@ library OrderedStakeLib {
             _moveFront(store, amount, _back.timestamp, to);
         } else {
             _back = _popBack(store);
-            _moveFrontRanged(store, amount, initScanTm, to);
+            _moveBackToFrontRanged(store, amount, initScanTm, to);
             _pushBackOrdered(store, _back.amount, _back.timestamp);
+        }
+    }
+
+    function moveBackRanged(
+        Store storage store,
+        uint256 amount,
+        uint256 initScanTm,
+        uint256 to
+    ) internal {
+        if (to <= initScanTm) return;
+        require(initScanTm < to);
+        _moveFrontToBackRanged(store, amount, initScanTm, to);
+    }
+
+    function _moveFrontToBackRanged(
+        Store storage store,
+        uint256 amount,
+        uint256 initScanTm,
+        uint256 to
+    ) internal {
+        Deposit memory _front = front(store);
+        if (_front.timestamp >= initScanTm) {
+            _moveBack(store, amount, _front.timestamp, to);
+        } else {
+            _front = _popFront(store);
+            _moveFrontToBackRanged(store, amount, initScanTm, to);
+            _pushFrontOrdered(store, _front.amount, _front.timestamp);
         }
     }
 
@@ -272,7 +264,7 @@ library OrderedStakeLib {
     // NonIncluded
     // including current TM since balanceUntil includes the current timestamp
     function balanceFrom(Store storage store, uint256 fromTm) internal view returns (uint256) {
-        return store._balance - balanceUntil(store, fromTm + 1);
+        return store._balance - balanceUntil(store, fromTm);
     }
 
     function balance(Store storage store) internal view returns (uint256) {
@@ -323,13 +315,13 @@ library OrderedStakeLib {
         if (_front.timestamp == from) {
             if (_front.amount == amount) {
                 // TODO: this should use pushFrontOrdered
-                _pushBackOrdered(store, amount, to);
+                _pushFrontOrdered(store, amount, to);
             } else if (_front.amount > amount) {
-                _pushBackOrdered(store, amount, to);
-                _pushBackOrdered(store, _front.amount - amount, _front.timestamp);
+                _pushFrontOrdered(store, amount, to);
+                _pushFrontOrdered(store, _front.amount - amount, _front.timestamp);
             } else {
                 // amount is bigger than current
-                _pushBackOrdered(store, _front.amount, to);
+                _pushFrontOrdered(store, _front.amount, to);
                 // TODO: review what condition I was trying to enfore here
                 // require(uint256(store._queue.front()) != from, "OrderedStakeLib: OutOfBounds");
                 _moveBack(store, amount - _front.amount, uint256(store._queue.front()), to);

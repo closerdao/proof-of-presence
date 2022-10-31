@@ -86,4 +86,13 @@ contract OrderedStakeLibMock {
         store.moveFrontRanged(amount, initScanTm, to);
         emit Moved(amount, initScanTm, to);
     }
+
+    function moveBackRanged(
+        uint256 amount,
+        uint256 initScanTm,
+        uint256 to
+    ) public {
+        store.moveBackRanged(amount, initScanTm, to);
+        emit Moved(amount, initScanTm, to);
+    }
 }
