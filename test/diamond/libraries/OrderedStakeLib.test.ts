@@ -130,6 +130,21 @@ describe('OrderedStakeLibMock', () => {
         },
       },
     }),
+    moveBackRanged: (amount: string, from: number, to: number) => ({
+      success: async () => {
+        await expect(user.map.moveBackRanged(parseEther(amount), from, to))
+          .to.emit(map, 'Moved')
+          .withArgs(parseEther(amount), from, to);
+      },
+      reverted: {
+        empty: async () => {
+          await expect(
+            user.map.moveBackRanged(parseEther(amount), from, to),
+            `moveBackRanged.reverted.notEnoughBalance amount=${amount}, from=${from}, to=${to}`
+          ).to.be.revertedWith('Empty');
+        },
+      },
+    }),
     takeUntil: (amount: string, untilTm: number) => ({
       success: async () => {
         await expect(
@@ -283,6 +298,81 @@ describe('OrderedStakeLibMock', () => {
       await push('1', 40);
       await push('1', 50);
       await moveFrontRanged('3', 7, 4).reverted.empty();
+      await test.balance().toEq('5');
+    });
+  });
+
+  describe('moveBackRanged', () => {
+    it('success', async () => {
+      const context = await setup();
+      const {users} = context;
+      const {push, test, moveBackRanged} = testers({...context, user: users[0]});
+
+      await push('1', 10);
+      await push('1', 30);
+      await push('1', 20);
+      await push('1', 40);
+      await push('1', 50);
+      await test.deposits([
+        ['1', 10],
+        ['1', 20],
+        ['1', 30],
+        ['1', 40],
+        ['1', 50],
+      ]);
+      await test.balance().toEq('5');
+      await moveBackRanged('1', 22, 33).success();
+      await test.deposits([
+        ['1', 10],
+        ['1', 20],
+        ['1', 33],
+        ['1', 40],
+        ['1', 50],
+      ]);
+    });
+    it('optimistic success', async () => {
+      const context = await setup();
+      const {users} = context;
+      const {push, test, moveBackRanged} = testers({...context, user: users[0]});
+
+      await push('1', 10);
+      await push('1', 20);
+      await push('1', 30);
+      await push('1', 40);
+      await push('1', 50);
+      await test.deposits([
+        ['1', 10],
+        ['1', 20],
+        ['1', 30],
+        ['1', 40],
+        ['1', 50],
+      ]);
+      await test.balance().toEq('5');
+      await moveBackRanged('4', 4, 30).success();
+      await test.deposits([
+        ['3', 30],
+        ['1', 40],
+        ['1', 50],
+      ]);
+      await test.balance().toEq('5');
+      await moveBackRanged('3', 40, 50).success();
+      await test.deposits([
+        ['3', 30],
+        ['2', 50],
+      ]);
+      await test.balance().toEq('5');
+    });
+    it('reverts', async () => {
+      const context = await setup();
+      const {users} = context;
+      const {push, test, moveBackRanged} = testers({...context, user: users[0]});
+
+      await push('1', 10);
+      await push('1', 20);
+      await push('1', 30);
+      await push('1', 40);
+      await push('1', 50);
+      await moveBackRanged('3', 53, 56).reverted.empty();
       await test.balance().toEq('5');
     });
   });
