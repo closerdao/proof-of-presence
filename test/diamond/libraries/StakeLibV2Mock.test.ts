@@ -42,32 +42,20 @@ type setupReturnType = Awaited<ReturnType<typeof setup>>;
 type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
 interface BookingContextInput {
   requiredBalance: string;
-  futureRequiredBalance: string;
-  pastRequiredBalance: string;
   year: keyof ReturnType<typeof yearData>;
-  yearlyAmount: string;
 }
 
 const setupTest = (context: TestContext) => {
   const {token, user, stake} = context;
-  const bookingContext = ({
-    requiredBalance,
-    futureRequiredBalance,
-    pastRequiredBalance,
-    year,
-    yearlyAmount,
-  }: BookingContextInput) => {
+  const bookingContext = ({requiredBalance, year}: BookingContextInput) => {
     const y = yearData()[year];
     return {
       account: user.address,
       token: token.address,
       lockingTimePeriod: 86400 * 365,
       requiredBalance: parseEther(requiredBalance),
-      fromReservationFutureRequiredBalance: parseEther(futureRequiredBalance),
-      fromReservationPastRequiredBalance: parseEther(pastRequiredBalance),
       initYearTm: y.start,
       endYearTm: y.end,
-      onYearBoookingsAmount: parseEther(yearlyAmount),
     };
   };
   const yearAndDayTM = (year: keyof ReturnType<typeof yearData>, day: number): number => {
@@ -89,9 +77,8 @@ const setupTest = (context: TestContext) => {
       deposits: async (examples: [string, number][], debug = false) => {
         const deposits = await stake.deposits();
         if (debug) {
-          const data: {tm: string; ex_tm: string; amount: string; ex_amount: string}[] = [];
-          const max = deposits.length > examples.length ? deposits.length : examples.length;
-
+          console.log('== lengths ==');
+          console.table({examples: examples.length, deposits: deposits.length});
           console.log('== Examples ==');
           console.table(
             examples.map((e) => ({
@@ -99,35 +86,13 @@ const setupTest = (context: TestContext) => {
               date: new Date(e[1] * 1000).toDateString(),
             }))
           );
-          console.log('== lengths ==');
-          console.table({examples: examples.length, deposits: deposits.length});
-
-          for (let i = 0; i < max; i++) {
-            if (i < deposits.length && i < examples.length) {
-              data.push({
-                tm: new Date(deposits[i].timestamp.toNumber() * 1000).toDateString(),
-                ex_tm: new Date(examples[i][1] * 1000).toDateString(),
-                amount: formatEther(deposits[i].amount.toString()).toString(),
-                ex_amount: examples[i][0],
-              });
-            } else if (i < deposits.length) {
-              data.push({
-                tm: new Date(deposits[i].timestamp.toNumber() * 1000).toDateString(),
-                ex_tm: 'NULL',
-                amount: formatEther(deposits[i].amount.toString()).toString(),
-                ex_amount: 'NULL',
-              });
-            } else {
-              data.push({
-                tm: 'NULL',
-                ex_tm: new Date(examples[i][1] * 1000).toDateString(),
-                amount: 'NULL',
-                ex_amount: examples[i][0],
-              });
-            }
-          }
-          console.log('== Comparisons ==');
-          console.table(data);
+          console.log('== Deposits ==');
+          console.table(
+            deposits.map((e) => ({
+              amount: formatEther(e.amount.toString()).toString(),
+              date: new Date(e.timestamp.toNumber() * 1000).toDateString(),
+            }))
+          );
 
           // TEST!!!
           for (let i = 0; i < examples.length; i++) {
@@ -163,6 +128,12 @@ const setupTest = (context: TestContext) => {
       success: async () => {
         const timestamp = DateTime.fromSeconds(c.initYearTm).plus({days: day}).toSeconds();
         await expect(user.stake.handleBooking(c, parseEther(amount), timestamp)).to.emit(stake, 'Success');
+      },
+    }),
+    handleCancelation: (c: ReturnType<typeof bookingContext>, amount: string, day: number) => ({
+      success: async () => {
+        const timestamp = DateTime.fromSeconds(c.initYearTm).plus({days: day}).toSeconds();
+        await expect(user.stake.handleCancelation(c, parseEther(amount), timestamp)).to.emit(stake, 'Success');
       },
     }),
     withdrawMax: {
@@ -265,7 +236,6 @@ describe('StakingLibV2Mock', () => {
       const context = await setup();
       const {users} = context;
       const user = users[0];
-      yearData()['2023'];
       const {test, handleBooking, helpers, tokenManagement} = setupTest({...context, user});
       await tokenManagement.topUp('10');
       await tokenManagement.approve('10');
@@ -273,22 +243,15 @@ describe('StakingLibV2Mock', () => {
         helpers.bookingContext({
           requiredBalance: '1',
           year: '2023',
-          futureRequiredBalance: '0',
-          pastRequiredBalance: '0',
-          yearlyAmount: '1',
         }),
         '1',
         134
       ).success();
-      console.log(helpers.yearAndDayTM('2023', 134));
       await test.deposits([['1', helpers.yearAndDayTM('2023', 134)]]);
       await handleBooking(
         helpers.bookingContext({
           requiredBalance: '1',
           year: '2024',
-          futureRequiredBalance: '0',
-          pastRequiredBalance: '1',
-          yearlyAmount: '1',
         }),
         '1',
         20
@@ -299,9 +262,6 @@ describe('StakingLibV2Mock', () => {
         helpers.bookingContext({
           requiredBalance: '1',
           year: '2025',
-          futureRequiredBalance: '0',
-          pastRequiredBalance: '1',
-          yearlyAmount: '1',
         }),
         '1',
         80
@@ -312,9 +272,6 @@ describe('StakingLibV2Mock', () => {
         helpers.bookingContext({
           requiredBalance: '2',
           year: '2024',
-          futureRequiredBalance: '1',
-          pastRequiredBalance: '1',
-          yearlyAmount: '2',
         }),
         '2',
         30
@@ -328,9 +285,6 @@ describe('StakingLibV2Mock', () => {
         helpers.bookingContext({
           requiredBalance: '2',
           year: '2023',
-          futureRequiredBalance: '2',
-          pastRequiredBalance: '1',
-          yearlyAmount: '2',
         }),
         '1',
         30
@@ -343,9 +297,6 @@ describe('StakingLibV2Mock', () => {
         helpers.bookingContext({
           requiredBalance: '7',
           year: '2023',
-          futureRequiredBalance: '2',
-          pastRequiredBalance: '1',
-          yearlyAmount: '2',
         }),
         '5',
         50
@@ -355,30 +306,243 @@ describe('StakingLibV2Mock', () => {
         ['1', helpers.yearAndDayTM('2024', 30)],
         ['1', helpers.yearAndDayTM('2025', 80)],
       ]);
-      await handleBooking(
-        helpers.bookingContext({
-          requiredBalance: '5',
+    });
+
+    it('designed Booking case', async () => {
+      const context = await setup();
+      const {users} = context;
+      const user = users[0];
+      const {test, handleBooking, helpers, tokenManagement} = setupTest({...context, user});
+      await tokenManagement.topUp('10');
+      await tokenManagement.approve('10');
+      const sequence: {
+        year: keyof ReturnType<typeof yearData>;
+        price: string;
+        day: number;
+        total: string;
+        deposits: [string, number][];
+      }[] = [
+        // One deposit in 2024
+        // total = 1
+        {
           year: '2024',
-          futureRequiredBalance: '2',
-          pastRequiredBalance: '1',
-          yearlyAmount: '2',
-        }),
-        '2',
-        60
-      ).success();
-      await test.deposits(
-        [
-          ['5', helpers.yearAndDayTM('2023', 50)],
-          ['1', helpers.yearAndDayTM('2024', 30)],
-          ['1', helpers.yearAndDayTM('2024', 60)],
-          ['1', helpers.yearAndDayTM('2025', 80)],
-        ],
-        true
-      );
+          price: '1',
+          day: 165,
+          total: '1',
+          deposits: [['1', helpers.yearAndDayTM('2024', 165)]],
+        },
+        // Move one to 2026
+        // total = 1
+        {
+          year: '2026',
+          price: '1',
+          day: 30,
+          total: '1',
+          deposits: [['1', helpers.yearAndDayTM('2026', 30)]],
+        },
+        // Price two in 2025
+        // 1 already in 2026, we have to bring one in into 2025
+        // total = 2
+        {
+          year: '2025',
+          price: '2',
+          day: 40,
+          total: '2',
+          deposits: [
+            ['1', helpers.yearAndDayTM('2025', 40)],
+            ['1', helpers.yearAndDayTM('2026', 30)],
+          ],
+        },
+        // two reservations in 2024 are already covered so no change in
+        // 2024 until 2 reservations
+        // total = 2
+        {
+          year: '2024',
+          price: '2',
+          day: 165,
+          total: '2',
+          deposits: [
+            ['1', helpers.yearAndDayTM('2025', 40)],
+            ['1', helpers.yearAndDayTM('2026', 30)],
+          ],
+        },
+        // But if we add more reservations in 2024
+        // we should bring more tokens in
+        {
+          year: '2024',
+          price: '4',
+          day: 56,
+          total: '4',
+          deposits: [
+            ['2', helpers.yearAndDayTM('2024', 56)],
+            ['1', helpers.yearAndDayTM('2025', 40)],
+            ['1', helpers.yearAndDayTM('2026', 30)],
+          ],
+        },
+        // Now if I want to book one more night in 2026
+        // 2024 deposit should be moved to 2026
+        {
+          year: '2026',
+          price: '1',
+          day: 178,
+          total: '4',
+          deposits: [
+            ['1', helpers.yearAndDayTM('2024', 56)],
+            ['1', helpers.yearAndDayTM('2025', 40)],
+            ['1', helpers.yearAndDayTM('2026', 30)],
+            ['1', helpers.yearAndDayTM('2026', 178)],
+          ],
+        },
+      ];
+
+      for (const action of sequence) {
+        await handleBooking(
+          helpers.bookingContext({
+            requiredBalance: action.total,
+            year: action.year,
+          }),
+          action.price,
+          action.day
+        ).success();
+        await test.deposits(action.deposits);
+      }
     });
   });
 
-  describe('handleCancelation', async () => {});
+  describe('handleCancelation', () => {
+    it('works', async () => {
+      const context = await setup();
+      const {users} = context;
+      const user = users[0];
+      const {test, handleBooking, handleCancelation, helpers, tokenManagement} = setupTest({...context, user});
+      await tokenManagement.topUp('10');
+      await tokenManagement.approve('10');
+      await handleBooking(
+        helpers.bookingContext({
+          requiredBalance: '1',
+          year: '2023',
+        }),
+        '1',
+        134
+      ).success();
+      await test.deposits([['1', helpers.yearAndDayTM('2023', 134)]]);
+
+      await handleCancelation(
+        helpers.bookingContext({
+          requiredBalance: '0',
+          year: '2023',
+        }),
+        '1',
+        134
+      ).success();
+      await test.deposits([['1', 0]]);
+    });
+    it('moves to previous year', async () => {
+      const context = await setup();
+      const {users} = context;
+      const user = users[0];
+      const {test, handleBooking, handleCancelation, helpers, tokenManagement} = setupTest({...context, user});
+      await tokenManagement.topUp('10');
+      await tokenManagement.approve('10');
+      await handleBooking(
+        helpers.bookingContext({
+          requiredBalance: '1',
+          year: '2024',
+        }),
+        '1',
+        300
+      ).success();
+      await test.deposits([['1', helpers.yearAndDayTM('2024', 300)]]);
+      await handleCancelation(
+        helpers.bookingContext({
+          requiredBalance: '1',
+          year: '2024',
+        }),
+        '1',
+        300
+      ).success();
+      await test.deposits([['1', helpers.yearAndDayTM('2023', 300)]]);
+      await handleCancelation(
+        helpers.bookingContext({
+          requiredBalance: '1',
+          year: '2023',
+        }),
+        '1',
+        300
+      ).success();
+      await test.deposits([['1', helpers.yearAndDayTM('2022', 300)]]);
+    });
+    xit('case 1', async () => {
+      const context = await setup();
+      const {users} = context;
+      const user = users[0];
+      const {test, handleBooking, helpers, handleCancelation, tokenManagement} = setupTest({...context, user});
+      await tokenManagement.topUp('10');
+      await tokenManagement.approve('10');
+      const sequence: {
+        type: string;
+        year: keyof ReturnType<typeof yearData>;
+        price: string;
+        day: number;
+        total: string;
+        deposits: [string, number][];
+      }[] = [
+        // One deposit in 2024
+        // total = 1
+        {
+          type: 'add',
+          year: '2024',
+          price: '1',
+          day: 165,
+          total: '1',
+          deposits: [['1', helpers.yearAndDayTM('2024', 165)]],
+        },
+        // Move one to 2026
+        // total = 1
+        {
+          type: 'add',
+          year: '2026',
+          price: '1',
+          day: 30,
+          total: '1',
+          deposits: [['1', helpers.yearAndDayTM('2026', 30)]],
+        },
+        // cancel 2026 should go to 2024 prev reservation
+        // total = 1
+        {
+          type: 'rm',
+          year: '2026',
+          price: '1',
+          day: 30,
+          total: '1',
+          deposits: [['1', helpers.yearAndDayTM('2024', 165)]],
+        },
+      ];
+
+      for (const action of sequence) {
+        if (action.type == 'add') {
+          await handleBooking(
+            helpers.bookingContext({
+              requiredBalance: action.total,
+              year: action.year,
+            }),
+            action.price,
+            action.day
+          ).success();
+        } else {
+          await handleCancelation(
+            helpers.bookingContext({
+              requiredBalance: action.total,
+              year: action.year,
+            }),
+            action.price,
+            action.day
+          ).success();
+        }
+        await test.deposits(action.deposits);
+      }
+    });
+  });
   it('restakeOrDepositAt', async () => {
     const context = await setup();
     const {users, stake, token} = context;
@@ -442,10 +606,6 @@ describe('StakingLibV2Mock', () => {
     await test.balances('1', '1', '9999');
     await test.stake('1', '0');
     await test.deposits([['1', initLockAt]]);
-  });
-
-  describe('Cancel behaviour', () => {
-    it('Case 1');
   });
 });
 

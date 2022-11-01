@@ -27,66 +27,8 @@ library StakeLibV2 {
         IERC20 token;
         uint256 lockingTimePeriod;
         uint256 requiredBalance;
-        uint256 fromReservationFutureRequiredBalance;
-        uint256 fromReservationPastRequiredBalance;
         uint256 initYearTm;
         uint256 endYearTm;
-        uint256 onYearBoookingsAmount;
-    }
-
-    function handleBookingNOT(
-        BookingContext memory context,
-        OrderedStakeLib.Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
-        // cases:
-        // A) user does not have balance: transfer in
-        uint256 yearBalance = store.balanceFromTo(context.initYearTm, context.endYearTm);
-        uint256 nextYearsBalance = store.balanceFrom(context.endYearTm);
-        uint256 prevYearsBalance = store.balanceUntil(context.initYearTm);
-        // has balances in the future
-        if (nextYearsBalance == context.requiredBalance) return;
-        // We only have to work with current year
-        if (prevYearsBalance == uint256(0) && nextYearsBalance == uint256(0)) {
-            // No balance in previous years. Just get from wallet
-            store.push(amount, timestamp);
-            context.token.safeTransferFrom(context.account, address(this), amount);
-            return;
-        }
-        if (nextYearsBalance == uint256(0)) {
-            // We work only with the past tokens
-            uint256 pastMovable;
-            if (prevYearsBalance >= context.requiredBalance) {
-                if (prevYearsBalance >= amount) {
-                    store.moveBackRanged(amount, uint256(0), timestamp);
-                } else {
-                    store.moveBack(prevYearsBalance, store.front().timestamp, timestamp);
-                    store.push(amount - prevYearsBalance, timestamp);
-                    context.token.safeTransferFrom(context.account, address(this), amount);
-                }
-            } else {
-                pastMovable = prevYearsBalance - yearBalance;
-                revert("fix: prev years do not have enought");
-            }
-        } else if (prevYearsBalance == uint256(0)) {
-            // We only work with the future
-            uint256 notStaked;
-            if (nextYearsBalance < context.requiredBalance) {
-                notStaked = context.requiredBalance - nextYearsBalance;
-            } else {
-                notStaked = nextYearsBalance - context.requiredBalance;
-            }
-            store.push(notStaked, timestamp);
-            context.token.safeTransferFrom(context.account, address(this), notStaked);
-        } else {
-            // we have in both directions, we have to move some from the pasts
-            // how much in the future
-            if (context.requiredBalance > nextYearsBalance) {
-                // Take fu
-            }
-            revert("Fix both sides has stake");
-        }
     }
 
     function handleBooking(
@@ -95,25 +37,16 @@ library StakeLibV2 {
         uint256 amount,
         uint256 timestamp
     ) internal {
-        _refactorHandleBooking(context, store, amount, timestamp);
-    }
-
-    function _refactorHandleBooking(
-        BookingContext memory context,
-        OrderedStakeLib.Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
         uint256 nextYearsBalance = store.balanceFrom(context.endYearTm);
         if (nextYearsBalance >= context.requiredBalance) return;
 
-        uint256 required = context.requiredBalance;
+        uint256 required = amount;
         required -= nextYearsBalance;
 
         uint256 prevYearsBalance = store.balanceUntil(context.initYearTm);
         if (prevYearsBalance >= required) {
             // move from the past
-            store.moveBack(prevYearsBalance - required, store.front().timestamp, timestamp);
+            store.moveBack(required, store.front().timestamp, timestamp);
             return;
         }
         if (prevYearsBalance > uint256(0)) {
@@ -130,61 +63,20 @@ library StakeLibV2 {
     function handleCancelation(
         BookingContext memory context,
         OrderedStakeLib.Store storage store,
-        uint256,
-        uint256 timestamp
-    ) internal {
-        if (context.requiredBalance < store.balance()) {
-            store.moveFrontRanged(store.balance() - context.requiredBalance, timestamp, uint256(0));
-        }
-    }
-
-    function _handleCancelation(
-        BookingContext memory context,
-        OrderedStakeLib.Store storage store,
         uint256 amount,
         uint256 timestamp
     ) internal {
-        if (context.requiredBalance == store.balance()) return;
-        // do nothing
-        // if (store.balanceFrom(timestamp - 1) >= amount) {
-        //     store.moveFront(amount, store.back().timestamp, timestamp);
-        // }
-        if (context.requiredBalance < store.balance()) {
-            if (store.balanceFromTo(timestamp, type(uint256).max) > context.requiredBalance) {
-                if (store.balanceFromTo(timestamp, type(uint256).max) - context.requiredBalance == amount) {
-                    store.moveFrontRanged(amount, timestamp, uint256(0));
-                }
-                revert("handleCancelation: current required is not exactly amount");
-            }
-            // if current future balance < expected move to current tm
-            // store.mo
-            // store.takeFromBackToFrontRange(amount, timestamp);
-            // context.token.safeTransfer(context.account, amount);
+        uint256 yearBalance = store.balanceFromTo(context.initYearTm, context.endYearTm);
+        if (yearBalance == 0) return;
+        uint256 toMove;
+        if (yearBalance >= amount) {
+            toMove = amount;
         } else {
-            revert("StakeLibV2: `handleCancelations` unhandled case");
+            toMove = yearBalance;
         }
-    }
 
-    // function removeAt(
-    //     Context memory context,
-    //     OrderedStakeLib.Store storage store,
-    //     uint256 amount,
-    //     uint256 timestamp
-    // ) internal {
-    //     if (context.requiredBalance == store.balance()) {
-    //         // do nothing
-    //         // if (store.balanceFrom(timestamp - 1) >= amount) {
-    //         //     store.moveFront(amount, store.back().timestamp, timestamp);
-    //         // }
-    //     } else if (context.requiredBalance < store.balance() && store.balance() - context.requiredBalance == amount) {
-    //         // if current future balance < expected move to current tm
-    //         // store.mo
-    //         // store.takeFromBackToFrontRange(amount, timestamp);
-    //         // context.token.safeTransfer(context.account, amount);
-    //     } else {
-    //         revert("not implemented");
-    //     }
-    // }
+        store.moveFrontRanged(toMove, context.endYearTm, timestamp - (365 * 86400));
+    }
 
     function remove(
         Context memory context,
