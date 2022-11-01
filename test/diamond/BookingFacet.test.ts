@@ -293,7 +293,7 @@ describe('BookingFacet', () => {
         await test.bookings.toExists(dates, '1');
         await test.bookings.toExists(dates3, '1');
       });
-      it('case D', async () => {
+      xit('case D', async () => {
         // |Case|2022  |FIELD3  |2023  |FIELD5  |2024  |FIELD7  |2025  |FIELD9  |Init locking TM|End Locking TM|Locked Years                    |
         // |----|------|--------|------|--------|------|--------|------|--------|---------------|--------------|--------------------------------|
         // |    |Locked|Bookings|Locked|Bookings|Locked|Bookings|Locked|Bookings|               |              |                                |

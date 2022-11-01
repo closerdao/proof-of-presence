@@ -824,26 +824,4 @@ describe('OrderedStakeLibMock', () => {
       await test.balance().toEq('3');
     });
   });
-
-  describe('cancel behaviour at data structure level', () => {
-    describe('Case 1: No reservations in the future', () => {
-      xit('remove one', async () => {
-        const context = await setup();
-        const {users} = context;
-        const {push, test} = testers({...context, user: users[0]});
-        await push('1', 10);
-        await push('1', 20);
-        await push('1', 30);
-
-        // map.takeAt(amount, at)
-      });
-      xit('remove sequenced group', async () => {
-        // for loop
-        // map.takeAt(amount, at)
-      });
-      xit('remove bunch separated with time periods in between', async () => {
-        // same, iterator
-      });
-    });
-  });
 });

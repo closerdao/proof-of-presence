@@ -25,10 +25,10 @@ describe('AccessControl Roles', () => {
     await user.can.removeMember(users[9].address);
 
     const yearAttrs = yearData()['2028'];
-    await user.can.addAccommodationYear({...yearAttrs, enabled: false});
-    await user.can.enableAccommodationYear(2028, true);
-    await user.can.updateAccommodationYear({...yearAttrs, enabled: false});
-    await user.can.removeAccommodationYear(2028);
+    await user.can.addAccommodationYear({...yearAttrs, number: 3100, enabled: false});
+    await user.can.enableAccommodationYear(3100, true);
+    await user.can.updateAccommodationYear({...yearAttrs, number: 3100, enabled: false});
+    await user.can.removeAccommodationYear(3100);
 
     await user.can.grantRole('MEMBERSHIP_MANAGER_ROLE', users[9].address);
     await user.can.revokeRole('MEMBERSHIP_MANAGER_ROLE', users[9].address);
@@ -148,10 +148,10 @@ describe('AccessControl Roles', () => {
     await user.cannot.removeMember(users[9].address);
 
     const yearAttrs = yearData()['2028'];
-    await user.can.addAccommodationYear({...yearAttrs, enabled: false});
-    await user.can.enableAccommodationYear(2028, true);
-    await user.can.updateAccommodationYear({...yearAttrs, enabled: false});
-    await user.can.removeAccommodationYear(2028);
+    await user.can.addAccommodationYear({...yearAttrs, number: 3100, enabled: false});
+    await user.can.enableAccommodationYear(3100, true);
+    await user.can.updateAccommodationYear({...yearAttrs, number: 3100, enabled: false});
+    await user.can.removeAccommodationYear(3100);
 
     await user.cannot.grantRole('MEMBERSHIP_MANAGER_ROLE', users[9].address);
     await user.cannot.revokeRole('MEMBERSHIP_MANAGER_ROLE', users[9].address);
