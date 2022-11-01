@@ -127,14 +127,18 @@ export const timeTravelTo = async (time: number) => {
   await network.provider.send('evm_mine');
 };
 
+// TODO: no need to be a function
 export const yearData = () => {
   return {
     '2022': {number: 2022, leapYear: false, start: 1640995200, end: 1672531199},
     '2023': {number: 2023, leapYear: false, start: 1672531200, end: 1704067199},
     '2024': {number: 2024, leapYear: true, start: 1704067200, end: 1735689599},
     '2025': {number: 2025, leapYear: false, start: 1735689600, end: 1767225599},
+    '2026': {number: 2026, leapYear: false, start: 1767225600, end: 1798761599},
     '2027': {number: 2027, leapYear: false, start: 1798761600, end: 1830297599},
-    '2028': {number: 2028, leapYear: false, start: 1830297600, end: 1861919999},
+    '2028': {number: 2028, leapYear: true, start: 1830297600, end: 1861919999},
+    '2029': {number: 2029, leapYear: false, start: 1861920000, end: 1893455999},
+    '2030': {number: 2030, leapYear: false, start: 1893456000, end: 1924991999},
   };
 };
 

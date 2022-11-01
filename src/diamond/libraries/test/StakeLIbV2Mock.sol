@@ -42,6 +42,15 @@ contract StakeLibV2Mock {
         emit Success();
     }
 
+    function handleCancelation(
+        StakeLibV2.BookingContext memory context,
+        uint256 amount,
+        uint256 timestamp
+    ) public {
+        context.handleCancelation(staking, amount, timestamp);
+        emit Success();
+    }
+
     function deposit(uint256 amount) public {
         _stakeLibContext(msg.sender).add(staking, amount);
     }
