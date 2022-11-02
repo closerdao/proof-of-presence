@@ -3,7 +3,7 @@ import {parseEther, formatEther} from 'ethers/lib/utils';
 import {ethers, network, deployments, getUnnamedAccounts} from 'hardhat';
 import {DateTime} from 'luxon';
 
-import {ERC20TestMock, TDFDiamond} from '../../../typechain';
+import {ERC20TestMock, TDFDiamond, TDFToken} from '../../../typechain';
 
 import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
 import {setupUser, setupUsers} from '..';
@@ -150,7 +150,7 @@ export const setupContext = deployments.createFixture(async (hre) => {
   const users = await getUnnamedAccounts();
   const {deployer, TDFTokenBeneficiary} = accounts;
 
-  const token: ERC20TestMock = await ethers.getContract('ERC20TestMock', deployer);
+  const token: TDFToken = await ethers.getContract('TDFToken', deployer);
   const contracts = {
     TDFToken: token,
     TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', deployer),
@@ -168,7 +168,7 @@ export const setupContext = deployments.createFixture(async (hre) => {
   // fund users with TDF token
   await Promise.all(
     users.map((e) => {
-      return conf.TDFTokenBeneficiary.TDFToken.faucetFor(e, parseEther('10000'));
+      return conf.deployer.TDFToken.mint(e, parseEther('10000'));
     })
   );
   return conf;

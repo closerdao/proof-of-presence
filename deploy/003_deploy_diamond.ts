@@ -8,9 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {diamond} = deployments;
 
   const {deployer} = await getNamedAccounts();
-  const TDFToken = await deployments.deploy('ERC20TestMock', {from: deployer});
   const minutes = (n: number) => n * 3600;
-  const days = (n: number) => n * 86400;
   const realTDFToken = (await ethers.getContract('TDFToken', deployer)).connect(
     await ethers.getSigner(deployer)
   ) as TDFToken;
@@ -28,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // diamondContractArgs: [TDFToken.address],
     execute: {
       methodName: 'init',
-      args: [TDFToken.address, minutes(5)], // TODO: be 365 and change in tests
+      args: [realTDFToken.address, minutes(5)], // TODO: be 365 and change in tests
     },
   });
   await realTDFToken.setDAOContract(contract.address);

@@ -54,7 +54,6 @@ describe('BookingFacet', () => {
 
     const test = await userTesters({user: users[0], ...context});
 
-    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('5'));
     await test.balances('0', '0', '10000');
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
@@ -79,7 +78,6 @@ describe('BookingFacet', () => {
 
       const test = await userTesters({user: users[0], ...context});
 
-      await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
       const init = addDays(Date.now(), 10);
       const dates = buildDates(init, 5);
 
@@ -131,7 +129,6 @@ describe('BookingFacet', () => {
 
       const test = await userTesters({user: users[0], ...context});
 
-      await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
       const init = addDays(Date.now(), 10);
       const dates = buildDates(init, 5);
 
@@ -172,7 +169,6 @@ describe('BookingFacet', () => {
 
       const test = await userTesters({user: users[0], ...context});
 
-      await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
       // -------------------------------------------------------
       //  Booking dates for next year
       // -------------------------------------------------------
@@ -214,7 +210,6 @@ describe('BookingFacet', () => {
 
       const test = await userTesters({user: users[0], ...context});
 
-      await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
       // -------------------------------------------------------
       //  Booking dates for next year
       // -------------------------------------------------------
@@ -264,7 +259,6 @@ describe('BookingFacet', () => {
 
         const test = await userTesters({user: users[0], ...context});
 
-        await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
         // -------------------------------------------------------
         //  Set bookings for this and next year
         // -------------------------------------------------------
@@ -316,8 +310,6 @@ describe('BookingFacet', () => {
         await admin.addMember(users[0].address).success();
 
         const test = await userTesters({user: users[0], ...context});
-
-        await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
 
         const years = setupTestYears();
 
@@ -386,7 +378,6 @@ describe('BookingFacet', () => {
     const call = await getterHelpers({user: users[0], ...context});
     const test = await userTesters({user: users[0], ...context});
 
-    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
 
@@ -500,7 +491,6 @@ describe('BookingFacet', () => {
     });
     await admin.addMember(users[0].address).success();
 
-    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 5);
 
@@ -532,7 +522,6 @@ describe('BookingFacet', () => {
       user: deployer,
       ...context,
     });
-    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
 
     await admin.addMember(users[0].address).success();
     // When member

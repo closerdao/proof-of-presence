@@ -25,7 +25,6 @@ describe('StakingFacet', () => {
     expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
-    await users[0].TDFToken.approve(TDFDiamond.address, parseEther('10'));
     await user.depositStake('1').success();
 
     await test.balances('1', '1', '9999');
@@ -57,8 +56,6 @@ describe('StakingFacet', () => {
 
     expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
-
-    await users[0].TDFToken.approve(users[0].TDFDiamond.address, parseEther('10'));
 
     ///////////////////////////////////////////////
     //                DAY 0
@@ -139,7 +136,6 @@ describe('StakingFacet', () => {
     expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
-    await users[0].TDFToken.approve(users[0].TDFDiamond.address, parseEther('10'));
     await user.depositStake('1').success();
 
     await test.balances('1', '1', '9999');
@@ -169,7 +165,6 @@ describe('StakingFacet', () => {
     expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
-    await users[0].TDFToken.approve(users[0].TDFDiamond.address, parseEther('10'));
     ///////////////////////////////////////////////
     //                DAY 0
     ///////////////////////////////////////////////
