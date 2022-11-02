@@ -20,14 +20,18 @@ contract BookingFacet is Modifiers {
 
     // TODO: add preview Booking action
 
-    function bookAccommodation(uint16[2][] calldata dates) external whenNotPaused onlyMember {
+    function bookAccommodation(uint16[2][] calldata dates) external whenNotPaused {
         // TODO:
         // members booking is confirmed
         // guests is pending
+        BookingMapLib.BookingStatus status;
+        if (_isMember(_msgSender())) {
+            status = BookingMapLib.BookingStatus.Confirmed;
+        }
         for (uint256 i = 0; i < dates.length; i++) {
             uint256 price = 1 ether;
 
-            BookingMapLib.Booking memory value = _insertBooking(_msgSender(), dates[i][0], dates[i][1], price);
+            BookingMapLib.Booking memory value = _insertBooking(status, _msgSender(), dates[i][0], dates[i][1], price);
             _stakeLibBookingContext(_msgSender(), value.timestamp, dates[i][0]).handleBooking(
                 s.staking[_msgSender()],
                 price,
@@ -39,12 +43,14 @@ contract BookingFacet is Modifiers {
     }
 
     function _insertBooking(
+        BookingMapLib.BookingStatus status,
         address account,
         uint16 yearNum,
         uint16 dayOfYear,
         uint256 price
     ) internal returns (BookingMapLib.Booking memory) {
         (bool successBuild, BookingMapLib.Booking memory value) = s._accommodationYears.buildBooking(
+            status,
             yearNum,
             dayOfYear,
             price
@@ -55,35 +61,53 @@ contract BookingFacet is Modifiers {
         return value;
     }
 
-    // TODO: cancelation from space host
+    function cancelAccommodationFrom(address account, uint16[2][] calldata dates)
+        external
+        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
+        whenNotPaused
+    {
+        for (uint256 i = 0; i < dates.length; i++) {
+            BookingMapLib.Booking memory booking = _getBooking(account, dates[i][0], dates[i][1]);
+            require(
+                booking.status == BookingMapLib.BookingStatus.Pending,
+                "BookingFacet: (NotPending) Can not cancel confirmed accommodation"
+            );
+            _cancel(account, booking);
+        }
+
+        emit CanceledBookings(account, dates);
+    }
 
     function cancelAccommodation(uint16[2][] calldata dates) external whenNotPaused {
         for (uint256 i = 0; i < dates.length; i++) {
-            (bool exists, BookingMapLib.Booking memory booking) = s._accommodationBookings[_msgSender()].get(
-                dates[i][0],
-                dates[i][1]
-            );
-            require(exists, "Reservation does not exits");
-            _cancel(_msgSender(), booking.timestamp, dates[i][0], dates[i][1]);
-            _stakeLibBookingContext(_msgSender(), booking.timestamp, dates[i][0]).handleCancelation(
-                s.staking[_msgSender()],
-                booking.price,
-                booking.timestamp
-            );
+            BookingMapLib.Booking memory booking = _getBooking(_msgSender(), dates[i][0], dates[i][1]);
+            _cancel(_msgSender(), booking);
         }
 
         emit CanceledBookings(_msgSender(), dates);
     }
 
-    function _cancel(
+    function _cancelAccomodationFrom(address account, uint16[2][] calldata dates) internal {}
+
+    function _getBooking(
         address account,
-        uint256 timestamp,
-        uint16 yearNum,
-        uint16 dayOfYear
-    ) internal {
-        require(timestamp > block.timestamp, "BookingFacet: Can not cancel past booking");
-        (bool success, ) = s._accommodationBookings[account].remove(yearNum, dayOfYear);
-        require(success, "BookingFacet: Booking does not exists");
+        uint16 year,
+        uint16 day
+    ) internal view returns (BookingMapLib.Booking memory) {
+        (bool exists, BookingMapLib.Booking memory booking) = s._accommodationBookings[account].get(year, day);
+        require(exists, "BookingFacet: (NonExisting) Reservation does not exist");
+        return booking;
+    }
+
+    function _cancel(address account, BookingMapLib.Booking memory booking) internal {
+        require(booking.timestamp > block.timestamp, "BookingFacet: Can not cancel past booking");
+        (bool success, ) = s._accommodationBookings[account].remove(booking.year, booking.dayOfYear);
+        require(success, "BookingFacet: Unable to delete Booking");
+        _stakeLibBookingContext(account, booking.timestamp, booking.year).handleCancelation(
+            s.staking[account],
+            booking.price,
+            booking.timestamp
+        );
     }
 
     function unlockedStakeAt(

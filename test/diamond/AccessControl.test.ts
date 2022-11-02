@@ -1,5 +1,6 @@
 import {expect} from '../chai-setup';
-import {setDiamondUser, setupContext, getterHelpers, roleTesters, yearData} from '../utils/diamond';
+import {setDiamondUser, setupContext, getterHelpers, roleTesters, yearData, buildDates} from '../utils/diamond';
+import {addDays} from 'date-fns';
 
 describe('AccessControl Roles', () => {
   it('All methods are accessible by some role', async () => {
@@ -119,6 +120,9 @@ describe('AccessControl Roles', () => {
     await user.cannot.unpause();
 
     await user.cannot.setRoleAdmin('MEMBERSHIP_MANAGER_ROLE', 'VAULT_MANAGER_ROLE');
+    const init = addDays(Date.now(), 10);
+    const dates = buildDates(init, 5);
+    await user.cannot.cancelAccommodationFrom(user.address, dates);
   });
   it('BOOKING_MANAGER_ROLE', async () => {
     const context = await setupContext();

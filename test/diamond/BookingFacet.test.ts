@@ -1,5 +1,4 @@
 import {expect} from '../chai-setup';
-import {parseEther} from 'ethers/lib/utils';
 import {addDays} from 'date-fns';
 import {DateTime} from 'luxon';
 import {
@@ -38,7 +37,7 @@ const setupTestYears = () => {
 describe('BookingFacet', () => {
   it('book', async () => {
     const context = await setup();
-    const {users, TDFDiamond, deployer} = context;
+    const {users, deployer} = context;
 
     const user = await setDiamondUser({
       user: users[0],
@@ -60,6 +59,181 @@ describe('BookingFacet', () => {
     await user.bookAccommodation(dates.inputs).success();
     await test.balances('5', '5', '9995');
   });
+
+  describe('bookAccommodation', () => {
+    it('When member status is CONFIRMED', async () => {
+      const context = await setup();
+      const {users, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      await admin.addMember(users[0].address).success();
+
+      const test = await userTesters({user: users[0], ...context});
+
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 1);
+      await user.bookAccommodation(dates.inputs).success();
+      // await use
+      await test.bookings.toExists(dates, '1');
+    });
+    it('When guest status is PENDING', async () => {
+      const context = await setup();
+      const {users} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+
+      const test = await userTesters({user: users[0], ...context});
+
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 1);
+      await user.bookAccommodation(dates.inputs).success();
+      // await use
+      await test.bookings.toExists(dates, '1', 'Pending');
+    });
+  });
+
+  describe('cancelAccommodationFrom', () => {
+    it('works', async () => {
+      const context = await setup();
+      const {users, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      const test = await userTesters({user: users[0], ...context});
+
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 1);
+      await user.bookAccommodation(dates.inputs).success();
+      // await use
+      await test.bookings.toExists(dates, '1', 'Pending');
+
+      await admin.cancelAccommodationFrom(user.address, dates.inputs).success();
+      await test.bookings.toNotExist(dates);
+    });
+    it('reverts when NonPending', async () => {
+      const context = await setup();
+      const {users, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      const test = await userTesters({user: users[0], ...context});
+      await admin.addMember(users[0].address).success();
+
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 1);
+      await user.bookAccommodation(dates.inputs).success();
+      // await use
+      await test.bookings.toExists(dates, '1', 'Confirmed');
+
+      await admin.cancelAccommodationFrom(user.address, dates.inputs).reverted.nonPending();
+      await test.bookings.toExists(dates, '1');
+    });
+    it('reverts when paused', async () => {
+      const context = await setup();
+      const {users, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      const test = await userTesters({user: users[0], ...context});
+
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 1);
+      await user.bookAccommodation(dates.inputs).success();
+      // await use
+      await test.bookings.toExists(dates, '1', 'Pending');
+
+      await admin.pause().success();
+
+      await admin.cancelAccommodationFrom(user.address, dates.inputs).reverted.paused();
+      await test.bookings.toExists(dates, '1', 'Pending');
+    });
+    it('reverts when inThePast', async () => {
+      const context = await setup();
+      const {users, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      const test = await userTesters({user: users[0], ...context});
+
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 1);
+      await user.bookAccommodation(dates.inputs).success();
+      // await use
+      await test.bookings.toExists(dates, '1', 'Pending');
+
+      await timeTravelTo(dates.data[0].unix + 2 * 86400);
+      await admin.cancelAccommodationFrom(user.address, dates.inputs).reverted.inThepast();
+      await test.bookings.toExists(dates, '1', 'Pending');
+    });
+    it('reverts when NonExisting', async () => {
+      const context = await setup();
+      const {users, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      const test = await userTesters({user: users[0], ...context});
+
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 1);
+      // await use
+      await test.bookings.toNotExist(dates);
+
+      await admin.cancelAccommodationFrom(user.address, dates.inputs).reverted.nonExisting();
+    });
+  });
+
   describe('book and cancel', () => {
     it('same year', async () => {
       const context = await setup();
@@ -508,34 +682,5 @@ describe('BookingFacet', () => {
 
     await user.bookAccommodation(dates.inputs).reverted.paused();
     await user.cancelAccommodation(dates.inputs).reverted.paused();
-  });
-
-  it('onlyMembers can book', async () => {
-    const context = await setup();
-    const {users, deployer, TDFDiamond} = context;
-
-    const user = await setDiamondUser({
-      user: users[0],
-      ...context,
-    });
-    const admin = await setDiamondUser({
-      user: deployer,
-      ...context,
-    });
-
-    await admin.addMember(users[0].address).success();
-    // When member
-
-    let init = addDays(Date.now(), 5);
-    let dates = buildDates(init, 5);
-
-    await user.bookAccommodation(dates.inputs).success();
-
-    // When not member
-    await admin.removeMember(users[0].address).success();
-
-    init = addDays(Date.now(), 11);
-    dates = buildDates(init, 5);
-    await user.bookAccommodation(dates.inputs).reverted.onlyMember();
   });
 });

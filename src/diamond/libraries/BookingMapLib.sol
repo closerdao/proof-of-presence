@@ -8,12 +8,14 @@ library BookingMapLib {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
-    // TODO: enum status
-    // - Pending
-    // - Confirmed
-    // - CheckedIn
+    enum BookingStatus {
+        Pending,
+        Confirmed,
+        CheckedIn
+    }
+
     struct Booking {
-        // TODO: status
+        BookingStatus status;
         uint16 year;
         uint16 dayOfYear;
         uint256 price;
@@ -58,7 +60,7 @@ library BookingMapLib {
         if (store.dates[_year].contains(key)) {
             return (true, store.bookings[key]);
         }
-        return (false, Booking(0, 0, 0, 0));
+        return (false, Booking(BookingStatus.Pending, 0, 0, 0, 0));
     }
 
     function getBalance(UserStore storage store, uint16 _year) internal view returns (uint256) {
@@ -86,7 +88,7 @@ library BookingMapLib {
             delete store.bookings[key];
             return (true, booking);
         }
-        return (false, Booking(0, 0, 0, 0));
+        return (false, Booking(BookingStatus.Pending, 0, 0, 0, 0));
     }
 
     function _buildKey(uint16 year, uint16 dayOfYear) internal pure returns (bytes32) {
@@ -114,15 +116,16 @@ library BookingMapLib {
 
     function buildBooking(
         YearsStore storage _years,
+        BookingStatus status,
         uint16 yearNum,
         uint16 dayOfTheYear,
         uint256 price
     ) internal view returns (bool, Booking memory) {
         (bool success, uint256 tm) = buildTimestamp(_years, yearNum, dayOfTheYear);
         if (success) {
-            return (true, Booking(yearNum, dayOfTheYear, price, tm));
+            return (true, Booking(status, yearNum, dayOfTheYear, price, tm));
         }
-        return (false, Booking(0, 0, 0, 0));
+        return (false, Booking(BookingStatus.Pending, 0, 0, 0, 0));
     }
 
     /// YearsStore -------------------------------------------
