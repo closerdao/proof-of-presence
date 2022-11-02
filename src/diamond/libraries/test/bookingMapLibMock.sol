@@ -40,7 +40,9 @@ contract BookingMapLibMock {
         uint16 _year,
         uint16 _dayYear
     ) public {
-        bool result = _bookings[_user].add(BookingMapLib.Booking(_year, _dayYear, 1 ether, block.timestamp));
+        bool result = _bookings[_user].add(
+            BookingMapLib.Booking(BookingMapLib.BookingStatus.Confirmed, _year, _dayYear, 1 ether, block.timestamp)
+        );
         emit OperationResult(result);
     }
 
@@ -115,7 +117,12 @@ contract BookingMapLibMock {
         uint16 dayOfTheYear,
         uint256 price
     ) public view returns (BookingMapLib.Booking memory) {
-        (bool success, BookingMapLib.Booking memory value) = _years.buildBooking(yearNum, dayOfTheYear, price);
+        (bool success, BookingMapLib.Booking memory value) = _years.buildBooking(
+            BookingMapLib.BookingStatus.Confirmed,
+            yearNum,
+            dayOfTheYear,
+            price
+        );
         require(success, "Unable to build Booking");
 
         return value;

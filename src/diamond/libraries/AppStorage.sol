@@ -105,7 +105,11 @@ contract Modifiers {
     }
 
     function _requireMember(address account) internal view {
-        require(s.members.contains(account), "Membership: only members allowed");
+        require(_isMember(account), "Membership: only members allowed");
+    }
+
+    function _isMember(address account) internal view returns (bool) {
+        return s.members.contains(account);
     }
 
     /**

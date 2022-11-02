@@ -4,6 +4,7 @@ import {ethers, network, deployments, getUnnamedAccounts} from 'hardhat';
 import {DateTime} from 'luxon';
 
 import {ERC20TestMock, TDFDiamond, TDFToken} from '../../../typechain';
+import {BookingMapLib} from '../../../typechain/TDFDiamond';
 
 import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
 import {setupUser, setupUsers} from '..';
@@ -19,6 +20,11 @@ export {ROLES} from '../../../utils';
 const BN = ethers.BigNumber;
 
 export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => {
+  enum BookingStatus {
+    Pending = 'Pending',
+    Confirmed = 'Confirmed',
+    CheckedIn = 'CheckedIn',
+  }
   return {
     balances: async (diamondTokenBalance: string, stakedBalance: string, userTokenBalance: string) => {
       let current = await TDFToken.balanceOf(TDFDiamond.address);
@@ -60,20 +66,42 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
       }
     },
     bookings: {
-      toExists: async (dates: DatesTestData, price: string) => {
+      toExists: async (dates: DatesTestData, price: string, status: string = BookingStatus.Confirmed) => {
+        const list: BookingMapLib.BookingStructOutput[] = [];
+        let st: number;
+        switch (status) {
+          case BookingStatus.Pending:
+            st = 0;
+            break;
+          case BookingStatus.Confirmed:
+            st = 1;
+            break;
+          case BookingStatus.CheckedIn:
+            st = 2;
+            break;
+          default:
+            throw new Error(`invalid Booking status: ${status} `);
+        }
         await Promise.all(
           dates.data.map(async (e) => {
             const [success, booking] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
+            list.push(booking);
             return Promise.all([
               expect(success).to.be.true,
               expect(booking.price).to.eq(parseEther(price)),
               expect(booking.year).to.eq(e.year),
               expect(booking.dayOfYear).to.eq(e.day),
+              expect(
+                booking.status,
+                `expect booking status toEQ(${status}) GOT(${
+                  Object.values(BookingStatus)[parseInt(booking.status.toString())]
+                })`
+              ).to.eq(st),
             ]);
           })
         );
       },
-      toNotExits: async (dates: DatesTestData) => {
+      toNotExist: async (dates: DatesTestData) => {
         await Promise.all(
           dates.data.map(async (e) => {
             const [exists, _booking] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
@@ -182,6 +210,7 @@ export const setDiamondUser = async (testContext: TestContext) => {
     ...(await bookingHelpers.setupHelpers(testContext)),
     ...(await membershipHelpers.setupHelpers(testContext)),
     ...(await adminHelpers.setupHelpers(testContext)),
+    address: testContext.user.address,
   };
 };
 
@@ -201,6 +230,7 @@ export const roleTesters = async (testContext: TestContext) => {
   const staking = await stakingHelpers.roleTesters(testContext);
 
   return {
+    address: testContext.user.address,
     can: {
       ...staking.can,
       ...members.can,
