@@ -38,6 +38,7 @@ describe('AccessControl Roles', () => {
     await user.can.unpause();
 
     await user.can.setRoleAdmin('MEMBERSHIP_MANAGER_ROLE', 'VAULT_MANAGER_ROLE');
+    await user.can.cancelAccommodationFrom();
   });
   it('DEFAULT_ADMIN_ROLE', async () => {
     const context = await setupContext();
@@ -79,6 +80,7 @@ describe('AccessControl Roles', () => {
     await user.can.unpause();
 
     await user.can.setRoleAdmin('MEMBERSHIP_MANAGER_ROLE', 'VAULT_MANAGER_ROLE');
+    await user.cannot.cancelAccommodationFrom();
   });
   it('MINTER_ROLE', async () => {
     const context = await setupContext();
@@ -120,9 +122,7 @@ describe('AccessControl Roles', () => {
     await user.cannot.unpause();
 
     await user.cannot.setRoleAdmin('MEMBERSHIP_MANAGER_ROLE', 'VAULT_MANAGER_ROLE');
-    const init = addDays(Date.now(), 10);
-    const dates = buildDates(init, 5);
-    await user.cannot.cancelAccommodationFrom(user.address, dates);
+    await user.cannot.cancelAccommodationFrom();
   });
   it('BOOKING_MANAGER_ROLE', async () => {
     const context = await setupContext();
@@ -164,6 +164,7 @@ describe('AccessControl Roles', () => {
     await user.cannot.unpause();
 
     await user.cannot.setRoleAdmin('MEMBERSHIP_MANAGER_ROLE', 'VAULT_MANAGER_ROLE');
+    await user.can.cancelAccommodationFrom();
   });
   it('STAKE_MANAGER_ROLE', async () => {
     const context = await setupContext();
@@ -205,6 +206,7 @@ describe('AccessControl Roles', () => {
     await user.cannot.unpause();
 
     await user.cannot.setRoleAdmin('MEMBERSHIP_MANAGER_ROLE', 'VAULT_MANAGER_ROLE');
+    await user.cannot.cancelAccommodationFrom();
   });
   it('VAULT_MANAGER_ROLE', async () => {
     const context = await setupContext();
@@ -246,6 +248,7 @@ describe('AccessControl Roles', () => {
     await user.cannot.unpause();
 
     await user.cannot.setRoleAdmin('MEMBERSHIP_MANAGER_ROLE', 'VAULT_MANAGER_ROLE');
+    await user.cannot.cancelAccommodationFrom();
   });
   it('MEMBERSHIP_MANAGER_ROLE', async () => {
     const context = await setupContext();
@@ -287,5 +290,6 @@ describe('AccessControl Roles', () => {
     await user.cannot.unpause();
 
     await user.cannot.setRoleAdmin('MEMBERSHIP_MANAGER_ROLE', 'VAULT_MANAGER_ROLE');
+    await user.cannot.cancelAccommodationFrom();
   });
 });

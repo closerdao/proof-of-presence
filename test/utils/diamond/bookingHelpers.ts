@@ -3,8 +3,11 @@ import {expect} from '../../chai-setup';
 import {BookingMapLib} from '../../../typechain/BookingFacet';
 import type {TestContext} from './index';
 
+import {buildDates} from './index';
+
 import {DatesTestData, DateMetadata, DateInputs} from './types';
-import {wrapOnlyRole, wrapSuccess, wrapOnlyMember} from './helpers';
+import {wrapOnlyRole, wrapSuccess} from './helpers';
+import {addDays} from 'date-fns';
 
 export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
@@ -229,14 +232,22 @@ export const roleTesters = async (context: TestContext) => {
       removeAccommodationYear: wrapSuccess(helpers.removeAccommodationYear),
       enableAccommodationYear: wrapSuccess(helpers.enableAccommodationYear),
       updateAccommodationYear: wrapSuccess(helpers.updateAccommodationYear),
-      cancelAccommodationFrom: wrapSuccess(helpers.cancelAccommodationFrom),
+      cancelAccommodationFrom: async () => {
+        const init = addDays(Date.now(), 10);
+        const dates = buildDates(init, 5);
+        helpers.cancelAccommodationFrom(context.user.address, dates.inputs).reverted.nonExisting();
+      },
     },
     cannot: {
       addAccommodationYear: wrapOnlyRole(helpers.addAccommodationYear),
       removeAccommodationYear: wrapOnlyRole(helpers.removeAccommodationYear),
       enableAccommodationYear: wrapOnlyRole(helpers.enableAccommodationYear),
       updateAccommodationYear: wrapOnlyRole(helpers.updateAccommodationYear),
-      cancelAccommodationFrom: wrapOnlyRole(helpers.cancelAccommodationFrom),
+      cancelAccommodationFrom: async () => {
+        const init = addDays(Date.now(), 10);
+        const dates = buildDates(init, 5);
+        await wrapOnlyRole(helpers.cancelAccommodationFrom)(context.user.address, dates.inputs);
+      },
     },
   };
 };
