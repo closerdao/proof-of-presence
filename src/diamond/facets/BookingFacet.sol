@@ -60,7 +60,7 @@ contract BookingFacet is Modifiers {
         return value;
     }
 
-    function cancelAccommodationFrom(address account, uint16[2][] calldata dates)
+    function cancelAccommodationFor(address account, uint16[2][] calldata dates)
         external
         onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
         whenNotPaused
@@ -77,7 +77,7 @@ contract BookingFacet is Modifiers {
         emit CanceledBookings(account, dates);
     }
 
-    function confirmAccommodationFrom(address account, uint16[2][] calldata dates)
+    function confirmAccommodationFor(address account, uint16[2][] calldata dates)
         external
         onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
     {
@@ -106,7 +106,7 @@ contract BookingFacet is Modifiers {
         }
     }
 
-    function checkinAccommodationFrom(address account, uint16[2][] calldata dates)
+    function checkinAccommodationFor(address account, uint16[2][] calldata dates)
         external
         onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
     {

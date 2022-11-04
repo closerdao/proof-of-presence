@@ -61,86 +61,86 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         },
       },
     }),
-    cancelAccommodationFrom: (account: string, dates: DateInputs) => ({
+    cancelAccommodationFor: (account: string, dates: DateInputs) => ({
       success: async () => {
         await expect(
-          user.TDFDiamond.cancelAccommodationFrom(account, dates),
-          `cancelAccommodationFrom.success ${dates}`
+          user.TDFDiamond.cancelAccommodationFor(account, dates),
+          `cancelAccommodationFor.success ${dates}`
         ).to.emit(TDFDiamond, 'CanceledBookings');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
-            user.TDFDiamond.cancelAccommodationFrom(account, dates),
-            `cancelAccommodationFrom.reverted.onlyRole ${dates}`
+            user.TDFDiamond.cancelAccommodationFor(account, dates),
+            `cancelAccommodationFor.reverted.onlyRole ${dates}`
           ).to.be.revertedWith('AccessControl:');
         },
         nonExisting: async () => {
           await expect(
-            user.TDFDiamond.cancelAccommodationFrom(account, dates),
-            `cancelAccommodationFrom.reverted.NonExisting ${dates}`
+            user.TDFDiamond.cancelAccommodationFor(account, dates),
+            `cancelAccommodationFor.reverted.NonExisting ${dates}`
           ).to.be.revertedWith('NonExisting');
         },
         inThepast: async () => {
           await expect(
-            user.TDFDiamond.cancelAccommodationFrom(account, dates),
-            `cancelAccommodationFrom.reverted.inThepast ${dates}`
+            user.TDFDiamond.cancelAccommodationFor(account, dates),
+            `cancelAccommodationFor.reverted.inThepast ${dates}`
           ).to.be.revertedWith('Can not cancel past booking');
         },
         paused: async () => {
           await expect(
-            user.TDFDiamond.cancelAccommodationFrom(account, dates),
-            `cancelAccommodationFrom.reverted.paused ${dates}`
+            user.TDFDiamond.cancelAccommodationFor(account, dates),
+            `cancelAccommodationFor.reverted.paused ${dates}`
           ).to.be.revertedWith('Pausable: paused');
         },
         nonPending: async () => {
           await expect(
-            user.TDFDiamond.cancelAccommodationFrom(account, dates),
-            `cancelAccommodationFrom.reverted.paused ${dates}`
+            user.TDFDiamond.cancelAccommodationFor(account, dates),
+            `cancelAccommodationFor.reverted.paused ${dates}`
           ).to.be.revertedWith('NotPending');
         },
       },
     }),
-    confirmAccommodationFrom: (account: string, dates: DateInputs) => ({
+    confirmAccommodationFor: (account: string, dates: DateInputs) => ({
       success: async () => {
         await expect(
-          user.TDFDiamond.confirmAccommodationFrom(account, dates),
-          `confirmAccommodationFrom.success ${dates}`
+          user.TDFDiamond.confirmAccommodationFor(account, dates),
+          `confirmAccommodationFor.success ${dates}`
         ).to.emit(TDFDiamond, 'BookingConfirmed');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
-            user.TDFDiamond.confirmAccommodationFrom(account, dates),
-            `confirmAccommodationFrom.reverted.onlyRole ${dates}`
+            user.TDFDiamond.confirmAccommodationFor(account, dates),
+            `confirmAccommodationFor.reverted.onlyRole ${dates}`
           ).to.be.revertedWith('AccessControl:');
         },
         nonExisting: async () => {
           await expect(
-            user.TDFDiamond.confirmAccommodationFrom(account, dates),
-            `confirmAccommodationFrom.reverted.NonExisting ${dates}`
+            user.TDFDiamond.confirmAccommodationFor(account, dates),
+            `confirmAccommodationFor.reverted.NonExisting ${dates}`
           ).to.be.revertedWith('NonExisting');
         },
         nonPending: async () => {
           await expect(
-            user.TDFDiamond.confirmAccommodationFrom(account, dates),
-            `confirmAccommodationFrom.reverted.paused ${dates}`
+            user.TDFDiamond.confirmAccommodationFor(account, dates),
+            `confirmAccommodationFor.reverted.paused ${dates}`
           ).to.be.revertedWith('NotPending');
         },
       },
     }),
-    checkinAccommodationFrom: (account: string, dates: DateInputs) => ({
+    checkinAccommodationFor: (account: string, dates: DateInputs) => ({
       success: async () => {
         await expect(
-          user.TDFDiamond.checkinAccommodationFrom(account, dates),
-          `checkinAccommodationFrom.success ${dates}`
+          user.TDFDiamond.checkinAccommodationFor(account, dates),
+          `checkinAccommodationFor.success ${dates}`
         ).to.emit(TDFDiamond, 'BookingCheckedIn');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
-            user.TDFDiamond.checkinAccommodationFrom(account, dates),
-            `checkinAccommodationFrom.reverted.onlyRole ${dates}`
+            user.TDFDiamond.checkinAccommodationFor(account, dates),
+            `checkinAccommodationFor.reverted.onlyRole ${dates}`
           ).to.be.revertedWith('AccessControl:');
         },
       },
@@ -279,21 +279,21 @@ export const roleTesters = async (context: TestContext) => {
       removeAccommodationYear: wrapSuccess(helpers.removeAccommodationYear),
       enableAccommodationYear: wrapSuccess(helpers.enableAccommodationYear),
       updateAccommodationYear: wrapSuccess(helpers.updateAccommodationYear),
-      checkinAccommodationFrom: async () => {
+      checkinAccommodationFor: async () => {
         try {
-          await context.user.TDFDiamond.checkinAccommodationFrom(context.user.address, dates.inputs);
+          await context.user.TDFDiamond.checkinAccommodationFor(context.user.address, dates.inputs);
         } catch {
-          expect(true, 'checkinAccommodationFrom to not be reverted because of AccessControl').to.eq(false);
+          expect(true, 'checkinAccommodationFor to not be reverted because of AccessControl').to.eq(false);
         }
       },
-      cancelAccommodationFrom: async () => {
-        await helpers.cancelAccommodationFrom(context.user.address, dates.inputs).reverted.nonExisting();
+      cancelAccommodationFor: async () => {
+        await helpers.cancelAccommodationFor(context.user.address, dates.inputs).reverted.nonExisting();
       },
-      confirmAccommodationFrom: async () => {
+      confirmAccommodationFor: async () => {
         try {
-          await context.user.TDFDiamond.confirmAccommodationFrom(context.user.address, dates.inputs);
+          await context.user.TDFDiamond.confirmAccommodationFor(context.user.address, dates.inputs);
         } catch {
-          expect(true, 'confirmAccommodationFrom to not be reverted because of AccessControl').to.eq(false);
+          expect(true, 'confirmAccommodationFor to not be reverted because of AccessControl').to.eq(false);
         }
       },
     },
@@ -302,14 +302,14 @@ export const roleTesters = async (context: TestContext) => {
       removeAccommodationYear: wrapOnlyRole(helpers.removeAccommodationYear),
       enableAccommodationYear: wrapOnlyRole(helpers.enableAccommodationYear),
       updateAccommodationYear: wrapOnlyRole(helpers.updateAccommodationYear),
-      checkinAccommodationFrom: async () => {
-        await wrapOnlyRole(helpers.checkinAccommodationFrom)(context.user.address, dates.inputs);
+      checkinAccommodationFor: async () => {
+        await wrapOnlyRole(helpers.checkinAccommodationFor)(context.user.address, dates.inputs);
       },
-      cancelAccommodationFrom: async () => {
-        await wrapOnlyRole(helpers.cancelAccommodationFrom)(context.user.address, dates.inputs);
+      cancelAccommodationFor: async () => {
+        await wrapOnlyRole(helpers.cancelAccommodationFor)(context.user.address, dates.inputs);
       },
-      confirmAccommodationFrom: async () => {
-        await wrapOnlyRole(helpers.confirmAccommodationFrom)(context.user.address, dates.inputs);
+      confirmAccommodationFor: async () => {
+        await wrapOnlyRole(helpers.confirmAccommodationFor)(context.user.address, dates.inputs);
       },
     },
   };

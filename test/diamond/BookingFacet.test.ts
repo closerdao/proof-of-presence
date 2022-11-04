@@ -60,7 +60,7 @@ describe('BookingFacet', () => {
     await test.balances('5', '5', '9995');
   });
 
-  describe('confirmAccommodationFrom', () => {
+  describe('confirmAccommodationFor', () => {
     it('works', async () => {
       const context = await setup();
       const {users, deployer} = context;
@@ -82,7 +82,7 @@ describe('BookingFacet', () => {
       await user.bookAccommodation(dates.inputs).success();
       await test.bookings.toExists(dates, '1', 'Pending');
 
-      await admin.confirmAccommodationFrom(user.address, dates.inputs).success();
+      await admin.confirmAccommodationFor(user.address, dates.inputs).success();
       await test.bookings.toExists(dates, '1', 'Confirmed');
     });
   });
@@ -129,7 +129,7 @@ describe('BookingFacet', () => {
     });
   });
 
-  describe('cancelAccommodationFrom', () => {
+  describe('cancelAccommodationFor', () => {
     it('works', async () => {
       const context = await setup();
       const {users, deployer} = context;
@@ -151,7 +151,7 @@ describe('BookingFacet', () => {
       await user.bookAccommodation(dates.inputs).success();
       await test.bookings.toExists(dates, '1', 'Pending');
 
-      await admin.cancelAccommodationFrom(user.address, dates.inputs).success();
+      await admin.cancelAccommodationFor(user.address, dates.inputs).success();
       await test.bookings.toNotExist(dates);
     });
     it('reverts when NonPending', async () => {
@@ -176,7 +176,7 @@ describe('BookingFacet', () => {
       await user.bookAccommodation(dates.inputs).success();
       await test.bookings.toExists(dates, '1', 'Confirmed');
 
-      await admin.cancelAccommodationFrom(user.address, dates.inputs).reverted.nonPending();
+      await admin.cancelAccommodationFor(user.address, dates.inputs).reverted.nonPending();
       await test.bookings.toExists(dates, '1');
     });
     it('reverts when paused', async () => {
@@ -202,7 +202,7 @@ describe('BookingFacet', () => {
 
       await admin.pause().success();
 
-      await admin.cancelAccommodationFrom(user.address, dates.inputs).reverted.paused();
+      await admin.cancelAccommodationFor(user.address, dates.inputs).reverted.paused();
       await test.bookings.toExists(dates, '1', 'Pending');
     });
     it('reverts when inThePast', async () => {
@@ -227,7 +227,7 @@ describe('BookingFacet', () => {
       await test.bookings.toExists(dates, '1', 'Pending');
 
       await timeTravelTo(dates.data[0].unix + 2 * 86400);
-      await admin.cancelAccommodationFrom(user.address, dates.inputs).reverted.inThepast();
+      await admin.cancelAccommodationFor(user.address, dates.inputs).reverted.inThepast();
       await test.bookings.toExists(dates, '1', 'Pending');
     });
     it('reverts when NonExisting', async () => {
@@ -250,10 +250,10 @@ describe('BookingFacet', () => {
       const dates = buildDates(init, 1);
       await test.bookings.toNotExist(dates);
 
-      await admin.cancelAccommodationFrom(user.address, dates.inputs).reverted.nonExisting();
+      await admin.cancelAccommodationFor(user.address, dates.inputs).reverted.nonExisting();
     });
   });
-  describe('checkinAccommodationFrom', () => {
+  describe('checkinAccommodationFor', () => {
     it('works', async () => {
       const context = await setup();
       const {users, deployer} = context;
@@ -275,7 +275,7 @@ describe('BookingFacet', () => {
       await user.bookAccommodation(dates.inputs).success();
       await test.bookings.toExists(dates, '1', 'Pending');
 
-      await admin.checkinAccommodationFrom(user.address, dates.inputs).success();
+      await admin.checkinAccommodationFor(user.address, dates.inputs).success();
       await test.bookings.toExists(dates, '1', 'CheckedIn');
     });
   });
