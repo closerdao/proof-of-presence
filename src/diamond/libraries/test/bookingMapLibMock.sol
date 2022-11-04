@@ -54,6 +54,16 @@ contract BookingMapLibMock {
         return _bookings[_user].get(_year, _dayYear);
     }
 
+    function updateBookingStatus(
+        address _user,
+        uint16 _year,
+        uint16 _dayYear,
+        BookingMapLib.BookingStatus status
+    ) public {
+        bool success = _bookings[_user].updateStatus(_year, _dayYear, status);
+        emit OperationResult(success);
+    }
+
     function getBookings(address _user, uint16 _year) public view returns (BookingMapLib.Booking[] memory) {
         return _bookings[_user].list(_year);
     }

@@ -60,6 +60,33 @@ describe('BookingFacet', () => {
     await test.balances('5', '5', '9995');
   });
 
+  describe('confirmAccommodationFrom', () => {
+    it('works', async () => {
+      const context = await setup();
+      const {users, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      const test = await userTesters({user: users[0], ...context});
+
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 5);
+      await user.bookAccommodation(dates.inputs).success();
+      await test.bookings.toExists(dates, '1', 'Pending');
+
+      await admin.confirmAccommodationFrom(user.address, dates.inputs).success();
+      await test.bookings.toExists(dates, '1', 'Confirmed');
+    });
+  });
+
   describe('bookAccommodation', () => {
     it('When member status is CONFIRMED', async () => {
       const context = await setup();
@@ -82,7 +109,6 @@ describe('BookingFacet', () => {
       const init = addDays(Date.now(), 10);
       const dates = buildDates(init, 1);
       await user.bookAccommodation(dates.inputs).success();
-      // await use
       await test.bookings.toExists(dates, '1');
     });
     it('When guest status is PENDING', async () => {
@@ -99,7 +125,6 @@ describe('BookingFacet', () => {
       const init = addDays(Date.now(), 10);
       const dates = buildDates(init, 1);
       await user.bookAccommodation(dates.inputs).success();
-      // await use
       await test.bookings.toExists(dates, '1', 'Pending');
     });
   });
@@ -124,7 +149,6 @@ describe('BookingFacet', () => {
       const init = addDays(Date.now(), 10);
       const dates = buildDates(init, 1);
       await user.bookAccommodation(dates.inputs).success();
-      // await use
       await test.bookings.toExists(dates, '1', 'Pending');
 
       await admin.cancelAccommodationFrom(user.address, dates.inputs).success();
@@ -150,7 +174,6 @@ describe('BookingFacet', () => {
       const init = addDays(Date.now(), 10);
       const dates = buildDates(init, 1);
       await user.bookAccommodation(dates.inputs).success();
-      // await use
       await test.bookings.toExists(dates, '1', 'Confirmed');
 
       await admin.cancelAccommodationFrom(user.address, dates.inputs).reverted.nonPending();
@@ -175,7 +198,6 @@ describe('BookingFacet', () => {
       const init = addDays(Date.now(), 10);
       const dates = buildDates(init, 1);
       await user.bookAccommodation(dates.inputs).success();
-      // await use
       await test.bookings.toExists(dates, '1', 'Pending');
 
       await admin.pause().success();
@@ -202,7 +224,6 @@ describe('BookingFacet', () => {
       const init = addDays(Date.now(), 10);
       const dates = buildDates(init, 1);
       await user.bookAccommodation(dates.inputs).success();
-      // await use
       await test.bookings.toExists(dates, '1', 'Pending');
 
       await timeTravelTo(dates.data[0].unix + 2 * 86400);
@@ -227,10 +248,35 @@ describe('BookingFacet', () => {
 
       const init = addDays(Date.now(), 10);
       const dates = buildDates(init, 1);
-      // await use
       await test.bookings.toNotExist(dates);
 
       await admin.cancelAccommodationFrom(user.address, dates.inputs).reverted.nonExisting();
+    });
+  });
+  describe('checkinAccommodationFrom', () => {
+    it('works', async () => {
+      const context = await setup();
+      const {users, deployer} = context;
+
+      const user = await setDiamondUser({
+        user: users[0],
+        ...context,
+      });
+
+      const admin = await setDiamondUser({
+        user: deployer,
+        ...context,
+      });
+
+      const test = await userTesters({user: users[0], ...context});
+
+      const init = addDays(Date.now(), 10);
+      const dates = buildDates(init, 1);
+      await user.bookAccommodation(dates.inputs).success();
+      await test.bookings.toExists(dates, '1', 'Pending');
+
+      await admin.checkinAccommodationFrom(user.address, dates.inputs).success();
+      await test.bookings.toExists(dates, '1', 'CheckedIn');
     });
   });
 
@@ -278,8 +324,6 @@ describe('BookingFacet', () => {
       const restcDates = collectDates(dates, [1, 2, 3]);
 
       await test.bookings.toExists(restcDates, '1');
-      // // TODO test errors
-      // // await user.cancelAccommodation(cDates.inputs).reverted.noneExisting();
 
       await timeTravelTo(dates.data[4].unix + 2 * 86400);
 

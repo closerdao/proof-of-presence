@@ -1,9 +1,11 @@
 import {expect} from '../../chai-setup';
-import {deployments, getUnnamedAccounts} from 'hardhat';
+import {deployments, getUnnamedAccounts, ethers} from 'hardhat';
 import {BookingMapLibMock} from '../../../typechain';
 import {setupUser, setupUsers, getMock} from '../../utils';
 import {parseEther} from 'ethers/lib/utils';
 import {fromUnixTime, getDayOfYear} from 'date-fns';
+
+const BN = ethers.BigNumber;
 
 const yearData = () => {
   return {
@@ -158,6 +160,33 @@ describe('BookingMapLib', () => {
 
     await expect(BookingContract.buildTimestamp(2024, 2)).to.be.revertedWith('Unable to build Timestamp');
     await expect(BookingContract.buildTimestamp(2024, 12)).to.be.revertedWith('Unable to build Timestamp');
+  });
+
+  it('updateStatus', async () => {
+    const {users, BookingContract} = await setup();
+
+    const user = users[0];
+    await expect(user.BookingContract.book(user.address, 2023, 13))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+    let [, booking] = await BookingContract.getBooking(user.address, 2023, 13);
+
+    expect(booking.status).to.eq(BN.from(1));
+
+    await expect(user.BookingContract.updateBookingStatus(user.address, 2023, 13, BN.from(2)))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+
+    [, booking] = await BookingContract.getBooking(user.address, 2023, 13);
+
+    expect(booking.status).to.eq(BN.from(2));
+    await expect(user.BookingContract.updateBookingStatus(user.address, 2023, 13, BN.from(0)))
+      .to.emit(BookingContract, 'OperationResult')
+      .withArgs(true);
+
+    [, booking] = await BookingContract.getBooking(user.address, 2023, 13);
+
+    expect(booking.status).to.eq(BN.from(0));
   });
 
   it('buildBooking', async () => {

@@ -23,6 +23,7 @@ library BookingMapLib {
     }
 
     struct UserStore {
+        mapping(uint16 => uint16) nights;
         mapping(uint16 => uint256) balance;
         mapping(uint16 => EnumerableMap.Bytes32ToUintMap) dates;
         mapping(bytes32 => Booking) bookings;
@@ -46,6 +47,7 @@ library BookingMapLib {
         if (store.dates[booking.year].set(key, booking.timestamp)) {
             store.balance[booking.year] += booking.price;
             store.bookings[key] = booking; //Booking(booking.price, booking.timestamp);
+            store.nights[booking.year] += uint16(1);
             return true;
         }
         return false;
@@ -67,6 +69,10 @@ library BookingMapLib {
         return store.balance[_year];
     }
 
+    function getNights(UserStore storage store, uint16 _year) internal view returns (uint256) {
+        return store.nights[_year];
+    }
+
     function list(UserStore storage store, uint16 _year) internal view returns (Booking[] memory) {
         Booking[] memory bookings = new Booking[](store.dates[_year].length());
         for (uint256 i; i < store.dates[_year].length(); i++) {
@@ -85,16 +91,36 @@ library BookingMapLib {
         if (store.dates[_year].remove(key)) {
             Booking memory booking = store.bookings[key];
             store.balance[_year] -= booking.price;
+            store.nights[_year] -= uint16(1);
             delete store.bookings[key];
             return (true, booking);
         }
         return (false, Booking(BookingStatus.Pending, 0, 0, 0, 0));
     }
 
+    function updateStatus(
+        UserStore storage store,
+        uint16 _year,
+        uint16 _dayOfYear,
+        BookingStatus _status
+    ) internal returns (bool) {
+        bytes32 key = _buildKey(_year, _dayOfYear);
+        if (store.dates[_year].contains(key)) {
+            Booking memory booking = store.bookings[key];
+            booking.status = _status;
+            store.bookings[key] = booking;
+            return true;
+        }
+        return false;
+    }
+
     function _buildKey(uint16 year, uint16 dayOfYear) internal pure returns (bytes32) {
         return bytes32(abi.encodePacked(year, dayOfYear));
     }
 
+    // ==========================================================
+    // Years
+    // ==========================================================
     function buildTimestamp(
         YearsStore storage _years,
         uint16 yearNum,
