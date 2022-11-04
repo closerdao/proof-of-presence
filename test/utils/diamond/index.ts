@@ -194,6 +194,7 @@ export const setupContext = deployments.createFixture(async (hre) => {
     accounts,
   };
   // fund users with TDF token
+  await conf.deployer.TDFToken.mint(deployer, parseEther('10000'));
   await Promise.all(
     users.map((e) => {
       return conf.deployer.TDFToken.mint(e, parseEther('10000'));

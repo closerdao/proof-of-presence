@@ -13,6 +13,8 @@ contract BookingFacet is Modifiers {
 
     event NewBookings(address account, uint16[2][] bookings);
     event CanceledBookings(address account, uint16[2][] bookings);
+    event BookingConfirmed(address executer, address account, uint16[2][] bookings);
+    event BookingCheckedIn(address executer, address account, uint16[2][] bookings);
 
     event YearAdded(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
     event YearRemoved(uint16 number);
@@ -76,6 +78,55 @@ contract BookingFacet is Modifiers {
         }
 
         emit CanceledBookings(account, dates);
+    }
+
+    function confirmAccommodationFrom(address account, uint16[2][] calldata dates)
+        external
+        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
+    {
+        uint16 count;
+        for (uint256 i = 0; i < dates.length; i++) {
+            (bool found, BookingMapLib.Booking memory _booking) = s._accommodationBookings[account].get(
+                dates[i][0],
+                dates[i][1]
+            );
+            if (!found) {
+                continue;
+            }
+            if (_booking.status == BookingMapLib.BookingStatus.Pending) {
+                bool success = s._accommodationBookings[account].updateStatus(
+                    dates[i][0],
+                    dates[i][1],
+                    BookingMapLib.BookingStatus.Confirmed
+                );
+                if (success) {
+                    count += 1;
+                }
+            }
+        }
+        if (count > 0) {
+            emit BookingConfirmed(_msgSender(), account, dates);
+        }
+    }
+
+    function checkinAccommodationFrom(address account, uint16[2][] calldata dates)
+        external
+        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
+    {
+        uint16 count;
+        for (uint256 i = 0; i < dates.length; i++) {
+            bool success = s._accommodationBookings[account].updateStatus(
+                dates[i][0],
+                dates[i][1],
+                BookingMapLib.BookingStatus.CheckedIn
+            );
+            if (success) {
+                count += 1;
+            }
+        }
+        if (count > 0) {
+            emit BookingCheckedIn(_msgSender(), account, dates);
+        }
     }
 
     function cancelAccommodation(uint16[2][] calldata dates) external whenNotPaused {
