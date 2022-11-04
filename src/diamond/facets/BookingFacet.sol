@@ -23,9 +23,6 @@ contract BookingFacet is Modifiers {
     // TODO: add preview Booking action
 
     function bookAccommodation(uint16[2][] calldata dates) external whenNotPaused {
-        // TODO:
-        // members booking is confirmed
-        // guests is pending
         BookingMapLib.BookingStatus status;
         if (_isMember(_msgSender())) {
             status = BookingMapLib.BookingStatus.Confirmed;
