@@ -1,4 +1,15 @@
-# Boilerplate for ethereum solidity smart contract development
+# TDF Smart contracts
+
+This is a collection of contracts aiming to implement tokenized timesharing real state.
+
+This contracts include:
+
+- ERC20 token
+- Booking System:
+
+      Implemented a locking mechanism to reuse the tokens every year preventing doble spending by locking those tokens in a Diamond contract
+
+- Crowdsale: (WIP)
 
 ## INSTALL
 
