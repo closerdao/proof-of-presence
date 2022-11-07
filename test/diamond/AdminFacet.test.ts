@@ -1,3 +1,4 @@
+/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
 import {expect} from '../chai-setup';
 import {setDiamondUser, setupContext, getterHelpers} from '../utils/diamond';
 
@@ -7,10 +8,6 @@ describe('AdminFacet', () => {
     const usertmp = context.users[1];
 
     const diamond = await getterHelpers({user: usertmp, ...context});
-    const user = await setDiamondUser({
-      user: usertmp,
-      ...context,
-    });
     const admin = await setDiamondUser({
       user: context.deployer,
       ...context,

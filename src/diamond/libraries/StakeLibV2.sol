@@ -202,7 +202,7 @@ library StakeLibV2 {
         return _releaseTimestampAt(context, block.timestamp);
     }
 
-    function _releaseTimestampAt(Context memory context, uint256 at) internal pure returns (uint256) {
+    function _releaseTimestampAt(Context memory, uint256 at) internal pure returns (uint256) {
         return at - ONE_YEAR;
     }
 

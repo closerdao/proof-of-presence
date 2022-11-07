@@ -283,7 +283,7 @@ describe('BookingFacet', () => {
   describe('book and cancel', () => {
     it('same year', async () => {
       const context = await setup();
-      const {users, TDFDiamond, deployer} = context;
+      const {users, deployer} = context;
 
       const user = await setDiamondUser({
         user: users[0],
@@ -332,7 +332,7 @@ describe('BookingFacet', () => {
 
     it('different years having bookings in future year', async () => {
       const context = await setup();
-      const {users, TDFDiamond, deployer} = context;
+      const {users, deployer} = context;
 
       const user = await setDiamondUser({
         user: users[0],
@@ -372,7 +372,7 @@ describe('BookingFacet', () => {
     });
     it('booking next year, current year and canceling current', async () => {
       const context = await setup();
-      const {users, TDFDiamond, deployer} = context;
+      const {users, deployer} = context;
 
       const user = await setDiamondUser({
         user: users[0],
@@ -413,7 +413,7 @@ describe('BookingFacet', () => {
     });
     it('booking next year, current year and canceling current with different prices', async () => {
       const context = await setup();
-      const {users, TDFDiamond, deployer} = context;
+      const {users, deployer} = context;
 
       const user = await setDiamondUser({
         user: users[0],
@@ -462,7 +462,7 @@ describe('BookingFacet', () => {
         // |C'  |1     |1       |0     |0       |      |        |      |        |2022           |2023          |2022                            |
         // |C'' |1     |1       |1     |0       |1     |1       |      |        |2024           |2025          |2022 \ 2023 \ 2024              |
         const context = await setup();
-        const {users, TDFDiamond, deployer} = context;
+        const {users, deployer} = context;
 
         const user = await setDiamondUser({
           user: users[0],
@@ -514,7 +514,7 @@ describe('BookingFacet', () => {
         // |D'' |5     |0       |5     |5       |4     |4       |2     |2       |2025           |2026          |2025 \ 2023 \ 2024 \ 2025 \ 2026|
         // |D'''|4     |0       |4     |3       |4     |4       |2     |2       |2025           |2026          |2026 \ 2023 \ 2024 \ 2025 \ 2026|
         const context = await setup();
-        const {users, TDFDiamond, deployer} = context;
+        const {users, deployer} = context;
 
         const user = await setDiamondUser({
           user: users[0],

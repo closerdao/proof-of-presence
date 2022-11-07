@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import {expect} from '../chai-setup';
 import {setDiamondUser, setupContext, getterHelpers, roleTesters, yearData} from '../utils/diamond';
 

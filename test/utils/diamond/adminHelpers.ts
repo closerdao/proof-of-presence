@@ -1,9 +1,5 @@
 import {expect} from '../../chai-setup';
 
-import * as _ from 'lodash';
-
-import {soliditySha3} from 'web3-utils';
-
 import type {TestContext} from './index';
 import {wrapOnlyRole, wrapSuccess} from './helpers';
 import {ROLES} from '../../../utils';

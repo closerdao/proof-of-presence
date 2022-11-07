@@ -1,6 +1,6 @@
 import {expect} from './chai-setup';
 import {ethers, deployments, getUnnamedAccounts, getNamedAccounts} from 'hardhat';
-import {IERC20, DAOAllowTransfersMock, TDFToken, TDFDiamond} from '../typechain';
+import {DAOAllowTransfersMock, TDFToken, TDFDiamond} from '../typechain';
 import {setupUser, setupUsers, getMock} from './utils';
 import {MAX_UINT256, ZERO_ADDRESS} from '../utils';
 import {parseEther} from 'ethers/lib/utils';

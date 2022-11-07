@@ -1,4 +1,3 @@
-import * as _ from 'lodash';
 import {expect} from '../../chai-setup';
 
 import type {TestContext} from './index';

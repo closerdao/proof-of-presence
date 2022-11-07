@@ -3,7 +3,6 @@ import {parseEther, formatEther} from 'ethers/lib/utils';
 import {ethers, network, deployments, getUnnamedAccounts} from 'hardhat';
 import {DateTime} from 'luxon';
 
-import {ERC20TestMock, TDFDiamond, TDFToken} from '../../../typechain';
 import {BookingMapLib} from '../../../typechain/TDFDiamond';
 
 import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
@@ -14,6 +13,7 @@ import * as stakingHelpers from './stakingHelpers';
 import * as bookingHelpers from './bookingHelpers';
 import * as membershipHelpers from './membershipHelpers';
 import * as adminHelpers from './adminHelpers';
+import type {TDFToken, TDFDiamond} from '../../../typechain';
 
 export {ROLES} from '../../../utils';
 
@@ -104,7 +104,7 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
       toNotExist: async (dates: DatesTestData) => {
         await Promise.all(
           dates.data.map(async (e) => {
-            const [exists, _booking] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
+            const [exists] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
             return Promise.all([expect(exists).to.be.false]);
           })
         );

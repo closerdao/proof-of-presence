@@ -1,10 +1,8 @@
 import {expect} from '../../chai-setup';
-import {deployments, getUnnamedAccounts, network, ethers} from 'hardhat';
-import {StakeLibV2Mock, ERC20TestMock, OrderedStakeLibMock} from '../../../typechain';
+import {deployments, getUnnamedAccounts, ethers} from 'hardhat';
+import {OrderedStakeLibMock} from '../../../typechain';
 import {setupUser, setupUsers, getMock} from '../../utils';
 import {formatEther, parseEther} from 'ethers/lib/utils';
-import {addDays, getUnixTime} from 'date-fns';
-import {ZERO_ADDRESS} from '../../utils';
 
 const BN = ethers.BigNumber;
 
