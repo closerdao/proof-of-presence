@@ -20,7 +20,6 @@ describe('AccessControl Roles', () => {
     await diamond.hasRole('MEMBERSHIP_MANAGER_ROLE', deployer.address).toEq(true);
     // -- END SETUP
 
-    await user.can.setLockingTimePeriodDays(3);
     await user.can.addMember(users[9].address);
     await user.can.removeMember(users[9].address);
 
@@ -64,7 +63,6 @@ describe('AccessControl Roles', () => {
     await diamond.hasRole('MEMBERSHIP_MANAGER_ROLE', users[0].address).toEq(false);
     // -- END SETUP
 
-    await user.can.setLockingTimePeriodDays(3);
     await user.cannot.addMember(users[9].address);
     await user.cannot.removeMember(users[9].address);
 
@@ -108,7 +106,6 @@ describe('AccessControl Roles', () => {
     await diamond.hasRole('MEMBERSHIP_MANAGER_ROLE', users[0].address).toEq(false);
     // -- END SETUP
 
-    await user.cannot.setLockingTimePeriodDays(3);
     await user.cannot.addMember(users[9].address);
     await user.cannot.removeMember(users[9].address);
 
@@ -152,7 +149,6 @@ describe('AccessControl Roles', () => {
     await diamond.hasRole('MEMBERSHIP_MANAGER_ROLE', users[0].address).toEq(false);
     // -- END SETUP
 
-    await user.cannot.setLockingTimePeriodDays(3);
     await user.cannot.addMember(users[9].address);
     await user.cannot.removeMember(users[9].address);
 
@@ -196,7 +192,6 @@ describe('AccessControl Roles', () => {
     await diamond.hasRole('MEMBERSHIP_MANAGER_ROLE', users[0].address).toEq(false);
     // -- END SETUP
 
-    await user.cannot.setLockingTimePeriodDays(3);
     await user.cannot.addMember(users[9].address);
     await user.cannot.removeMember(users[9].address);
 
@@ -240,7 +235,6 @@ describe('AccessControl Roles', () => {
     await diamond.hasRole('MEMBERSHIP_MANAGER_ROLE', users[0].address).toEq(false);
     // -- END SETUP
 
-    await user.cannot.setLockingTimePeriodDays(3);
     await user.cannot.addMember(users[9].address);
     await user.cannot.removeMember(users[9].address);
 
@@ -284,7 +278,6 @@ describe('AccessControl Roles', () => {
     await diamond.hasRole('MEMBERSHIP_MANAGER_ROLE', users[0].address).toEq(true);
     // -- END SETUP
 
-    await user.cannot.setLockingTimePeriodDays(3);
     await user.can.addMember(users[9].address);
     await user.can.removeMember(users[9].address);
 

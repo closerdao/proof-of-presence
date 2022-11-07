@@ -46,27 +46,6 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         },
       },
     }),
-    setLockingTimePeriodDays: (days: number) => ({
-      success: async () => {
-        await expect(user.TDFDiamond.setLockingTimePeriodDays(days), `setLockingTimePeriodDays: should succeed ${days}`)
-          .to.emit(TDFDiamond, 'LockingTimePeriodChanged')
-          .withArgs(days * 86400, user.address);
-      },
-      reverted: {
-        onlyRole: async () => {
-          await expect(
-            user.TDFDiamond.setLockingTimePeriodDays(days),
-            'setLockingTimePeriodDays: should revert AccessControl'
-          ).to.be.revertedWith('AccessControl:');
-        },
-        zero: async () => {
-          await expect(
-            user.TDFDiamond.setLockingTimePeriodDays(days),
-            'setLockingTimePeriodDays: should revert `not zero`'
-          ).to.be.revertedWith('AdminFaucet:');
-        },
-      },
-    }),
 
     grantRole: (role: RoleKeys, address: string) => ({
       success: async () => {
@@ -166,7 +145,6 @@ export const roleTesters = async (context: TestContext) => {
     can: {
       pause: wrapSuccess(helpers.pause),
       unpause: wrapSuccess(helpers.unpause),
-      setLockingTimePeriodDays: wrapSuccess(helpers.setLockingTimePeriodDays),
       grantRole: wrapSuccess(helpers.grantRole),
       revokeRole: wrapSuccess(helpers.revokeRole),
       setRoleAdmin: wrapSuccess(helpers.setRoleAdmin),
@@ -174,7 +152,6 @@ export const roleTesters = async (context: TestContext) => {
     cannot: {
       pause: wrapOnlyRole(helpers.pause),
       unpause: wrapOnlyRole(helpers.unpause),
-      setLockingTimePeriodDays: wrapOnlyRole(helpers.setLockingTimePeriodDays),
       grantRole: wrapOnlyRole(helpers.grantRole),
       revokeRole: wrapOnlyRole(helpers.revokeRole),
       setRoleAdmin: wrapOnlyRole(helpers.setRoleAdmin),
