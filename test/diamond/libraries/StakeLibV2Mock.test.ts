@@ -3,7 +3,7 @@ import {deployments, getUnnamedAccounts, network, ethers} from 'hardhat';
 import {StakeLibV2Mock, ERC20TestMock} from '../../../typechain';
 import {setupUser, setupUsers, getMock} from '../../utils';
 import {parseEther, formatEther} from 'ethers/lib/utils';
-import {addDays, getUnixTime} from 'date-fns';
+import {getUnixTime, addYears} from 'date-fns';
 import {ZERO_ADDRESS} from '../../utils';
 import {yearData} from '../../utils/diamond';
 import {DateTime} from 'luxon';
@@ -12,7 +12,7 @@ const BN = ethers.BigNumber;
 
 const buildDate = (offset: number) => {
   const initDate = Date.now();
-  return getUnixTime(addDays(initDate, offset));
+  return getUnixTime(addYears(initDate, offset));
 };
 
 const setup = deployments.createFixture(async (hre) => {
@@ -212,7 +212,7 @@ describe('StakingLibV2Mock', () => {
     await withdraw('1').reverted.noBalance();
 
     ///////////////////////////////////////////////
-    //                DAY 0
+    //                YEAR 0
     // --------------------------------------------
     //
     ///////////////////////////////////////////////
@@ -221,12 +221,12 @@ describe('StakingLibV2Mock', () => {
     await withdraw('1').reverted.unlockable();
 
     ///////////////////////////////////////////////
-    //                DAY 1
+    //                YEAR 1
     // --------------------------------------------
     //
     ///////////////////////////////////////////////
     await test.balances('1', '1', '999');
-    await incDays(1);
+    await incYears(1);
     await withdraw('1').success();
     await test.balances('0', '0', '1000');
   });
@@ -555,7 +555,7 @@ describe('StakingLibV2Mock', () => {
     await user.token.approve(stake.address, parseEther('10'));
     let initLockAt = buildDate(3);
     ///////////////////////////////////////////////
-    //                DAY 0
+    //                YEAR 0
     // --------------------------------------------
     // With 0 stake, restake transfers Token to contract
     ///////////////////////////////////////////////
@@ -564,22 +564,22 @@ describe('StakingLibV2Mock', () => {
     await test.deposits([['1', initLockAt]]);
     await test.stake('1', '0');
     ///////////////////////////////////////////////
-    //                DAY 1
+    //                YEAR 1
     // --------------------------------------------
     // Can not unstake since we staked in the future
     ///////////////////////////////////////////////
-    await incDays(1);
+    await incYears(1);
     await withdraw('0.5').reverted.unlockable();
     await test.balances('1', '1', '9999');
     await test.deposits([['1', initLockAt]]);
     await test.stake('1', '0');
     ///////////////////////////////////////////////
-    //                DAY 4
+    //                YEAR 4
     // --------------------------------------------
     // Can withdraw 1
     //
     ///////////////////////////////////////////////
-    await incDays(4);
+    await incYears(4);
     await withdraw('0.5').success();
     await test.balances('0.5', '0.5', '9999.5');
     await test.deposits([['0.5', initLockAt]]);
@@ -596,7 +596,7 @@ describe('StakingLibV2Mock', () => {
     await test.deposits([['0.5', initLockAt]]);
     await test.stake('0.5', '0');
     ///////////////////////////////////////////////
-    //                DAY 4 - CONT Restake locked
+    //                YEAR 4 - CONT Restake locked
     // --------------------------------------------
     // mixed restake (token transfer, restake)
     // locked 0.5
@@ -609,8 +609,8 @@ describe('StakingLibV2Mock', () => {
   });
 });
 
-const incDays = async (days: number) => {
+const incYears = async (years: number) => {
   // suppose the current block has a timestamp of 01:00 PM
-  await network.provider.send('evm_increaseTime', [days * 86400]);
+  await network.provider.send('evm_increaseTime', [years * (365 * 86400)]);
   await network.provider.send('evm_mine');
 };

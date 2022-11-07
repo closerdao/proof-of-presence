@@ -15,6 +15,8 @@ library StakeLibV2 {
     event DepositedTokens(address account, uint256 amount);
     event WithdrawnTokens(address account, uint256 amount);
 
+    uint256 constant ONE_YEAR = 365 * 86400;
+
     // ONLY MEMORY
     struct Context {
         address account;
@@ -75,7 +77,7 @@ library StakeLibV2 {
             toMove = yearBalance;
         }
 
-        store.moveFrontRanged(toMove, context.endYearTm, timestamp - (365 * 86400));
+        store.moveFrontRanged(toMove, context.endYearTm, timestamp - ONE_YEAR);
     }
 
     function remove(
@@ -92,7 +94,7 @@ library StakeLibV2 {
         uint256 requested,
         uint256 tm
     ) internal {
-        uint256 releasableTm = tm - context.lockingTimePeriod;
+        uint256 releasableTm = tm - ONE_YEAR;
         uint256 restakeable = store.balanceUntil(releasableTm);
         if (restakeable >= requested) {
             // No need to transfer more funds
@@ -203,7 +205,7 @@ library StakeLibV2 {
     }
 
     function _releaseTimestampAt(Context memory context, uint256 at) internal pure returns (uint256) {
-        return at - context.lockingTimePeriod;
+        return at - ONE_YEAR;
     }
 
     function _addAt(
