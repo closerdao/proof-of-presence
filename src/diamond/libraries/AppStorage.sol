@@ -26,7 +26,6 @@ struct AppStorage {
     BookingMapLib.YearsStore _accommodationYears;
     // Stake
     mapping(address => OrderedStakeLib.Store) staking;
-    uint256 _lockingTimePeriod;
     // Members
     MembershipLib.Store members;
 }
@@ -128,25 +127,19 @@ contract Modifiers {
 
     function _stakeLibContext(address account) internal view returns (StakeLibV2.Context memory) {
         return
-            StakeLibV2.Context({
-                account: account,
-                token: s.communityToken,
-                lockingTimePeriod: s._lockingTimePeriod,
-                requiredBalance: _expectedStaked(account)
-            });
+            StakeLibV2.Context({account: account, token: s.communityToken, requiredBalance: _expectedStaked(account)});
     }
 
-    function _stakeLibBookingContext(
-        address account,
-        uint256 bookingTm,
-        uint16 year_
-    ) internal view returns (StakeLibV2.BookingContext memory) {
+    function _stakeLibBookingContext(address account, uint16 year_)
+        internal
+        view
+        returns (StakeLibV2.BookingContext memory)
+    {
         (, BookingMapLib.Year memory year) = s._accommodationYears.get(year_);
         return
             StakeLibV2.BookingContext({
                 account: account,
                 token: s.communityToken,
-                lockingTimePeriod: s._lockingTimePeriod,
                 requiredBalance: _expectedStaked(account),
                 initYearTm: year.start,
                 endYearTm: year.end

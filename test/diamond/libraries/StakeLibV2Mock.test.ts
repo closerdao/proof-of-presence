@@ -203,7 +203,7 @@ describe('StakingLibV2Mock', () => {
   it('withdraw', async () => {
     // BEGIN Setup
     const context = await setup();
-    const {users, stake, token, deployer} = context;
+    const {users} = context;
     const user = users[0];
     const {test, deposit, withdraw, tokenManagement} = setupTest({...context, user});
     await tokenManagement.topUp('1000');
@@ -610,7 +610,6 @@ describe('StakingLibV2Mock', () => {
 });
 
 const incYears = async (years: number) => {
-  // suppose the current block has a timestamp of 01:00 PM
   await network.provider.send('evm_increaseTime', [years * (365 * 86400)]);
   await network.provider.send('evm_mine');
 };
