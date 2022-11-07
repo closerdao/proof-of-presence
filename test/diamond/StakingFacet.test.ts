@@ -5,16 +5,16 @@ import {setDiamondUser, setupContext, userTesters} from '../utils/diamond';
 
 const setup = setupContext;
 
-const incDays = async (days: number) => {
+const incYears = async (days: number) => {
   // suppose the current block has a timestamp of 01:00 PM
-  await network.provider.send('evm_increaseTime', [days * 86400]);
+  await network.provider.send('evm_increaseTime', [days * (365 * 86400)]);
   await network.provider.send('evm_mine');
 };
 
 describe('StakingFacet', () => {
   it('lock and unlockMax', async () => {
     const context = await setup();
-    const {users, TDFDiamond, TDFToken} = context;
+    const {users, TDFToken} = context;
 
     const user = await setDiamondUser({
       user: users[0],
@@ -32,13 +32,13 @@ describe('StakingFacet', () => {
     await user.withdrawMaxStake().none();
     await test.balances('1', '1', '9999');
 
-    await incDays(1);
+    await incYears(1);
     await user.depositStake('1').success();
     await test.balances('2', '2', '9998');
     await user.withdrawMaxStake().successWithAmount('1');
     await test.balances('1', '1', '9999');
 
-    await incDays(1);
+    await incYears(1);
     await user.withdrawMaxStake().successWithAmount('1');
     await test.balances('0', '0', '10000');
     await user.withdrawMaxStake().none();
@@ -58,7 +58,7 @@ describe('StakingFacet', () => {
     await test.balances('0', '0', '10000');
 
     ///////////////////////////////////////////////
-    //                DAY 0
+    //                YEAR 0
     // ------------------------------------------
     // Before: NOTHING
     // During:
@@ -73,9 +73,9 @@ describe('StakingFacet', () => {
     await test.balances('1', '1', '9999');
 
     ///////////////////////////////////////////////
-    //  DAY 1
+    //  YEAR 1
     ///////////////////////////////////////////////
-    await incDays(1);
+    await incYears(1);
     await user.depositStake('1').success();
 
     await test.balances('2', '2', '9998');
@@ -92,7 +92,7 @@ describe('StakingFacet', () => {
     await test.balances('1.5', '1.5', '9998.5');
 
     ///////////////////////////////////////////////
-    //  DAY 2
+    //  YEAR 2
     // --------------------------------------------
     // Now we have two buckets
     // 1) with 0.5
@@ -101,7 +101,7 @@ describe('StakingFacet', () => {
     // 0.5 + 0.75 = 1.25
     // reminder of 0.25
     ///////////////////////////////////////////////
-    await incDays(1);
+    await incYears(1);
     await user.withdrawStake('1.25').success();
 
     await test.balances('0.25', '0.25', '9999.75');
@@ -111,9 +111,9 @@ describe('StakingFacet', () => {
     await test.balances('1.75', '1.75', '9998.25');
     await user.withdrawMaxStake().successWithAmount('0.25');
     await test.balances('1.5', '1.5', '9998.50');
-    await incDays(1);
+    await incYears(1);
     ///////////////////////////////////////////////
-    //  DAY 3
+    //  YEAR 3
     // Unlock all
     ///////////////////////////////////////////////
     await user.withdrawStake('1.3').success();
@@ -140,14 +140,14 @@ describe('StakingFacet', () => {
 
     await test.balances('1', '1', '9999');
     await test.stake('1', '0');
-    await incDays(1);
+    await incYears(1);
     await user.depositStake('0.5').success();
     await test.balances('1.5', '1.5', '9998.5');
     await test.stake('0.5', '1');
     await user.restakeMax().success();
     await test.balances('1.5', '1.5', '9998.5');
     await test.stake('1.5', '0');
-    await incDays(1);
+    await incYears(1);
     await user.withdrawMaxStake().successWithAmount('1.5');
     await test.balances('0', '0', '10000');
     await test.stake('0', '0');
@@ -166,7 +166,7 @@ describe('StakingFacet', () => {
     await test.balances('0', '0', '10000');
 
     ///////////////////////////////////////////////
-    //                DAY 0
+    //                YEAR 0
     ///////////////////////////////////////////////
     await user.depositStake('1').success();
 
@@ -178,9 +178,9 @@ describe('StakingFacet', () => {
     await test.balances('1', '1', '9999');
     await test.stake('1', '0');
 
-    await incDays(1);
+    await incYears(1);
     // /////////////////////////////////////////////
-    //                DAY 1
+    //                YEAR 1
     // /////////////////////////////////////////////
     await user.depositStake('0.5').success();
 
@@ -190,9 +190,9 @@ describe('StakingFacet', () => {
     await user.restake('1.5').reverted.notEnoughtBalance();
     await test.balances('1.5', '1.5', '9998.5');
     await test.stake('0.5', '1');
-    await incDays(1);
+    await incYears(1);
     ///////////////////////////////////////////////
-    //                DAY 2
+    //                YEAR 2
     ///////////////////////////////////////////////
     await test.balances('1.5', '1.5', '9998.5');
     await test.stake('0', '1.5');
@@ -208,9 +208,9 @@ describe('StakingFacet', () => {
     await test.balances('0.5', '0.5', '9999.5');
     await test.stake('0.5', '0');
     ///////////////////////////////////////////////
-    //                DAY 3
+    //                YEAR 3
     ///////////////////////////////////////////////
-    await incDays(1);
+    await incYears(1);
     await user.withdrawMaxStake().successWithAmount('0.5');
     await test.balances('0', '0', '10000');
     await test.stake('0', '0');
