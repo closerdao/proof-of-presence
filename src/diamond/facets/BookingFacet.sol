@@ -22,14 +22,12 @@ contract BookingFacet is Modifiers {
 
     // TODO: add preview Booking action
 
-    function bookAccommodation(uint16[2][] calldata dates) external whenNotPaused {
+    function bookAccommodation(uint16[2][] calldata dates, uint256 price) external whenNotPaused {
         BookingMapLib.BookingStatus status;
         if (_isMember(_msgSender())) {
             status = BookingMapLib.BookingStatus.Confirmed;
         }
         for (uint256 i = 0; i < dates.length; i++) {
-            uint256 price = 1 ether;
-
             BookingMapLib.Booking memory value = _insertBooking(status, _msgSender(), dates[i][0], dates[i][1], price);
             _stakeLibBookingContext(_msgSender(), value.timestamp, dates[i][0]).handleBooking(
                 s.staking[_msgSender()],
@@ -134,8 +132,6 @@ contract BookingFacet is Modifiers {
 
         emit CanceledBookings(_msgSender(), dates);
     }
-
-    function _cancelAccomodationFrom(address account, uint16[2][] calldata dates) internal {}
 
     function _getBooking(
         address account,

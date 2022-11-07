@@ -8,31 +8,35 @@ import {buildDates} from './index';
 import {DatesTestData, DateMetadata, DateInputs} from './types';
 import {wrapOnlyRole, wrapSuccess} from './helpers';
 import {addDays} from 'date-fns';
-import {userInfo} from 'os';
+import {parseEther} from 'ethers/lib/utils';
 
 export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
-    bookAccommodation: (dates: DateInputs) => ({
-      success: async () => {
-        await expect(user.TDFDiamond.bookAccommodation(dates), `send.book.success: ${dates}`).to.emit(
-          TDFDiamond,
-          'NewBookings'
-        );
-      },
-      reverted: {
-        paused: async () => {
-          await expect(user.TDFDiamond.bookAccommodation(dates), `book.reverted.paused: ${dates}`).to.be.revertedWith(
-            'Pausable: paused'
+    bookAccommodation: (dates: DateInputs, price = '1.0') => {
+      const p = parseEther(price);
+      return {
+        success: async () => {
+          await expect(user.TDFDiamond.bookAccommodation(dates, p), `send.book.success: ${dates}`).to.emit(
+            TDFDiamond,
+            'NewBookings'
           );
         },
-        onlyMember: async () => {
-          await expect(
-            user.TDFDiamond.bookAccommodation(dates),
-            `book.reverted.onlyMember: ${dates}`
-          ).to.be.revertedWith('Membership:');
+        reverted: {
+          paused: async () => {
+            await expect(
+              user.TDFDiamond.bookAccommodation(dates, p),
+              `book.reverted.paused: ${dates}`
+            ).to.be.revertedWith('Pausable: paused');
+          },
+          onlyMember: async () => {
+            await expect(
+              user.TDFDiamond.bookAccommodation(dates, p),
+              `book.reverted.onlyMember: ${dates}`
+            ).to.be.revertedWith('Membership:');
+          },
         },
-      },
-    }),
+      };
+    },
     cancelAccommodation: (dates: DateInputs) => ({
       success: async () => {
         await expect(user.TDFDiamond.cancelAccommodation(dates), `cancel.success ${dates}`).to.emit(
