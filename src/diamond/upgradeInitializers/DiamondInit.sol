@@ -31,7 +31,7 @@ contract DiamondInit is Modifiers {
 
     // You can add parameters to this function in order to pass in
     // data to set your own state variables
-    function init(address token, uint256 secondsLocked) external onlyOwner whenNotInitalized {
+    function init(address token) external onlyOwner whenNotInitalized {
         // adding ERC165 data
         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
         ds.supportedInterfaces[type(IERC165).interfaceId] = true;
