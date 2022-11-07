@@ -29,8 +29,7 @@ contract StakeLibV2Mock {
     }
 
     function _stakeLibContext(address account) internal view returns (StakeLibV2.Context memory) {
-        return
-            StakeLibV2.Context({account: account, token: token, lockingTimePeriod: lockingPeriod, requiredBalance: 0});
+        return StakeLibV2.Context({account: account, token: token, requiredBalance: 0});
     }
 
     function handleBooking(

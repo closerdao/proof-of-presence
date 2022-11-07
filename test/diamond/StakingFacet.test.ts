@@ -6,7 +6,6 @@ import {setDiamondUser, setupContext, userTesters} from '../utils/diamond';
 const setup = setupContext;
 
 const incYears = async (days: number) => {
-  // suppose the current block has a timestamp of 01:00 PM
   await network.provider.send('evm_increaseTime', [days * (365 * 86400)]);
   await network.provider.send('evm_mine');
 };

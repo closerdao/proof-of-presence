@@ -11,7 +11,6 @@ contract AdminFacet is Modifiers {
     event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
-    event LockingTimePeriodChanged(uint256 amount, address sender);
     /**
      * @dev Emitted when the pause is triggered by `account`.
      */
@@ -48,20 +47,6 @@ contract AdminFacet is Modifiers {
 
     function paused() external view returns (bool) {
         return s.paused;
-    }
-
-    function setLockingTimePeriodDays(uint256 daysLocked) public onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) {
-        require(daysLocked > uint256(0), "AdminFaucet: days should be bigger than ZERO");
-        // TODO: when updating solidity change 86400 for days keyword
-        s._lockingTimePeriod = daysLocked * 86400;
-        emit LockingTimePeriodChanged(daysLocked * 86400, _msgSender());
-    }
-
-    // TODO: deprecate when deployed to main chain to avoid errors providing small numbers
-    function setLockingTimePeriodSeconds(uint256 seconds_) public onlyRole(AccessControlLib.DEFAULT_ADMIN_ROLE) {
-        require(seconds_ > uint256(0), "AdminFaucet: seconds should be bigger than ZERO");
-        s._lockingTimePeriod = seconds_;
-        emit LockingTimePeriodChanged(seconds_, _msgSender());
     }
 
     /**

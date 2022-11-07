@@ -29,7 +29,7 @@ contract BookingFacet is Modifiers {
         }
         for (uint256 i = 0; i < dates.length; i++) {
             BookingMapLib.Booking memory value = _insertBooking(status, _msgSender(), dates[i][0], dates[i][1], price);
-            _stakeLibBookingContext(_msgSender(), value.timestamp, dates[i][0]).handleBooking(
+            _stakeLibBookingContext(_msgSender(), dates[i][0]).handleBooking(
                 s.staking[_msgSender()],
                 price,
                 value.timestamp
@@ -147,7 +147,7 @@ contract BookingFacet is Modifiers {
         require(booking.timestamp > block.timestamp, "BookingFacet: Can not cancel past booking");
         (bool success, ) = s._accommodationBookings[account].remove(booking.year, booking.dayOfYear);
         require(success, "BookingFacet: Unable to delete Booking");
-        _stakeLibBookingContext(account, booking.timestamp, booking.year).handleCancelation(
+        _stakeLibBookingContext(account, booking.year).handleCancelation(
             s.staking[account],
             booking.price,
             booking.timestamp

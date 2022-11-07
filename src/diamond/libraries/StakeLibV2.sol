@@ -21,13 +21,11 @@ library StakeLibV2 {
     struct Context {
         address account;
         IERC20 token;
-        uint256 lockingTimePeriod;
         uint256 requiredBalance;
     }
     struct BookingContext {
         address account;
         IERC20 token;
-        uint256 lockingTimePeriod;
         uint256 requiredBalance;
         uint256 initYearTm;
         uint256 endYearTm;
