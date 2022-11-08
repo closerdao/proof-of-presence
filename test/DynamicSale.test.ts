@@ -74,6 +74,7 @@ describe('DynamicSale', () => {
       const user = setSigner(context.users[0], context);
 
       await user.calculatePrice('1').toEq('223.11');
+      await user.calculatePrice('100').toEq('28855');
       await user.calculatePrice('100').toEq('28855.641455224454389575');
       // await user.helpers.topup('10000');
       // await user.helpers.approve('10');

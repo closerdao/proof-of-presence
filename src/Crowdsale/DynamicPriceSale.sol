@@ -59,7 +59,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     // Buy:
     // @amount: amount of tokens to buy
     function buy(uint256 amount) public {
-        // calculatePrice
+        // _calculatePrice
         quote.safeTransferFrom(_msgSender(), address(this), amount);
         // store lastPrice
         minter.mintCommunityTokenTo(_msgSender(), amount);
@@ -90,9 +90,14 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         )
     {
         if (requested < 1 ether) {
-            return (requested, lastPrice_, sum);
+            return (requested, lastPrice_, ceil(sum, 1_000_000));
         }
         uint256 currentPrice = lastPrice_ + ((lastPrice_ / 1000) * 5);
         return _doCalculatePrice(requested - 1 ether, currentPrice, sum + currentPrice);
+    }
+
+    // TODO: WIP
+    function ceil(uint256 a, uint256 m) internal pure returns (uint256) {
+        return ((a + m - 1) / m) * m;
     }
 }
