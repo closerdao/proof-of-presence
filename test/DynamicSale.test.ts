@@ -74,10 +74,11 @@ describe('DynamicSale', () => {
       const user = setSigner(context.users[0], context);
 
       await user.calculatePrice('1').toEq('223.11');
-      await user.calculatePrice('100').toEq('28855');
-      await user.calculatePrice('100').toEq('28855.641455224454389575');
-      // await user.helpers.topup('10000');
-      // await user.helpers.approve('10');
+      await user.calculatePrice('5').toEq('1126.761417083194');
+      await user.calculatePrice('10').toEq('2281.974971924161');
+      await user.calculatePrice('20').toEq('4680.650445226302');
+      await user.calculatePrice('30').toEq('7201.99449895612');
+      await user.calculatePrice('100').toEq('28855.641455224455');
     });
   });
 });
