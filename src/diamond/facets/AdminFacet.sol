@@ -3,6 +3,7 @@ pragma solidity 0.8.9;
 
 import {LibDiamond} from "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
 import {Modifiers} from "../libraries/AppStorage.sol";
+import {ITDFToken} from "../../Interfaces/ITDFToken.sol";
 import "../libraries/AccessControlLib.sol";
 
 contract AdminFacet is Modifiers {
@@ -125,5 +126,9 @@ contract AdminFacet is Modifiers {
 
     function getRoles() public pure returns (string[2][5] memory) {
         return AccessControlLib.getRoles();
+    }
+
+    function mintCommunityTokenTo(address account, uint256 amount) external onlyRole(AccessControlLib.MINTER_ROLE) {
+        ITDFToken(address(s.communityToken)).mint(account, amount);
     }
 }
