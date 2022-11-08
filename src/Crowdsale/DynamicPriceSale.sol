@@ -24,6 +24,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     IERC20Upgradeable quote;
     IMinterDAO minter;
     uint256 price;
+    uint256 lastPrice;
 
     event SuccessBuy(address to, uint256 amount);
 
@@ -52,11 +53,46 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         token = IERC20Upgradeable(token_);
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
+        lastPrice = 222 ether;
     }
 
+    // Buy:
+    // @amount: amount of tokens to buy
     function buy(uint256 amount) public {
+        // calculatePrice
         quote.safeTransferFrom(_msgSender(), address(this), amount);
+        // store lastPrice
         minter.mintCommunityTokenTo(_msgSender(), amount);
         emit SuccessBuy(_msgSender(), amount);
+    }
+
+    function calculatePrice(uint256 amount) public view returns (uint256) {
+        (, uint256 total) = _calculatePrice(amount);
+        return total;
+    }
+
+    function _calculatePrice(uint256 amount) internal view returns (uint256, uint256) {
+        (, uint256 _lastPrice, uint256 total) = _doCalculatePrice(amount, lastPrice, 0);
+        return (_lastPrice, total);
+    }
+
+    function _doCalculatePrice(
+        uint256 requested,
+        uint256 lastPrice_,
+        uint256 sum
+    )
+        internal
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        if (requested < 1 ether) {
+            return (requested, lastPrice_, sum);
+        }
+        uint256 currentPrice = lastPrice_ + ((lastPrice_ / 1000) * 5);
+        return _doCalculatePrice(requested - 1 ether, currentPrice, sum + currentPrice);
     }
 }
