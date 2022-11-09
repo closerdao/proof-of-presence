@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import "hardhat/console.sol";
 
 interface IMinterDAO {
     function mintCommunityTokenTo(address to, uint256 amount) external;
@@ -25,8 +26,17 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     IMinterDAO minter;
     uint256 price;
     uint256 lastPrice;
+    uint256 maxLiquidSupply;
 
     event SuccessBuy(address to, uint256 amount);
+
+    modifier amountConstrains(uint256 amount) {
+        require(amount >= 1 ether, "DynamicSale: (MinBuy) required 1 ether minimum buy");
+        require(amount % 1 ether == 0, "DynamicSale: (NonWholeUnit) only whole units allowed");
+        require(amount <= 100 ether, "DynamicSale: (MaxAllowed) max buy allowed is 100");
+        require(token.totalSupply() <= maxLiquidSupply, "DynamicSale: (MaxSupply) maximum supply reached");
+        _;
+    }
 
     function initialize(
         address token_,
@@ -53,32 +63,89 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         token = IERC20Upgradeable(token_);
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
-        lastPrice = 222 ether;
+        lastPrice = 300 ether;
+        maxLiquidSupply = 100000 ether;
     }
+
+    // function _whateverPrice(uint256 amount) internal {
+    //     uint256 c = 420;
+    //     uint256 b = 1584;
+    //     uint256 a = 790043;
+
+    //     uint256 initalPrice = c - a / (token.totalSupply() / 10**18 + b);
+    //     uint256 endPrice = c - a / ((token.totalSupply() / 10**18 + amount / 10**18) + b);
+    //     endprice - initalPrice
+    //     // uint256 diff = endPrice - initalPrice / amount;
+
+    // }
 
     // Buy:
     // @amount: amount of tokens to buy
-    function buy(uint256 amount) public {
-        // _calculatePrice
-        quote.safeTransferFrom(_msgSender(), address(this), amount);
-        // store lastPrice
-        minter.mintCommunityTokenTo(_msgSender(), amount);
-        emit SuccessBuy(_msgSender(), amount);
+    function buy(uint256 amount) public whenNotPaused amountConstrains(amount) nonReentrant {
+        _buyFrom(_msgSender(), _msgSender(), amount);
     }
 
-    function calculatePrice(uint256 amount) public view returns (uint256) {
+    function buyFrom(
+        address spender,
+        address to,
+        uint256 amount
+    ) public whenNotPaused amountConstrains(amount) nonReentrant {
+        _buyFrom(spender, to, amount);
+    }
+
+    function _buyFrom(
+        address spender,
+        address to,
+        uint256 amount
+    ) internal {
+        (uint256 _lastPrice, uint256 totalCost) = _calculatePrice(amount);
+        quote.safeTransferFrom(spender, address(this), totalCost);
+        lastPrice = _lastPrice;
+        minter.mintCommunityTokenTo(to, amount);
+        emit SuccessBuy(to, amount);
+    }
+
+    // region:   --- ADMIN
+
+    function setNewPrice(uint256 newPrice) public onlyOwner {
+        require(newPrice > lastPrice, "DynamicSale: (OnlyPriceIncrease) price can not be smaller than previous price");
+        lastPrice = newPrice;
+    }
+
+    function setMaxLiquidSupply(uint256 supply) public onlyOwner {
+        maxLiquidSupply = supply;
+    }
+
+    function setIncrementByToken() public onlyOwner {}
+
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+
+    function setTreasury() public onlyOwner {}
+
+    // endregion:    --- ADMIN
+
+    // region:     --- Price Calculations
+
+    function calculatePrice(uint256 amount) public view amountConstrains(amount) returns (uint256) {
         (, uint256 total) = _calculatePrice(amount);
         return total;
     }
 
     function _calculatePrice(uint256 amount) internal view returns (uint256, uint256) {
-        (, uint256 _lastPrice, uint256 total) = _doCalculatePrice(amount, lastPrice, 0);
+        (, uint256 _lastPrice, uint256 total) = _doCalculatePrice(amount, lastPrice, token.totalSupply(), 0);
         return (_lastPrice, total);
     }
 
     function _doCalculatePrice(
         uint256 requested,
         uint256 lastPrice_,
+        uint256 supply_,
         uint256 sum
     )
         internal
@@ -90,14 +157,45 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         )
     {
         if (requested < 1 ether) {
-            return (requested, lastPrice_, ceil(sum, 1_000_000));
+            return (requested, ceil(lastPrice_), ceil(sum));
         }
-        uint256 currentPrice = lastPrice_ + ((lastPrice_ / 1000) * 5);
-        return _doCalculatePrice(requested - 1 ether, currentPrice, sum + currentPrice);
+        // uint256 add = _priceIncreasesBy(lastPrice_);
+
+        uint256 currentPrice = _priceIncreasesBy(supply_ + 1 ether);
+        return _doCalculatePrice(requested - 1 ether, currentPrice, supply_ + 1 ether, sum + currentPrice);
     }
 
-    // TODO: WIP
-    function ceil(uint256 a, uint256 m) internal pure returns (uint256) {
-        return ((a + m - 1) / m) * m;
+    function _priceIncreasesBy(uint256 supply_) internal view returns (uint256) {
+        uint256 c = 420;
+        uint256 b = 1584 ether;
+        uint256 a = 790043 ether;
+        uint256 result = c - a / (supply_ + b);
+        result *= 10**18;
+        console.log("supply");
+        console.log(supply_);
+        console.log("result");
+        console.log(result);
+        return result;
+        // return (_prevPrice * 5) / _increaseDenominator();
     }
+
+    /**
+     * @dev The denominator with which to interpret the fee set in {_priceIncreasesBy} as a
+     * fraction of the sale price. Defaults to 10000 so fees are expressed in basis points, but may be customized by an
+     * override.
+     */
+    function _increaseDenominator() internal pure virtual returns (uint96) {
+        // 250 = 0.025 %
+        // 5 = 0.0005 %
+        //
+        return 1_000_000;
+    }
+
+    // it ceils to two decimals
+    function ceil(uint256 a) internal pure returns (uint256) {
+        uint256 m = 10 * 10**15;
+        return ((a + m + 1) / m) * m;
+    }
+
+    // endregion:     --- Price Calculations
 }
