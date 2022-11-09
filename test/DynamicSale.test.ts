@@ -34,13 +34,17 @@ const setSigner = (user: User, context: Context) => ({
   calculatePrice: (amount: string) => ({
     toEq: async (expected: string) => {
       const cost = await context.DynamicSale.calculatePrice(parseEther(amount));
-      expect(cost, `calculatePrice: toEq(${expected}) Got(${formatEther(cost)})`).to.eq(parseEther(expected));
+      expect(cost, `calculatePrice: for(${amount}) toEq(${expected}) Got(${formatEther(cost)})`).to.eq(
+        parseEther(expected)
+      );
     },
   }),
   testers: {
-    balances: async (token: string, quote: string) => {
+    balances: async (token: string, quote?: string) => {
       expect(await context.TDFToken.balanceOf(user.address), 'token Balance').to.eq(parseEther(token));
-      expect(await context.FakeEURToken.balanceOf(user.address), 'quote balance').to.eq(parseEther(quote));
+      if (quote) {
+        expect(await context.FakeEURToken.balanceOf(user.address), 'quote balance').to.eq(parseEther(quote));
+      }
     },
   },
   helpers: {
@@ -59,11 +63,33 @@ describe('DynamicSale', () => {
       const context = await setup();
 
       const user = setSigner(context.users[0], context);
-      await user.helpers.topup('10000');
-      await user.helpers.approve('10');
+      await user.helpers.topup('100000');
+      await user.helpers.approve('10000');
 
       await user.buy('1').success();
-      await user.testers.balances('1', '9999');
+      await user.testers.balances('1');
+    });
+
+    it('starts from last price and increments price', async () => {
+      const context = await setup();
+
+      await context.deployer.TDFToken.mint(context.deployer.address, parseEther('2334'));
+
+      const user = setSigner(context.users[0], context);
+      await user.helpers.topup('5000000');
+      await user.helpers.approve('5000000');
+
+      await user.calculatePrice('100').toEq('28855.65');
+      await user.buy('100').success();
+      await user.testers.balances('100');
+
+      await user.calculatePrice('100').toEq('47516.93');
+      await user.buy('100').success();
+      await user.testers.balances('200');
+      await user.calculatePrice('100').toEq('78245.59');
+      await user.buy('100').success();
+      await user.testers.balances('300');
+      await user.calculatePrice('100').toEq('128845.64');
     });
   });
 
@@ -73,12 +99,15 @@ describe('DynamicSale', () => {
 
       const user = setSigner(context.users[0], context);
 
-      await user.calculatePrice('1').toEq('223.11');
-      await user.calculatePrice('5').toEq('1126.761417083194');
-      await user.calculatePrice('10').toEq('2281.974971924161');
-      await user.calculatePrice('20').toEq('4680.650445226302');
-      await user.calculatePrice('30').toEq('7201.99449895612');
-      await user.calculatePrice('100').toEq('28855.641455224455');
+      await context.deployer.TDFToken.mint(context.deployer.address, parseEther('2433'));
+
+      // await user.calculatePrice('1').toEq('223.12');
+      // await user.calculatePrice('5').toEq('1126.77');
+      // await user.calculatePrice('10').toEq('2281.98');
+      // await user.calculatePrice('20').toEq('4680.66');
+      // await user.calculatePrice('30').toEq('7202.0');
+      await user.calculatePrice('100').toEq('28855.65');
+      // await user.calculatePrice('5000').toEq('28855.641455224455');
     });
   });
 });
