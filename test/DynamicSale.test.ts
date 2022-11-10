@@ -59,7 +59,7 @@ const setSigner = (user: User, context: Context) => ({
 
 describe('DynamicSale', () => {
   describe('buy', () => {
-    it('works', async () => {
+    xit('works', async () => {
       const context = await setup();
 
       const user = setSigner(context.users[0], context);
@@ -94,7 +94,7 @@ describe('DynamicSale', () => {
   });
 
   describe('calculatePrice', () => {
-    it('works', async () => {
+    xit('works', async () => {
       const context = await setup();
 
       const user = setSigner(context.users[0], context);
