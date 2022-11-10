@@ -24,9 +24,9 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     IERC20Upgradeable token;
     IERC20Upgradeable quote;
     IMinterDAO minter;
-    uint256 price;
     uint256 lastPrice;
     uint256 maxLiquidSupply;
+    address treasury;
 
     event SuccessBuy(address to, uint256 amount);
 
@@ -34,7 +34,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         require(amount >= 1 ether, "DynamicSale: (MinBuy) required 1 ether minimum buy");
         require(amount % 1 ether == 0, "DynamicSale: (NonWholeUnit) only whole units allowed");
         require(amount <= 100 ether, "DynamicSale: (MaxAllowed) max buy allowed is 100");
-        require(token.totalSupply() <= maxLiquidSupply, "DynamicSale: (MaxSupply) maximum supply reached");
+        require(token.totalSupply() + amount <= maxLiquidSupply, "DynamicSale: (MaxSupply) maximum supply reached");
         _;
     }
 
@@ -63,21 +63,10 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         token = IERC20Upgradeable(token_);
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
-        lastPrice = 300 ether;
-        maxLiquidSupply = 100000 ether;
+        lastPrice = 222 ether;
+        maxLiquidSupply = 7000 ether;
+        treasury = address(this);
     }
-
-    // function _whateverPrice(uint256 amount) internal {
-    //     uint256 c = 420;
-    //     uint256 b = 1584;
-    //     uint256 a = 790043;
-
-    //     uint256 initalPrice = c - a / (token.totalSupply() / 10**18 + b);
-    //     uint256 endPrice = c - a / ((token.totalSupply() / 10**18 + amount / 10**18) + b);
-    //     endprice - initalPrice
-    //     // uint256 diff = endPrice - initalPrice / amount;
-
-    // }
 
     // Buy:
     // @amount: amount of tokens to buy
@@ -98,8 +87,8 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         address to,
         uint256 amount
     ) internal {
-        (uint256 _lastPrice, uint256 totalCost) = _calculatePrice(amount);
-        quote.safeTransferFrom(spender, address(this), totalCost);
+        (uint256 _lastPrice, uint256 totalCost) = _calculatePrice(amount); // 18 decimals
+        quote.safeTransferFrom(spender, treasury, totalCost);
         lastPrice = _lastPrice;
         minter.mintCommunityTokenTo(to, amount);
         emit SuccessBuy(to, amount);
@@ -116,8 +105,6 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         maxLiquidSupply = supply;
     }
 
-    function setIncrementByToken() public onlyOwner {}
-
     function pause() public onlyOwner {
         _pause();
     }
@@ -126,7 +113,9 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         _unpause();
     }
 
-    function setTreasury() public onlyOwner {}
+    function setTreasury(address treasury_) public onlyOwner {
+        treasury = treasury_;
+    }
 
     // endregion:    --- ADMIN
 
@@ -159,24 +148,18 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         if (requested < 1 ether) {
             return (requested, ceil(lastPrice_), ceil(sum));
         }
-        // uint256 add = _priceIncreasesBy(lastPrice_);
 
-        uint256 currentPrice = _priceIncreasesBy(supply_ + 1 ether);
+        uint256 currentPrice = _tokenPriceAtSupply(supply_ + 1 ether);
         return _doCalculatePrice(requested - 1 ether, currentPrice, supply_ + 1 ether, sum + currentPrice);
     }
 
-    function _priceIncreasesBy(uint256 supply_) internal view returns (uint256) {
+    function _tokenPriceAtSupply(uint256 supply_) internal pure returns (uint256) {
         uint256 c = 420;
         uint256 b = 1584 ether;
         uint256 a = 790043 ether;
         uint256 result = c - a / (supply_ + b);
         result *= 10**18;
-        console.log("supply");
-        console.log(supply_);
-        console.log("result");
-        console.log(result);
         return result;
-        // return (_prevPrice * 5) / _increaseDenominator();
     }
 
     /**
