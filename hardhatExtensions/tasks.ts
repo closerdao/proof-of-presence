@@ -1,7 +1,6 @@
 import {task} from 'hardhat/config';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
-import {ROLES, ZERO_ADDRESS} from '../utils';
-import type {TDFDiamond} from '../typechain';
+import {ROLES} from '../utils';
 import {parseEther} from 'ethers/lib/utils';
 
 task('diamond:grant-role', 'set role to given address')
