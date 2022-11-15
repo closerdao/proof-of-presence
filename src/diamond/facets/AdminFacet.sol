@@ -5,6 +5,10 @@ import {LibDiamond} from "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.s
 import {Modifiers} from "../libraries/AppStorage.sol";
 import "../libraries/AccessControlLib.sol";
 
+interface ITDFToken {
+    function mint(address account, uint256 amount) external;
+}
+
 contract AdminFacet is Modifiers {
     using AccessControlLib for AccessControlLib.RoleStore;
 
@@ -126,4 +130,27 @@ contract AdminFacet is Modifiers {
     function getRoles() public pure returns (string[2][5] memory) {
         return AccessControlLib.getRoles();
     }
+
+    // region  --- MINTING
+
+    function mintTokensFor(address account, uint256 amount) public onlyRole(AccessControlLib.MINTER_ROLE) {
+        ITDFToken(address(s.communityToken)).mint(account, amount);
+    }
+
+    function isTokenTransferPermitted(
+        address from,
+        address to,
+        uint256
+    ) external view returns (bool) {
+        // minting
+        if (from == address(0)) return true;
+        // burning
+        if (to == address(0)) return true;
+        // from this contract
+        if (from == address(this)) return true;
+        // to this contract
+        if (to == address(this)) return true;
+        return false;
+    }
+    // endregion  --- MINTING
 }

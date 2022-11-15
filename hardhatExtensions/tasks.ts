@@ -1,29 +1,8 @@
 import {task} from 'hardhat/config';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
-import {ROLES} from '../utils';
-
-task('diamond:set_locking_period', 'change staking locking period')
-  .addPositionalParam('amount', 'amount to set')
-  .addFlag('minutes')
-  .addFlag('days')
-  .setAction(async ({days, minutes, amount}, hre) => {
-    const to_minutes = (n: number) => n * 3600;
-    const to_days = (n: number) => n * 86400;
-    let seconds: number = amount ? amount : 864000;
-    let unit = 'seconds';
-    if (days) {
-      seconds = to_days(amount);
-      unit = 'days';
-    }
-    if (minutes) {
-      seconds = to_minutes(amount);
-      unit = 'minutes';
-    }
-    const diamond = await getDiamond(hre);
-    console.log(`Setting staking locking time period to: ${amount} ${unit}`);
-    await diamond.setLockingTimePeriodSeconds(seconds);
-    console.log('SUCCESS');
-  });
+import {ROLES, ZERO_ADDRESS} from '../utils';
+import type {TDFDiamond} from '../typechain';
+import {parseEther} from 'ethers/lib/utils';
 
 task('diamond:grant-role', 'set role to given address')
   .addPositionalParam('address', 'address to assign the role')
@@ -63,11 +42,19 @@ task('diamond:grant-role', 'set role to given address')
     console.log('ROLE GRANTED');
   });
 
+task('diamond:mint', 'mint TDFtokens for')
+  .addParam<string>('address', 'destination address')
+  .addParam<string>('amount', 'ETH amount, ex: 1.5, 10. this function converts the decimals')
+  .setAction(async ({address, amount}, hre) => {
+    const diamond = await getDiamond(hre);
+    await diamond.mintTokensFor(address, parseEther(amount));
+  });
+
 const getDiamond = async (hre: HardhatRuntimeEnvironment) => {
   const deployment = await hre.deployments.getOrNull('TDFDiamond');
   if (!deployment) throw new Error('Factory Not Deployed');
   const {deployer} = await hre.getNamedAccounts();
-  return await (
-    await hre.ethers.getContractAt('TDFDiamond', deployment.address)
-  ).connect(await hre.ethers.getSigner(deployer));
+  return (await hre.ethers.getContractAt('TDFDiamond', deployment.address)).connect(
+    await hre.ethers.getSigner(deployer)
+  );
 };
