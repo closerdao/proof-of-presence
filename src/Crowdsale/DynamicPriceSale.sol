@@ -127,51 +127,14 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     }
 
     function _calculatePrice(uint256 amount) internal view returns (uint256, uint256) {
-        (, uint256 _lastPrice, uint256 total) = _doCalculatePrice(amount, lastPrice, token.totalSupply(), 0);
-        return (_lastPrice, total);
-    }
-
-    function _doCalculatePrice(
-        uint256 requested,
-        uint256 lastPrice_,
-        uint256 supply_,
-        uint256 sum
-    )
-        internal
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
-        if (requested < 1 ether) {
-            return (requested, ceil(lastPrice_), ceil(sum));
-        }
-
-        uint256 currentPrice = _tokenPriceAtSupply(supply_ + 1 ether);
-        return _doCalculatePrice(requested - 1 ether, currentPrice, supply_ + 1 ether, sum + currentPrice);
-    }
-
-    function _tokenPriceAtSupply(uint256 supply_) internal pure returns (uint256) {
         uint256 c = 420;
-        uint256 b = 1584 ether;
-        uint256 a = 790043 ether;
-        uint256 result = c - a / (supply_ + b);
-        result *= 10**18;
-        return result;
-    }
-
-    /**
-     * @dev The denominator with which to interpret the fee set in {_priceIncreasesBy} as a
-     * fraction of the sale price. Defaults to 10000 so fees are expressed in basis points, but may be customized by an
-     * override.
-     */
-    function _increaseDenominator() internal pure virtual returns (uint96) {
-        // 250 = 0.025 %
-        // 5 = 0.0005 %
-        //
-        return 1_000_000;
+        uint256 b = 32000461777723;
+        uint256 a = 11680057722;
+        uint256 start = token.totalSupply() / 10**18;
+        uint256 end = start + amount;
+        uint256 _lastPrice = c - a / end**2 + b / end**3;
+        uint256 totalCost = c * (end - start) + a * (1 / end - 1 / start) - (b / 2) * (1 / end**2 - 1 / start**2);
+        return (_lastPrice, ceil(totalCost));
     }
 
     // it ceils to two decimals
