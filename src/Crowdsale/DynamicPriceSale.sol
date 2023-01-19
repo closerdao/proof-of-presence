@@ -127,13 +127,13 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     }
 
     function _calculatePrice(uint256 amount) internal view returns (uint256, uint256) {
-        uint256 c = 420;
-        uint256 b = 32000461777723;
-        uint256 a = 11680057722;
-        uint256 start = token.totalSupply() / 10**18;
+        uint256 C = 420;
+        uint256 B = 32000461777723 * (10**54);
+        uint256 A = 11680057722 * (10**36);
+        uint256 start = token.totalSupply();
         uint256 end = start + amount;
-        uint256 _lastPrice = c - a / end**2 + b / end**3;
-        uint256 totalCost = c * (end - start) + a * (1 / end - 1 / start) - (b / 2) * (1 / end**2 - 1 / start**2);
+        uint256 _lastPrice = C - A / end**2 + B / end**3;
+        uint256 totalCost = C * (end - start) + A * (1 / end - 1 / start) - (B / 2) * (1 / end**2 - 1 / start**2);
         return (_lastPrice, ceil(totalCost));
     }
 
