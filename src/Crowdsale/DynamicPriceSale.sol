@@ -91,7 +91,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         address to,
         uint256 amount
     ) internal {
-        (uint256 _lastPrice, uint256 totalCost) = _calculatePrice(amount); // 18 decimals
+        (uint256 _lastPrice, uint256 totalCost) = calculatePrice(amount); // 18 decimals
         quote.safeTransferFrom(spender, treasury, totalCost);
         lastPrice = _lastPrice;
         minter.mintCommunityTokenTo(to, amount);
@@ -125,12 +125,12 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
 
     // region:     --- Price Calculations
 
-    function calculatePrice(uint256 amount) public view amountConstrains(amount) returns (uint256) {
-        (, uint256 total) = _calculatePrice(amount);
-        return total;
-    }
-
-    function _calculatePrice(uint256 amount) internal view returns (uint256, uint256) {
+    /// @notice calculates the current price of the token to be bought
+    /// @dev cost function based on formula as stated in the whitepaper (TODO: must be validated)
+    /// @param amount amount of token to be bought
+    /// @return _lastPrice TODO
+    /// @return totalCost TODO 
+    function calculatePrice(uint256 amount) public view amountConstrains(amount) returns (uint256 _lastPrice, uint256 totalCost) {
         uint256 currentSupply = token.totalSupply();
         require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
         require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
@@ -139,9 +139,8 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         uint256 A = 11680057722 * (10**36);
         uint256 start = currentSupply;
         uint256 end = start + amount;
-        uint256 _lastPrice = C - A / end**2 + B / end**3;
-        uint256 totalCost = C * (end - start) + A * (1 / end - 1 / start) - (B / 2) * (1 / end**2 - 1 / start**2);
-        return (_lastPrice, ceil(totalCost));
+        _lastPrice = C - A / end**2 + B / end**3;
+        totalCost = C * (end - start) + A * (1 / end - 1 / start) - (B / 2) * (1 / end**2 - 1 / start**2);
     }
 
     // it ceils to two decimals
