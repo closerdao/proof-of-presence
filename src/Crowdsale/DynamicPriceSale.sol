@@ -25,7 +25,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     IERC20Upgradeable quote;
     IMinterDAO minter;
     uint256 lastPrice;
-    uint256 maxLiquidSupply;
+    uint256 saleHardCap;
     address treasury;
     /// @dev mininum value for usable part of the curve
     uint256 priceCurveMinValue = 4109 ether;
@@ -34,11 +34,11 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
 
     event SuccessBuy(address to, uint256 amount);
 
-    modifier amountConstrains(uint256 amount) {
+    modifier buyAmountConstraints(uint256 amount) {
         require(amount >= 1 ether, "DynamicSale: (MinBuy) required 1 ether minimum buy");
         require(amount % 1 ether == 0, "DynamicSale: (NonWholeUnit) only whole units allowed");
         require(amount <= 100 ether, "DynamicSale: (MaxAllowed) max buy allowed is 100");
-        require(token.totalSupply() + amount <= maxLiquidSupply, "DynamicSale: (MaxSupply) maximum supply reached");
+        require(token.totalSupply() + amount <=  saleHardCap, "DynamicSale: (MaxSupply) maximum supply reached");
         _;
     }
 
@@ -68,13 +68,13 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
         lastPrice = 222 ether;
-        maxLiquidSupply = 7000 ether;
+        saleHardCap = 7000 ether;
         treasury = address(this);
     }
 
     // Buy:
     // @amount: amount of tokens to buy
-    function buy(uint256 amount) public whenNotPaused amountConstrains(amount) nonReentrant {
+    function buy(uint256 amount) public whenNotPaused buyAmountConstraints(amount) nonReentrant {
         _buyFrom(_msgSender(), _msgSender(), amount);
     }
 
@@ -82,7 +82,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         address spender,
         address to,
         uint256 amount
-    ) public whenNotPaused amountConstrains(amount) nonReentrant {
+    ) public whenNotPaused buyAmountConstraints(amount) nonReentrant {
         _buyFrom(spender, to, amount);
     }
 
@@ -106,7 +106,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     }
 
     function setMaxLiquidSupply(uint256 supply) public onlyOwner {
-        maxLiquidSupply = supply;
+        saleHardCap = supply;
     }
 
     function pause() public onlyOwner {
@@ -130,7 +130,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     /// @param amount amount of token to be bought
     /// @return _lastPrice TODO
     /// @return totalCost TODO 
-    function calculatePrice(uint256 amount) public view amountConstrains(amount) returns (uint256 _lastPrice, uint256 totalCost) {
+    function calculatePrice(uint256 amount) public view buyAmountConstraints(amount) returns (uint256 _lastPrice, uint256 totalCost) {
         uint256 currentSupply = token.totalSupply();
         require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
         require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
