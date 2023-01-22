@@ -134,13 +134,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         uint256 end = start + amount;
         uint256 _lastPrice = C - A / end**2 + B / end**3;
         uint256 totalCost = C * (end - start) + A * (1 / end - 1 / start) - (B / 2) * (1 / end**2 - 1 / start**2);
-        return (_lastPrice, ceil(totalCost));
-    }
-
-    // it ceils to two decimals
-    function ceil(uint256 a) internal pure returns (uint256) {
-        uint256 m = 10 * 10**15;
-        return ((a + m + 1) / m) * m;
+        return (_lastPrice, totalCost);
     }
 
     // endregion:     --- Price Calculations
