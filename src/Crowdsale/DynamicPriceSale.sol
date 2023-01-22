@@ -21,16 +21,16 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     using SafeMathUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    IERC20Upgradeable token;
-    IERC20Upgradeable quote;
-    IMinterDAO minter;
-    uint256 lastPrice;
-    uint256 saleHardCap;
-    address treasury;
+    IERC20Upgradeable public token;
+    IERC20Upgradeable public quote;
+    IMinterDAO public minter;
+    uint256 public lastPrice;
+    uint256 public saleHardCap;
+    address public treasury;
     /// @dev mininum value for usable part of the curve
-    uint256 priceCurveMinValue = 4109 ether;
+    uint256 public priceCurveMinValue = 4109 ether;
     /// @dev maximum safe value for curve to protect against integer overflows
-    uint256 priceCurveMaxValue = 200000 ether;
+    uint256 public priceCurveMaxValue = 200000 ether;
 
     event SuccessBuy(address to, uint256 amount);
 
@@ -38,7 +38,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         require(amount >= 1 ether, "DynamicSale: (MinBuy) required 1 ether minimum buy");
         require(amount % 1 ether == 0, "DynamicSale: (NonWholeUnit) only whole units allowed");
         require(amount <= 100 ether, "DynamicSale: (MaxAllowed) max buy allowed is 100");
-        require(token.totalSupply() + amount <=  saleHardCap, "DynamicSale: (MaxSupply) maximum supply reached");
+        require(token.totalSupply() + amount <= saleHardCap, "DynamicSale: (MaxSupply) maximum supply reached");
         _;
     }
 
@@ -101,7 +101,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     // region:   --- ADMIN
 
     function setNewPrice(uint256 newPrice) public onlyOwner {
-        require(newPrice > lastPrice, "DynamicSale: (OnlyPriceIncrease) price can not be smaller than previous price");
+        require(newPrice > lastPrice, "New price cannot be smaller than previous price");
         lastPrice = newPrice;
     }
 
@@ -129,18 +129,20 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     /// @dev cost function based on formula as stated in the whitepaper (TODO: must be validated)
     /// @param amount amount of token to be bought
     /// @return _lastPrice TODO
-    /// @return totalCost TODO 
+    /// @return totalCost TODO
     function calculatePrice(uint256 amount) public view returns (uint256 _lastPrice, uint256 totalCost) {
         uint256 currentSupply = token.totalSupply();
         require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
         require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
-        uint256 C = 420;
-        uint256 B = 32000461777723 * (10**54);
-        uint256 A = 11680057722 * (10**36);
+        /// @dev sale-function coefficients
+        uint256 c = 420;
+        uint256 b = 32000461777723 * (10**54);
+        uint256 a = 11680057722 * (10**36);
+
         uint256 start = currentSupply;
         uint256 end = start + amount;
-        _lastPrice = C - A / end**2 + B / end**3;
-        totalCost = C * (end - start) + A * (1 / end - 1 / start) - (B / 2) * (1 / end**2 - 1 / start**2);
+        _lastPrice = c - a / end**2 + b / end**3;
+        totalCost = c * (end - start) + a * (1 / end - 1 / start) - (b / 2) * (1 / end**2 - 1 / start**2);
     }
 
     // it ceils to two decimals
