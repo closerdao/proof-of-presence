@@ -24,7 +24,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     IERC20Upgradeable public token;
     IERC20Upgradeable public quote;
     IMinterDAO public minter;
-    uint256 public lastPrice;
+    uint256 public currentPrice;
     uint256 public saleHardCap;
     address public treasury;
     /// @dev mininum value for usable part of the curve
@@ -67,7 +67,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         token = IERC20Upgradeable(token_);
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
-        lastPrice = 222 ether;
+        currentPrice = 222 ether;
         saleHardCap = 7000 ether;
         treasury = address(this);
     }
@@ -91,9 +91,9 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         address to,
         uint256 amount
     ) internal {
-        (uint256 _lastPrice, uint256 totalCost) = calculateTotalCost(amount); // 18 decimals
+        (uint256 newPrice, uint256 totalCost) = calculateTotalCost(amount); // 18 decimals
         quote.safeTransferFrom(spender, treasury, totalCost);
-        lastPrice = _lastPrice;
+        currentPrice = newPrice;
         minter.mintCommunityTokenTo(to, amount);
         emit SuccessBuy(to, amount);
     }
@@ -101,8 +101,8 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     // region:   --- ADMIN
 
     function setNewPrice(uint256 newPrice) public onlyOwner {
-        require(newPrice > lastPrice, "New price cannot be smaller than previous price");
-        lastPrice = newPrice;
+        require(newPrice > currentPrice, "New price cannot be smaller than previous price");
+        currentPrice = newPrice;
     }
 
     function setMaxLiquidSupply(uint256 supply) public onlyOwner {
@@ -126,11 +126,11 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     // region:     --- Price Calculations
 
     /// @notice calculates the total cost of the amount to be bought from curve
-    /// @dev the cost function based on formula as stated in the whitepaper (TODO: must be validated)
+    /// @dev the cost function based on formula as stated in the whitepaper
     /// @param amount amount of token to be bought
-    /// @return _lastPrice TODO
+    /// @return newPrice TODO
     /// @return totalCost TODO
-    function calculateTotalCost(uint256 amount) public view returns (uint256 _lastPrice, uint256 totalCost) {
+    function calculateTotalCost(uint256 amount) public view returns (uint256 newPrice, uint256 totalCost) {
         uint256 currentSupply = token.totalSupply();
         require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
         require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
@@ -141,7 +141,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
 
         uint256 start = currentSupply;
         uint256 end = start + amount;
-        _lastPrice = c - a / end**2 + b / end**3;
+        newPrice = c - a / end**2 + b / end**3;
         totalCost = c * (end - start) + a * (1 / end - 1 / start) - (b / 2) * (1 / end**2 - 1 / start**2);
     }
 
