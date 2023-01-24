@@ -21,20 +21,24 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     using SafeMathUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    IERC20Upgradeable token;
-    IERC20Upgradeable quote;
-    IMinterDAO minter;
-    uint256 lastPrice;
-    uint256 maxLiquidSupply;
-    address treasury;
+    IERC20Upgradeable public token;
+    IERC20Upgradeable public quote;
+    IMinterDAO public minter;
+    uint256 public currentPrice;
+    uint256 public saleHardCap;
+    address public treasury;
+    /// @dev mininum value for usable part of the curve
+    uint256 public priceCurveMinValue = 4109 ether;
+    /// @dev maximum safe value for curve to protect against integer overflows
+    uint256 public priceCurveMaxValue = 200000 ether;
 
     event SuccessBuy(address to, uint256 amount);
 
-    modifier amountConstrains(uint256 amount) {
+    modifier buyAmountConstraints(uint256 amount) {
         require(amount >= 1 ether, "DynamicSale: (MinBuy) required 1 ether minimum buy");
         require(amount % 1 ether == 0, "DynamicSale: (NonWholeUnit) only whole units allowed");
         require(amount <= 100 ether, "DynamicSale: (MaxAllowed) max buy allowed is 100");
-        require(token.totalSupply() + amount <= maxLiquidSupply, "DynamicSale: (MaxSupply) maximum supply reached");
+        require(token.totalSupply() + amount <= saleHardCap, "DynamicSale: (MaxSupply) maximum supply reached");
         _;
     }
 
@@ -63,14 +67,14 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         token = IERC20Upgradeable(token_);
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
-        lastPrice = 222 ether;
-        maxLiquidSupply = 7000 ether;
+        currentPrice = 222 ether;
+        saleHardCap = 7000 ether;
         treasury = address(this);
     }
 
     // Buy:
     // @amount: amount of tokens to buy
-    function buy(uint256 amount) public whenNotPaused amountConstrains(amount) nonReentrant {
+    function buy(uint256 amount) public whenNotPaused buyAmountConstraints(amount) nonReentrant {
         _buyFrom(_msgSender(), _msgSender(), amount);
     }
 
@@ -78,7 +82,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         address spender,
         address to,
         uint256 amount
-    ) public whenNotPaused amountConstrains(amount) nonReentrant {
+    ) public whenNotPaused buyAmountConstraints(amount) nonReentrant {
         _buyFrom(spender, to, amount);
     }
 
@@ -87,9 +91,9 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         address to,
         uint256 amount
     ) internal {
-        (uint256 _lastPrice, uint256 totalCost) = _calculatePrice(amount); // 18 decimals
+        (uint256 newPrice, uint256 totalCost) = calculateTotalCost(amount); // 18 decimals
         quote.safeTransferFrom(spender, treasury, totalCost);
-        lastPrice = _lastPrice;
+        currentPrice = newPrice;
         minter.mintCommunityTokenTo(to, amount);
         emit SuccessBuy(to, amount);
     }
@@ -97,12 +101,12 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     // region:   --- ADMIN
 
     function setNewPrice(uint256 newPrice) public onlyOwner {
-        require(newPrice > lastPrice, "DynamicSale: (OnlyPriceIncrease) price can not be smaller than previous price");
-        lastPrice = newPrice;
+        require(newPrice > currentPrice, "New price cannot be smaller than previous price");
+        currentPrice = newPrice;
     }
 
     function setMaxLiquidSupply(uint256 supply) public onlyOwner {
-        maxLiquidSupply = supply;
+        saleHardCap = supply;
     }
 
     function pause() public onlyOwner {
@@ -121,26 +125,24 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
 
     // region:     --- Price Calculations
 
-    function calculatePrice(uint256 amount) public view amountConstrains(amount) returns (uint256) {
-        (, uint256 total) = _calculatePrice(amount);
-        return total;
-    }
+    /// @notice calculates the total cost of the amount to be bought from curve
+    /// @dev the cost function based on formula as stated in the whitepaper
+    /// @param amount amount of token to be bought
+    /// @return newPrice TODO
+    /// @return totalCost TODO
+    function calculateTotalCost(uint256 amount) public view returns (uint256 newPrice, uint256 totalCost) {
+        uint256 currentSupply = token.totalSupply();
+        require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
+        require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
+        /// @dev sale-function coefficients
+        uint256 c = 420;
+        uint256 b = 32000461777723 * (10**54);
+        uint256 a = 11680057722 * (10**36);
 
-    function _calculatePrice(uint256 amount) internal view returns (uint256, uint256) {
-        uint256 C = 420;
-        uint256 B = 32000461777723 * (10**54);
-        uint256 A = 11680057722 * (10**36);
-        uint256 start = token.totalSupply();
+        uint256 start = currentSupply;
         uint256 end = start + amount;
-        uint256 _lastPrice = C - A / end**2 + B / end**3;
-        uint256 totalCost = C * (end - start) + A * (1 / end - 1 / start) - (B / 2) * (1 / end**2 - 1 / start**2);
-        return (_lastPrice, ceil(totalCost));
-    }
-
-    // it ceils to two decimals
-    function ceil(uint256 a) internal pure returns (uint256) {
-        uint256 m = 10 * 10**15;
-        return ((a + m + 1) / m) * m;
+        newPrice = c - a / end**2 + b / end**3;
+        totalCost = c * (end - start) + a * (1 / end - 1 / start) - (b / 2) * (1 / end**2 - 1 / start**2);
     }
 
     // endregion:     --- Price Calculations

@@ -40,8 +40,8 @@ async function main() {
     data.push({
       tokenSupply: formatEther(await contracts.token.totalSupply()),
       amount: step,
-      nextUnitPrice: formatEther(await contracts.sale.calculatePrice(parseEther('1'))),
-      amountCost: formatEther(await contracts.sale.calculatePrice(parseEther(step.toString()))),
+      nextUnitPrice: formatEther(await contracts.sale.calculateTotalCost(parseEther('1'))),
+      amountCost: formatEther(await contracts.sale.calculateTotalCost(parseEther(step.toString()))),
     });
     await user.sale.buy(parseEther(step.toString()));
   }
