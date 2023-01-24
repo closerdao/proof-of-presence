@@ -33,10 +33,11 @@ const setSigner = (user: User, context: Context) => ({
   }),
   calculateTotalCost: (amount: string) => ({
     toEq: async (expected: string) => {
-      const cost = await context.DynamicSale.calculateTotalCost(parseEther(amount));
-      expect(cost, `calculateTotalCost: for(${amount}) toEq(${expected}) Got(${formatEther(cost)})`).to.eq(
-        parseEther(expected)
-      );
+      const resultObj = await context.DynamicSale.calculateTotalCost(parseEther(amount));
+      expect(
+        resultObj.totalCost,
+        `calculateTotalCost: for(${amount}) toEq(${expected}) Got(${formatEther(resultObj.totalCost)})`
+      ).to.eq(parseEther(expected));
     },
   }),
   testers: {
@@ -59,7 +60,7 @@ const setSigner = (user: User, context: Context) => ({
 
 describe('DynamicSale', () => {
   describe('buy', () => {
-    xit('works', async () => {
+    it.skip('works', async () => {
       const context = await setup();
 
       const user = setSigner(context.users[0], context);
@@ -98,7 +99,7 @@ describe('DynamicSale', () => {
   });
 
   describe('calculateTotalCost', () => {
-    xit('works', async () => {
+    it.skip('works', async () => {
       const context = await setup();
 
       const user = setSigner(context.users[0], context);
