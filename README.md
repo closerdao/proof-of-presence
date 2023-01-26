@@ -9,7 +9,25 @@ This contracts include:
 
       Implemented a locking mechanism to reuse the tokens every year preventing doble spending by locking those tokens in a Diamond contract
 
-- Crowdsale: (WIP)
+- Sale Contract:
+  minting operation from sale contract:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant SaleContract
+    participant TDFDiamond
+    participant TDFToken
+    User->>+SaleContract: `buy`
+    SaleContract->>TDFDiamond: mint
+    Note left of TDFDiamond: Access Control
+    TDFDiamond->>TDFToken: mint
+    Note left of TDFToken: onlyOwner or DAO
+    TDFToken-->>TDFDiamond: approveTransfer
+    TDFDiamond-->>TDFToken: allowsMinting
+    TDFToken-->>SaleContract: transferTokens
+    SaleContract-->>User: Finish Operation
+```
 
 ## INSTALL
 

@@ -46,7 +46,7 @@ task('diamond:mint', 'mint TDFtokens for')
   .addParam<string>('amount', 'ETH amount, ex: 1.5, 10. this function converts the decimals')
   .setAction(async ({address, amount}, hre) => {
     const diamond = await getDiamond(hre);
-    await diamond.mintTokensFor(address, parseEther(amount));
+    await diamond.mintCommunityTokenTo(address, parseEther(amount));
   });
 
 const getDiamond = async (hre: HardhatRuntimeEnvironment) => {
