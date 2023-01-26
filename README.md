@@ -35,6 +35,37 @@ sequenceDiagram
 yarn
 ```
 
+## SETUP
+
+### ENV variables
+
+1. duplicate .env.example
+2. fill the required env variables. Most importantly `PRIVATE_KEY`
+
+### Get access roles
+
+You should had been given `DEFAULT_ADMIN_ROLE` in the Diamond to be able to execute any of this functions
+
+**grant minting role:** _recommended only for alfajores network_
+
+```bash
+npx hardhat diamond:grant-role [ADDRESS] --minter --network alfajores
+```
+
+You can give different roles by changing the `--minter` flag
+
+### Minting for development
+
+Once your `.env` `PRIVATE_KEY` has `minter` role you can just mint like this:
+
+```bash
+npx hardhat diamond:mint --address [ADDRESS] --amount [amount] --network alfajores
+
+# ex:
+#
+#     npx hardhat diamond:mint --address 0x661Ac71bbe43fe56935c1CA4d62e62ed380950A3 --amount 32 --network alfajores
+```
+
 ## TEST
 
 - One using hardhat that can leverage hardhat-deploy to reuse deployment procedures and named accounts:
@@ -55,13 +86,6 @@ npx hardhat deploy --network alfajores
 
 ```
 npx hardhat diamond:grant-role 0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716 --network alfajores
-```
-
-### Set locking time period
-
-```
-npx hardhat diamond:set_locking_period 1 --days --network alfajores
-=> Setting staking locking time period to: 1 days
 ```
 
 ## SCRIPTS
