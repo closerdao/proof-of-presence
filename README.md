@@ -29,6 +29,13 @@ sequenceDiagram
     SaleContract-->>User: Finish Operation
 ```
 
+
+## BUG BOUNTY
+
+If you find critical security gaps in our smart contract code, please reach sam@closer.earth.
+We are offering a bounty of 1000CUSD + our eternal gratitute + free tickets for an event of your choice at [Traditional Dream Factory](https://traditionaldreamfactory.com/) (Maybe join us at the Regenerative Network State Summit?).
+For smaller issues you can create tickets in our open source code repositories and we will happily consider an appropriate reward.
+
 ## INSTALL
 
 ```bash
@@ -187,3 +194,7 @@ This will test the contract against a temporary fork of the specified network.
 This will deploy the contract against a fork of the specified network and it will keep running as a node.
 
 Behind the scene it uses `hardhat node` command so you can append any argument for it
+
+## LICENCE
+
+All rights reserved.
