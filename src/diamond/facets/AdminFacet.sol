@@ -6,10 +6,6 @@ import {Modifiers} from "../libraries/AppStorage.sol";
 import {ITDFToken} from "../../Interfaces/ITDFToken.sol";
 import "../libraries/AccessControlLib.sol";
 
-interface ITDFToken {
-    function mint(address account, uint256 amount) external;
-}
-
 contract AdminFacet is Modifiers {
     using AccessControlLib for AccessControlLib.RoleStore;
 
