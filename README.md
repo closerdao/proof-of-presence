@@ -1,6 +1,6 @@
-# TDF Smart contracts
+# Proof of Presence
 
-This is a collection of contracts aiming to implement tokenized timesharing real state.
+This is a collection of contracts aiming to implement tokenized timeshare access to land projects.
 
 This contracts include:
 
