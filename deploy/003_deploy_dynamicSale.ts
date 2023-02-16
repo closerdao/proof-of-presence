@@ -11,20 +11,31 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const TDFToken = await deployments.get('TDFToken');
   const TDFDiamond = await deployments.get('TDFDiamond');
 
-  const {deployer, ceur} = await getNamedAccounts();
+  const accounts = await getNamedAccounts();
+  const {deployer} = accounts;
+  let eur: string;
 
-  const eur = await deploy('FakeEURToken', {
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
-  });
+  switch (hre.network.name) {
+    case 'hardhat': {
+      const eur_contract = await deploy('FakeEURToken', {
+        from: deployer,
+        args: [],
+        log: true,
+        autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
+      });
+      eur = eur_contract.address;
+      break;
+    }
+    default: {
+      eur = accounts.ceur;
+    }
+  }
 
   const sale = await deploy('DynamicSale', {
     from: deployer,
     proxy: {
       proxyContract: 'OptimizedTransparentProxy',
-      execute: {init: {methodName: `initialize`, args: [TDFToken.address, eur.address, TDFDiamond.address]}},
+      execute: {init: {methodName: `initialize`, args: [TDFToken.address, eur, TDFDiamond.address]}},
     },
     log: true,
     autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
