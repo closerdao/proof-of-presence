@@ -1,17 +1,14 @@
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {DeployFunction} from 'hardhat-deploy/types';
-import {TDFDiamond} from '../typechain';
-import {ethers} from 'hardhat';
-import {ROLES} from '../utils';
+import {parseEther} from 'ethers/lib/utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
   const {deploy} = deployments;
 
   const TDFToken = await deployments.get('TDFToken');
-  const TDFDiamond = await deployments.get('TDFDiamond');
 
-  const {deployer, ceur} = await getNamedAccounts();
+  const {deployer, TDFDevMultisig} = await getNamedAccounts();
 
   const eur = await deploy('FakeEURToken', {
     from: deployer,
@@ -20,19 +17,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
   });
 
-  const sale = await deploy('DynamicSale', {
+  await deploy('Crowdsale', {
     from: deployer,
-    proxy: {
-      proxyContract: 'OptimizedTransparentProxy',
-      execute: {init: {methodName: `initialize`, args: [TDFToken.address, eur.address, TDFDiamond.address]}},
-    },
+    args: [TDFToken.address, eur.address, TDFDevMultisig, parseEther('150'), parseEther('0.5')],
     log: true,
     autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
   });
-  const diamond = (await ethers.getContract('TDFDiamond', deployer)).connect(
-    await ethers.getSigner(deployer)
-  ) as TDFDiamond;
-  await diamond.grantRole(ROLES['MINTER_ROLE'], sale.address);
 };
 export default func;
-func.tags = ['DynamicSale'];
+func.tags = ['Crowdsale'];
