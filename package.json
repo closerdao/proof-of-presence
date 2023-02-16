@@ -1,18 +1,17 @@
 {
-  "name": "template-ethereum-contracts",
+  "name": "proof-of-presence",
   "version": "0.1.0",
-  "description": "Template to develop ethereum smart contracts",
+  "description": "Collection of contracts aiming to implement tokenized timeshare access to land projects.",
   "private": true,
   "engines": {
-    "node": ">= 14.0.0"
+    "node": ">= 16.0.0"
   },
-  "repository": "github:wighawag/template-ethereum-contracts",
-  "author": "wighawag",
+  "repository": "github:closerdao/proof-of-presence",
+  "author": "Closer Dao",
   "license": "MIT",
   "keywords": [
     "ethereum",
     "smart-contracts",
-    "template",
     "boilerplate",
     "hardhat",
     "solidity"

@@ -1,6 +1,6 @@
 import {expect} from './chai-setup';
 import {deployments, ethers, getUnnamedAccounts, getNamedAccounts} from 'hardhat';
-import {TDFToken, TDFDiamond, DynamicSale, FakeEURToken, TDFToken__factory} from '../typechain';
+import {TDFToken, TDFDiamond, DynamicSale, FakeEURToken} from '../typechain';
 import {setupUser, setupUsers} from './utils';
 import {formatEther, parseEther} from 'ethers/lib/utils';
 
