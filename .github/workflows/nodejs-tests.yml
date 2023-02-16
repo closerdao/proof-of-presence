@@ -3,10 +3,10 @@ name: nodejs-tests
 on:
   push:
     branches:
-    - main
+      - main
   pull_request:
     branches:
-    - main
+      - main
 
 jobs:
   test:
@@ -20,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: 14.17.6
+          node-version: 16.19.0
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
