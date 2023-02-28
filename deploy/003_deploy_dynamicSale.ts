@@ -16,7 +16,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   let eur: string;
 
   switch (hre.network.name) {
-    case 'hardhat': {
+    case 'celo': {
+      eur = accounts.ceur;
+      break;
+    }
+    default: {
       const eur_contract = await deploy('FakeEURToken', {
         from: deployer,
         args: [],
@@ -25,9 +29,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       });
       eur = eur_contract.address;
       break;
-    }
-    default: {
-      eur = accounts.ceur;
     }
   }
 

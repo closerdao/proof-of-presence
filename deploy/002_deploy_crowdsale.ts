@@ -3,7 +3,7 @@ import {DeployFunction} from 'hardhat-deploy/types';
 import {parseEther} from 'ethers/lib/utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (hre.network.name != 'hardhat') {
+  if (hre.network.name === 'celo') {
     return;
   }
   const {deployments, getNamedAccounts} = hre;
