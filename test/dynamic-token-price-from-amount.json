@@ -1,606 +1,606 @@
 [
   {
-    "amount": 5202,
-    "price": 249.72
+    "amount": "5202",
+    "price": "249.72"
   },
   {
-    "amount": 5381,
-    "price": 222
+    "amount": "5381",
+    "price": "222.00"
   },
   {
-    "amount": 5400,
-    "price": 222.67
+    "amount": "5400",
+    "price": "222.67"
   },
   {
-    "amount": 5500,
-    "price": 226.22
+    "amount": "5500",
+    "price": "226.22"
   },
   {
-    "amount": 5600,
-    "price": 229.77
+    "amount": "5600",
+    "price": "229.77"
   },
   {
-    "amount": 5651,
-    "price": 231.57
+    "amount": "5651",
+    "price": "231.57"
   },
   {
-    "amount": 5660,
-    "price": 231.89
+    "amount": "5660",
+    "price": "231.89"
   },
   {
-    "amount": 5700,
-    "price": 233.3
+    "amount": "5700",
+    "price": "233.30"
   },
   {
-    "amount": 5800,
-    "price": 236.8
+    "amount": "5800",
+    "price": "236.80"
   },
   {
-    "amount": 5900,
-    "price": 240.27
+    "amount": "5900",
+    "price": "240.27"
   },
   {
-    "amount": 6000,
-    "price": 243.7
+    "amount": "6000",
+    "price": "243.70"
   },
   {
-    "amount": 6100,
-    "price": 247.09
+    "amount": "6100",
+    "price": "247.09"
   },
   {
-    "amount": 6200,
-    "price": 250.42
+    "amount": "6200",
+    "price": "250.42"
   },
   {
-    "amount": 6300,
-    "price": 253.7
+    "amount": "6300",
+    "price": "253.70"
   },
   {
-    "amount": 6400,
-    "price": 256.91
+    "amount": "6400",
+    "price": "256.91"
   },
   {
-    "amount": 6500,
-    "price": 260.07
+    "amount": "6500",
+    "price": "260.07"
   },
   {
-    "amount": 6600,
-    "price": 263.17
+    "amount": "6600",
+    "price": "263.17"
   },
   {
-    "amount": 6700,
-    "price": 266.2
+    "amount": "6700",
+    "price": "266.20"
   },
   {
-    "amount": 6800,
-    "price": 269.18
+    "amount": "6800",
+    "price": "269.18"
   },
   {
-    "amount": 6900,
-    "price": 272.08
+    "amount": "6900",
+    "price": "272.08"
   },
   {
-    "amount": 7000,
-    "price": 274.93
+    "amount": "7000",
+    "price": "274.93"
   },
   {
-    "amount": 7100,
-    "price": 277.71
+    "amount": "7100",
+    "price": "277.71"
   },
   {
-    "amount": 7200,
-    "price": 280.43
+    "amount": "7200",
+    "price": "280.43"
   },
   {
-    "amount": 7300,
-    "price": 283.08
+    "amount": "7300",
+    "price": "283.08"
   },
   {
-    "amount": 7400,
-    "price": 285.67
+    "amount": "7400",
+    "price": "285.67"
   },
   {
-    "amount": 7500,
-    "price": 288.21
+    "amount": "7500",
+    "price": "288.21"
   },
   {
-    "amount": 7600,
-    "price": 290.68
+    "amount": "7600",
+    "price": "290.68"
   },
   {
-    "amount": 7700,
-    "price": 293.1
+    "amount": "7700",
+    "price": "293.10"
   },
   {
-    "amount": 7800,
-    "price": 295.45
+    "amount": "7800",
+    "price": "295.45"
   },
   {
-    "amount": 7900,
-    "price": 297.75
+    "amount": "7900",
+    "price": "297.75"
   },
   {
-    "amount": 8000,
-    "price": 300
+    "amount": "8000",
+    "price": "300.00"
   },
   {
-    "amount": 8100,
-    "price": 302.19
+    "amount": "8100",
+    "price": "302.19"
   },
   {
-    "amount": 8200,
-    "price": 304.33
+    "amount": "8200",
+    "price": "304.33"
   },
   {
-    "amount": 8300,
-    "price": 306.42
+    "amount": "8300",
+    "price": "306.42"
   },
   {
-    "amount": 8400,
-    "price": 308.46
+    "amount": "8400",
+    "price": "308.46"
   },
   {
-    "amount": 8500,
-    "price": 310.45
+    "amount": "8500",
+    "price": "310.45"
   },
   {
-    "amount": 8600,
-    "price": 312.39
+    "amount": "8600",
+    "price": "312.39"
   },
   {
-    "amount": 8700,
-    "price": 314.28
+    "amount": "8700",
+    "price": "314.28"
   },
   {
-    "amount": 8800,
-    "price": 316.13
+    "amount": "8800",
+    "price": "316.13"
   },
   {
-    "amount": 8900,
-    "price": 317.94
+    "amount": "8900",
+    "price": "317.94"
   },
   {
-    "amount": 9000,
-    "price": 319.7
+    "amount": "9000",
+    "price": "319.70"
   },
   {
-    "amount": 9100,
-    "price": 321.42
+    "amount": "9100",
+    "price": "321.42"
   },
   {
-    "amount": 9200,
-    "price": 323.1
+    "amount": "9200",
+    "price": "323.10"
   },
   {
-    "amount": 9300,
-    "price": 324.74
+    "amount": "9300",
+    "price": "324.74"
   },
   {
-    "amount": 9400,
-    "price": 326.34
+    "amount": "9400",
+    "price": "326.34"
   },
   {
-    "amount": 9500,
-    "price": 327.9
+    "amount": "9500",
+    "price": "327.90"
   },
   {
-    "amount": 9600,
-    "price": 329.43
+    "amount": "9600",
+    "price": "329.43"
   },
   {
-    "amount": 9700,
-    "price": 330.93
+    "amount": "9700",
+    "price": "330.93"
   },
   {
-    "amount": 9800,
-    "price": 332.38
+    "amount": "9800",
+    "price": "332.38"
   },
   {
-    "amount": 9900,
-    "price": 333.81
+    "amount": "9900",
+    "price": "333.81"
   },
   {
-    "amount": 10000,
-    "price": 335.2
+    "amount": "10000",
+    "price": "335.20"
   },
   {
-    "amount": 10100,
-    "price": 336.56
+    "amount": "10100",
+    "price": "336.56"
   },
   {
-    "amount": 10200,
-    "price": 337.89
+    "amount": "10200",
+    "price": "337.89"
   },
   {
-    "amount": 10300,
-    "price": 339.19
+    "amount": "10300",
+    "price": "339.19"
   },
   {
-    "amount": 10400,
-    "price": 340.46
+    "amount": "10400",
+    "price": "340.46"
   },
   {
-    "amount": 10500,
-    "price": 341.7
+    "amount": "10500",
+    "price": "341.70"
   },
   {
-    "amount": 10600,
-    "price": 342.92
+    "amount": "10600",
+    "price": "342.92"
   },
   {
-    "amount": 10700,
-    "price": 344.1
+    "amount": "10700",
+    "price": "344.10"
   },
   {
-    "amount": 10800,
-    "price": 345.27
+    "amount": "10800",
+    "price": "345.27"
   },
   {
-    "amount": 10900,
-    "price": 346.4
+    "amount": "10900",
+    "price": "346.40"
   },
   {
-    "amount": 11000,
-    "price": 347.51
+    "amount": "11000",
+    "price": "347.51"
   },
   {
-    "amount": 11100,
-    "price": 348.6
+    "amount": "11100",
+    "price": "348.60"
   },
   {
-    "amount": 11200,
-    "price": 349.66
+    "amount": "11200",
+    "price": "349.66"
   },
   {
-    "amount": 11300,
-    "price": 350.71
+    "amount": "11300",
+    "price": "350.71"
   },
   {
-    "amount": 11400,
-    "price": 351.73
+    "amount": "11400",
+    "price": "351.73"
   },
   {
-    "amount": 11500,
-    "price": 352.72
+    "amount": "11500",
+    "price": "352.72"
   },
   {
-    "amount": 11600,
-    "price": 353.7
+    "amount": "11600",
+    "price": "353.70"
   },
   {
-    "amount": 11700,
-    "price": 354.66
+    "amount": "11700",
+    "price": "354.66"
   },
   {
-    "amount": 11800,
-    "price": 355.59
+    "amount": "11800",
+    "price": "355.59"
   },
   {
-    "amount": 11900,
-    "price": 356.51
+    "amount": "11900",
+    "price": "356.51"
   },
   {
-    "amount": 12000,
-    "price": 357.41
+    "amount": "12000",
+    "price": "357.41"
   },
   {
-    "amount": 12100,
-    "price": 358.29
+    "amount": "12100",
+    "price": "358.29"
   },
   {
-    "amount": 12200,
-    "price": 359.15
+    "amount": "12200",
+    "price": "359.15"
   },
   {
-    "amount": 12300,
-    "price": 359.99
+    "amount": "12300",
+    "price": "359.99"
   },
   {
-    "amount": 12400,
-    "price": 360.82
+    "amount": "12400",
+    "price": "360.82"
   },
   {
-    "amount": 12500,
-    "price": 361.63
+    "amount": "12500",
+    "price": "361.63"
   },
   {
-    "amount": 12600,
-    "price": 362.43
+    "amount": "12600",
+    "price": "362.43"
   },
   {
-    "amount": 12700,
-    "price": 363.21
+    "amount": "12700",
+    "price": "363.21"
   },
   {
-    "amount": 12800,
-    "price": 363.97
+    "amount": "12800",
+    "price": "363.97"
   },
   {
-    "amount": 12900,
-    "price": 364.72
+    "amount": "12900",
+    "price": "364.72"
   },
   {
-    "amount": 13000,
-    "price": 365.45
+    "amount": "13000",
+    "price": "365.45"
   },
   {
-    "amount": 13100,
-    "price": 366.17
+    "amount": "13100",
+    "price": "366.17"
   },
   {
-    "amount": 13200,
-    "price": 366.88
+    "amount": "13200",
+    "price": "366.88"
   },
   {
-    "amount": 13300,
-    "price": 367.57
+    "amount": "13300",
+    "price": "367.57"
   },
   {
-    "amount": 13400,
-    "price": 368.25
+    "amount": "13400",
+    "price": "368.25"
   },
   {
-    "amount": 13500,
-    "price": 368.92
+    "amount": "13500",
+    "price": "368.92"
   },
   {
-    "amount": 13600,
-    "price": 369.57
+    "amount": "13600",
+    "price": "369.57"
   },
   {
-    "amount": 13700,
-    "price": 370.21
+    "amount": "13700",
+    "price": "370.21"
   },
   {
-    "amount": 13800,
-    "price": 370.84
+    "amount": "13800",
+    "price": "370.84"
   },
   {
-    "amount": 13900,
-    "price": 371.46
+    "amount": "13900",
+    "price": "371.46"
   },
   {
-    "amount": 14000,
-    "price": 372.07
+    "amount": "14000",
+    "price": "372.07"
   },
   {
-    "amount": 14100,
-    "price": 372.67
+    "amount": "14100",
+    "price": "372.67"
   },
   {
-    "amount": 14200,
-    "price": 373.25
+    "amount": "14200",
+    "price": "373.25"
   },
   {
-    "amount": 14300,
-    "price": 373.83
+    "amount": "14300",
+    "price": "373.83"
   },
   {
-    "amount": 14400,
-    "price": 374.39
+    "amount": "14400",
+    "price": "374.39"
   },
   {
-    "amount": 14500,
-    "price": 374.94
+    "amount": "14500",
+    "price": "374.94"
   },
   {
-    "amount": 14600,
-    "price": 375.49
+    "amount": "14600",
+    "price": "375.49"
   },
   {
-    "amount": 14700,
-    "price": 376.02
+    "amount": "14700",
+    "price": "376.02"
   },
   {
-    "amount": 14800,
-    "price": 376.55
+    "amount": "14800",
+    "price": "376.55"
   },
   {
-    "amount": 14900,
-    "price": 377.06
+    "amount": "14900",
+    "price": "377.06"
   },
   {
-    "amount": 15000,
-    "price": 377.57
+    "amount": "15000",
+    "price": "377.57"
   },
   {
-    "amount": 15100,
-    "price": 378.07
+    "amount": "15100",
+    "price": "378.07"
   },
   {
-    "amount": 15200,
-    "price": 378.56
+    "amount": "15200",
+    "price": "378.56"
   },
   {
-    "amount": 15300,
-    "price": 379.04
+    "amount": "15300",
+    "price": "379.04"
   },
   {
-    "amount": 15400,
-    "price": 379.51
+    "amount": "15400",
+    "price": "379.51"
   },
   {
-    "amount": 15500,
-    "price": 379.98
+    "amount": "15500",
+    "price": "379.98"
   },
   {
-    "amount": 15600,
-    "price": 380.43
+    "amount": "15600",
+    "price": "380.43"
   },
   {
-    "amount": 15700,
-    "price": 380.88
+    "amount": "15700",
+    "price": "380.88"
   },
   {
-    "amount": 15800,
-    "price": 381.33
+    "amount": "15800",
+    "price": "381.33"
   },
   {
-    "amount": 15900,
-    "price": 381.76
+    "amount": "15900",
+    "price": "381.76"
   },
   {
-    "amount": 16000,
-    "price": 382.19
+    "amount": "16000",
+    "price": "382.19"
   },
   {
-    "amount": 16100,
-    "price": 382.61
+    "amount": "16100",
+    "price": "382.61"
   },
   {
-    "amount": 16200,
-    "price": 383.02
+    "amount": "16200",
+    "price": "383.02"
   },
   {
-    "amount": 16300,
-    "price": 383.43
+    "amount": "16300",
+    "price": "383.43"
   },
   {
-    "amount": 16400,
-    "price": 383.83
+    "amount": "16400",
+    "price": "383.83"
   },
   {
-    "amount": 16500,
-    "price": 384.22
+    "amount": "16500",
+    "price": "384.22"
   },
   {
-    "amount": 16600,
-    "price": 384.61
+    "amount": "16600",
+    "price": "384.61"
   },
   {
-    "amount": 16700,
-    "price": 384.99
+    "amount": "16700",
+    "price": "384.99"
   },
   {
-    "amount": 16800,
-    "price": 385.37
+    "amount": "16800",
+    "price": "385.37"
   },
   {
-    "amount": 16900,
-    "price": 385.73
+    "amount": "16900",
+    "price": "385.73"
   },
   {
-    "amount": 17000,
-    "price": 386.1
+    "amount": "17000",
+    "price": "386.10"
   },
   {
-    "amount": 17100,
-    "price": 386.46
+    "amount": "17100",
+    "price": "386.46"
   },
   {
-    "amount": 17200,
-    "price": 386.81
+    "amount": "17200",
+    "price": "386.81"
   },
   {
-    "amount": 17300,
-    "price": 387.15
+    "amount": "17300",
+    "price": "387.15"
   },
   {
-    "amount": 17400,
-    "price": 387.5
+    "amount": "17400",
+    "price": "387.50"
   },
   {
-    "amount": 17500,
-    "price": 387.83
+    "amount": "17500",
+    "price": "387.83"
   },
   {
-    "amount": 17600,
-    "price": 388.16
+    "amount": "17600",
+    "price": "388.16"
   },
   {
-    "amount": 17700,
-    "price": 388.49
+    "amount": "17700",
+    "price": "388.49"
   },
   {
-    "amount": 17800,
-    "price": 388.81
+    "amount": "17800",
+    "price": "388.81"
   },
   {
-    "amount": 17900,
-    "price": 389.13
+    "amount": "17900",
+    "price": "389.13"
   },
   {
-    "amount": 18000,
-    "price": 389.44
+    "amount": "18000",
+    "price": "389.44"
   },
   {
-    "amount": 18100,
-    "price": 389.74
+    "amount": "18100",
+    "price": "389.74"
   },
   {
-    "amount": 18200,
-    "price": 390.05
+    "amount": "18200",
+    "price": "390.05"
   },
   {
-    "amount": 18300,
-    "price": 390.34
+    "amount": "18300",
+    "price": "390.34"
   },
   {
-    "amount": 18400,
-    "price": 390.64
+    "amount": "18400",
+    "price": "390.64"
   },
   {
-    "amount": 18500,
-    "price": 390.93
+    "amount": "18500",
+    "price": "390.93"
   },
   {
-    "amount": 18600,
-    "price": 391.21
+    "amount": "18600",
+    "price": "391.21"
   },
   {
-    "amount": 18700,
-    "price": 391.49
+    "amount": "18700",
+    "price": "391.49"
   },
   {
-    "amount": 18800,
-    "price": 391.77
+    "amount": "18800",
+    "price": "391.77"
   },
   {
-    "amount": 18900,
-    "price": 392.04
+    "amount": "18900",
+    "price": "392.04"
   },
   {
-    "amount": 19000,
-    "price": 392.31
+    "amount": "19000",
+    "price": "392.31"
   },
   {
-    "amount": 19100,
-    "price": 392.58
+    "amount": "19100",
+    "price": "392.58"
   },
   {
-    "amount": 19200,
-    "price": 392.84
+    "amount": "19200",
+    "price": "392.84"
   },
   {
-    "amount": 19300,
-    "price": 393.09
+    "amount": "19300",
+    "price": "393.09"
   },
   {
-    "amount": 19400,
-    "price": 393.35
+    "amount": "19400",
+    "price": "393.35"
   },
   {
-    "amount": 19500,
-    "price": 393.6
+    "amount": "19500",
+    "price": "393.60"
   },
   {
-    "amount": 19600,
-    "price": 393.85
+    "amount": "19600",
+    "price": "393.85"
   },
   {
-    "amount": 19700,
-    "price": 394.09
+    "amount": "19700",
+    "price": "394.09"
   },
   {
-    "amount": 19800,
-    "price": 394.33
+    "amount": "19800",
+    "price": "394.33"
   },
   {
-    "amount": 19900,
-    "price": 394.57
+    "amount": "19900",
+    "price": "394.57"
   },
   {
-    "amount": 20000,
-    "price": 394.8
+    "amount": "20000",
+    "price": "394.80"
   }
  ]

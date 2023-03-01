@@ -106,17 +106,11 @@ describe.only('DynamicSale', () => {
 
       await context.deployer.TDFToken.mint(context.deployer.address, parseEther('2433'));
 
-      dynamicPriceMock.forEach(async (item) => {
-        await user.calculateTotalCost(String(item.amount)).toEq(String(item.price));
-      });
-      // await user.calculateTotalCost('0').toEq('0');
-      // await user.calculateTotalCost('1').toEq('223.12');
-      // await user.calculateTotalCost('5').toEq('1126.77');
-      // await user.calculateTotalCost('10').toEq('2281.98');
-      // await user.calculateTotalCost('20').toEq('4680.66');
-      // await user.calculateTotalCost('30').toEq('7202.0');
-      // await user.calculateTotalCost('100').toEq('28855.65');
-      // await user.calculateTotalCost('5000').toEq('28855.641455224455');
+      await Promise.all(
+        dynamicPriceMock.map(async (item) => {
+          await user.calculateTotalCost(item.amount).toEq(item.price);
+        })
+      );
     });
   });
 });
