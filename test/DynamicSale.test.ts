@@ -109,6 +109,7 @@ describe.only('DynamicSale', () => {
       await Promise.all(
         dynamicPriceMock.map(async (item) => {
           await user.calculateTotalCost(item.amount).toEq(item.price);
+          return item;
         })
       );
     });
