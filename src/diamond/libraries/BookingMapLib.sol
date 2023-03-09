@@ -27,7 +27,7 @@ library BookingMapLib {
         mapping(uint16 => uint256) balance;
         mapping(uint16 => EnumerableMap.Bytes32ToUintMap) dates;
         mapping(bytes32 => Booking) bookings;
-        // TODO: still not implemented but added here to optimize proofOfPresence
+        // TODO: still not in use but added here to optimize proofOfPresence calculations
         mapping(uint16 => uint16) checkedInNights;
     }
 

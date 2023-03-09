@@ -4,7 +4,6 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/utils/Context.sol";
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
-import "hardhat/console.sol";
 
 contract BookingFacet is Modifiers {
     using StakeLibV2 for StakeLibV2.Context;
