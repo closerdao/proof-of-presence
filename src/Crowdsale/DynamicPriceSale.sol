@@ -45,31 +45,34 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     function initialize(
         address token_,
         address quote_,
-        address minter_
+        address minter_,
+        address treasury_
     ) public initializer {
-        __DynamicSale_init(token_, quote_, minter_);
+        __DynamicSale_init(token_, quote_, minter_, treasury_);
     }
 
     function __DynamicSale_init(
         address token_,
         address quote_,
-        address minter_
+        address minter_,
+        address treasury_
     ) internal onlyInitializing {
-        __DynamicSale_init_unchained(token_, quote_, minter_);
+        __DynamicSale_init_unchained(token_, quote_, minter_, treasury_);
         __Ownable2Step_init();
     }
 
     function __DynamicSale_init_unchained(
         address token_,
         address quote_,
-        address minter_
+        address minter_,
+        address treasury_
     ) internal onlyInitializing {
         token = IERC20Upgradeable(token_);
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
         currentPrice = 222 ether;
         saleHardCap = 7000 ether;
-        treasury = address(this);
+        treasury = treasury_;
     }
 
     // Buy:

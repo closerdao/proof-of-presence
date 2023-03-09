@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const TDFDiamond = await deployments.get('TDFDiamond');
 
   const accounts = await getNamedAccounts();
-  const {deployer} = accounts;
+  const {deployer, TDFDevMultisig} = accounts;
   let eur: string;
 
   switch (hre.network.name) {
@@ -36,7 +36,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     proxy: {
       proxyContract: 'OptimizedTransparentProxy',
-      execute: {init: {methodName: `initialize`, args: [TDFToken.address, eur, TDFDiamond.address]}},
+      execute: {
+        init: {methodName: `initialize`, args: [TDFToken.address, eur, TDFDiamond.address, TDFDevMultisig]},
+      },
     },
     log: true,
     autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
