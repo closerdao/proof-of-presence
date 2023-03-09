@@ -242,7 +242,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
 
 export const getterHelpers = async ({TDFDiamond}: TestContext) => {
   return {
-    presentByYearsFor: (user: {
+    checkedInNightsByYearFor: (user: {
       address: string;
     }): {
       toInclude: (year: number, nights: number) => Promise<void>;
@@ -256,11 +256,12 @@ export const getterHelpers = async ({TDFDiamond}: TestContext) => {
           const list = await val();
           const found = _.find(list, (e) => e[0] == year);
 
-          expect(found, `presentByYearsFor.toInclude: Year not found in ${JSON.stringify(list)}`).to.not.be.undefined;
+          expect(found, `checkedInNightsByYearFor.toInclude: Year not found in ${JSON.stringify(list)}`).to.not.be
+            .undefined;
           if (found) {
             expect(
               found[1],
-              `presentByYearsFor.toInclude: expected year ${year} to have '${nights}' nights, got ${found[1]}`
+              `checkedInNightsByYearFor.toInclude: expected year ${year} to have '${nights}' nights, got ${found[1]}`
             ).to.eq(nights);
           }
         },
@@ -268,7 +269,7 @@ export const getterHelpers = async ({TDFDiamond}: TestContext) => {
           const list = await val();
           const all = _.every(list, (e) => e[1] == 0);
 
-          expect(all, `presentByYearsFor.toAllBeZero: some are not`).to.be.true;
+          expect(all, `checkedInNightsByYearFor.toAllBeZero: some are not`).to.be.true;
         },
       };
     },
