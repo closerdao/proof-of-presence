@@ -156,6 +156,10 @@ library BookingMapLib {
 
     /// YearsStore -------------------------------------------
 
+    function length(YearsStore storage store) internal view returns (uint256) {
+        return store._inner.length();
+    }
+
     function add(YearsStore storage store, Year memory _year) internal returns (bool) {
         bytes32 k = _buildYearKey(_year.number);
         if (store._inner.add(k)) {

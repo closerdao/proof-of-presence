@@ -242,6 +242,36 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
 
 export const getterHelpers = async ({TDFDiamond}: TestContext) => {
   return {
+    presentByYearsFor: (user: {
+      address: string;
+    }): {
+      toInclude: (year: number, nights: number) => Promise<void>;
+      toAllBeZero: () => Promise<void>;
+    } => {
+      const val = async () => {
+        return await TDFDiamond.presentByYearFor(user.address);
+      };
+      return {
+        toInclude: async (year: number, nights: number) => {
+          const list = await val();
+          const found = _.find(list, (e) => e[0] == year);
+
+          expect(found, `presentByYearsFor.toInclude: Year not found in ${JSON.stringify(list)}`).to.not.be.undefined;
+          if (found) {
+            expect(
+              found[1],
+              `presentByYearsFor.toInclude: expected year ${year} to have '${nights}' nights, got ${found[1]}`
+            ).to.eq(nights);
+          }
+        },
+        toAllBeZero: async () => {
+          const list = await val();
+          const all = _.every(list, (e) => e[1] == 0);
+
+          expect(all, `presentByYearsFor.toAllBeZero: some are not`).to.be.true;
+        },
+      };
+    },
     getAccommodationBookings: (user: {address: string}, year: number) => {
       return {
         val: async () => {

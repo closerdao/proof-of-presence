@@ -60,6 +60,34 @@ describe('BookingFacet', () => {
     await test.balances('5', '5', '9995');
   });
 
+  it('presentByYearsFor', async () => {
+    const context = await setup();
+    const {users, deployer} = context;
+
+    const user = await setDiamondUser({
+      user: users[0],
+      ...context,
+    });
+
+    const admin = await setDiamondUser({
+      user: deployer,
+      ...context,
+    });
+
+    await admin.addMember(users[0].address).success();
+
+    const test = await getterHelpers({user: users[0], ...context});
+
+    await test.presentByYearsFor(user).toInclude(2022, 0);
+    const init = addDays(Date.now(), 10);
+    const dates = buildDates(init, 1);
+    await user.bookAccommodation(dates.inputs).success();
+    await test.presentByYearsFor(user).toInclude(init.getUTCFullYear(), 0);
+    await test.presentByYearsFor(user).toAllBeZero();
+    await admin.checkinAccommodationFor(user.address, dates.inputs).success();
+    await test.presentByYearsFor(user).toInclude(init.getUTCFullYear(), dates.inputs.length);
+  });
+
   describe('confirmAccommodationFor', () => {
     it('works', async () => {
       const context = await setup();
