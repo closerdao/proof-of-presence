@@ -27,6 +27,8 @@ library BookingMapLib {
         mapping(uint16 => uint256) balance;
         mapping(uint16 => EnumerableMap.Bytes32ToUintMap) dates;
         mapping(bytes32 => Booking) bookings;
+        // TODO: still not implemented but added here to optimize proofOfPresence
+        mapping(uint16 => uint16) checkedInNights;
     }
 
     struct Year {
@@ -40,6 +42,17 @@ library BookingMapLib {
     struct YearsStore {
         EnumerableSet.Bytes32Set _inner;
         mapping(bytes32 => Year) elems;
+    }
+
+    function checkedInNightsOn(UserStore storage store, uint16 year_) internal view returns (uint16) {
+        Booking[] memory localList = list(store, year_);
+        uint16 acc;
+        for (uint256 i; i < localList.length; i++) {
+            if (localList[i].status == BookingMapLib.BookingStatus.CheckedIn) {
+                acc++;
+            }
+        }
+        return acc;
     }
 
     function add(UserStore storage store, Booking memory booking) internal returns (bool) {
