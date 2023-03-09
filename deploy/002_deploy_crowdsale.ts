@@ -2,8 +2,8 @@ import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {DeployFunction} from 'hardhat-deploy/types';
 import {parseEther} from 'ethers/lib/utils';
 
-// TODO: This deployment is only been used for tests.
-// deploy in test instead of on the main deploy
+// TODO: This deployment is only being used for testing.
+// deploy as a nock in tests instead of here
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (hre.network.name === 'celo') {
     return;

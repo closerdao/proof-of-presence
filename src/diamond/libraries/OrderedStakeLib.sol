@@ -3,7 +3,6 @@
 pragma solidity 0.8.9;
 
 import "../../Libraries/CustomDoubleEndedQueue.sol";
-import "hardhat/console.sol";
 
 library OrderedStakeLib {
     using CustomDoubleEndedQueue for CustomDoubleEndedQueue.Bytes32Deque;
