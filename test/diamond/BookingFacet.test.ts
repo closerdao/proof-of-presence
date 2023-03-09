@@ -60,7 +60,7 @@ describe('BookingFacet', () => {
     await test.balances('5', '5', '9995');
   });
 
-  it('presentByYearsFor', async () => {
+  it('checkedInNightsByYearFor', async () => {
     const context = await setup();
     const {users, deployer} = context;
 
@@ -78,14 +78,14 @@ describe('BookingFacet', () => {
 
     const test = await getterHelpers({user: users[0], ...context});
 
-    await test.presentByYearsFor(user).toInclude(2022, 0);
+    await test.checkedInNightsByYearFor(user).toInclude(2022, 0);
     const init = addDays(Date.now(), 10);
     const dates = buildDates(init, 1);
     await user.bookAccommodation(dates.inputs).success();
-    await test.presentByYearsFor(user).toInclude(init.getUTCFullYear(), 0);
-    await test.presentByYearsFor(user).toAllBeZero();
+    await test.checkedInNightsByYearFor(user).toInclude(init.getUTCFullYear(), 0);
+    await test.checkedInNightsByYearFor(user).toAllBeZero();
     await admin.checkinAccommodationFor(user.address, dates.inputs).success();
-    await test.presentByYearsFor(user).toInclude(init.getUTCFullYear(), dates.inputs.length);
+    await test.checkedInNightsByYearFor(user).toInclude(init.getUTCFullYear(), dates.inputs.length);
   });
 
   describe('confirmAccommodationFor', () => {
