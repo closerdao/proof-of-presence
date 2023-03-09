@@ -41,22 +41,11 @@ contract BookingFacet is Modifiers {
     }
 
     // TODO: Move to BookingMapLib
-    function presentByYearFor(address account_) public view returns (uint16[2][] memory) {
+    function checkedInNightsByYearFor(address account_) public view returns (uint16[2][] memory) {
         BookingMapLib.Year[] memory yearList = s._accommodationYears.values();
         uint16[2][] memory acc = new uint16[2][](yearList.length);
         for (uint256 i; i < s._accommodationYears.length(); i++) {
-            acc[i] = [yearList[i].number, _proofOfPresenceForYear(account_, yearList[i].number)];
-        }
-        return acc;
-    }
-
-    function _proofOfPresenceForYear(address account_, uint16 year_) internal view returns (uint16) {
-        BookingMapLib.Booking[] memory list = s._accommodationBookings[account_].list(year_);
-        uint16 acc;
-        for (uint256 i; i < list.length; i++) {
-            if (list[i].status == BookingMapLib.BookingStatus.CheckedIn) {
-                acc++;
-            }
+            acc[i] = [yearList[i].number, s._accommodationBookings[account_].checkedInNightsOn(yearList[i].number)];
         }
         return acc;
     }

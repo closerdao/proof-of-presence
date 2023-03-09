@@ -249,7 +249,7 @@ export const getterHelpers = async ({TDFDiamond}: TestContext) => {
       toAllBeZero: () => Promise<void>;
     } => {
       const val = async () => {
-        return await TDFDiamond.presentByYearFor(user.address);
+        return await TDFDiamond.checkedInNightsByYearFor(user.address);
       };
       return {
         toInclude: async (year: number, nights: number) => {
