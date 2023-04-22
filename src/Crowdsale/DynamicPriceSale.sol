@@ -137,7 +137,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     function calculateTotalCost(uint256 amount) public view returns (uint256 newPrice, uint256 totalCost) {
         uint256 currentSupply = token.totalSupply();
         require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
-        // require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
+        require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
         /// @dev sale-function coefficients
         uint256 c = 420;
         uint256 b = 32000461777723 * (10**54);
