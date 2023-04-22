@@ -27,9 +27,9 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     uint256 public saleHardCap;
     address public treasury;
     /// @dev mininum value for usable part of the curve
-    uint256 public priceCurveMinValue = 4109 ether;
+    uint256 public priceCurveMinValue;
     /// @dev maximum safe value for curve to protect against integer overflows
-    uint256 public priceCurveMaxValue = 200000 ether;
+    uint256 public priceCurveMaxValue;
 
     event SuccessBuy(address to, uint256 amount);
 
@@ -72,6 +72,8 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         currentPrice = 222 ether;
         saleHardCap = 7000 ether;
         treasury = treasury_;
+        priceCurveMinValue = 4109 ether;
+        priceCurveMaxValue = 200000 ether;
     }
 
     // Buy:

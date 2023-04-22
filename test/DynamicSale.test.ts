@@ -60,7 +60,7 @@ const setSigner = (user: User, context: Context) => ({
 
 describe('DynamicSale', () => {
   describe('buy', () => {
-    it.skip('works', async () => {
+    it.only('works', async () => {
       const context = await setup();
 
       const user = setSigner(context.users[0], context);
