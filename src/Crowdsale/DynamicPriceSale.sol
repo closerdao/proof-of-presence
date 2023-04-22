@@ -70,7 +70,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
         currentPrice = 222 ether;
-        saleHardCap = 7000 ether;
+        saleHardCap = 70000 ether;
         treasury = treasury_;
         priceCurveMinValue = 4109 ether;
         priceCurveMaxValue = 200000 ether;
@@ -137,7 +137,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     function calculateTotalCost(uint256 amount) public view returns (uint256 newPrice, uint256 totalCost) {
         uint256 currentSupply = token.totalSupply();
         require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
-        require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
+        // require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
         /// @dev sale-function coefficients
         uint256 c = 420;
         uint256 b = 32000461777723 * (10**54);

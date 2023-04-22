@@ -28,11 +28,13 @@ const setSigner = (user: User, context: Context) => ({
   address: user.address,
   buy: (amount: string) => ({
     success: async () => {
+      await context.deployer.TDFToken.mint(context.deployer.address, parseEther('10000'));
       await expect(user.DynamicSale.buy(parseEther(amount))).to.emit(context.DynamicSale, 'SuccessBuy');
     },
   }),
   calculateTotalCost: (amount: string) => ({
     toEq: async (expected: string) => {
+      await context.deployer.TDFToken.mint(context.deployer.address, parseEther('10000'));
       const resultObj = await context.DynamicSale.calculateTotalCost(parseEther(amount));
       expect(
         resultObj.totalCost,
@@ -60,7 +62,7 @@ const setSigner = (user: User, context: Context) => ({
 
 describe('DynamicSale', () => {
   describe('buy', () => {
-    it.only('works', async () => {
+    it('works', async () => {
       const context = await setup();
 
       const user = setSigner(context.users[0], context);
@@ -99,19 +101,19 @@ describe('DynamicSale', () => {
   });
 
   describe('calculateTotalCost', () => {
-    it.skip('works', async () => {
+    it('works', async () => {
       const context = await setup();
 
       const user = setSigner(context.users[0], context);
 
-      await context.deployer.TDFToken.mint(context.deployer.address, parseEther('2433'));
+      // await context.deployer.TDFToken.mint(context.deployer.address, parseEther('2433'));
 
       // await user.calculateTotalCost('1').toEq('223.12');
       // await user.calculateTotalCost('5').toEq('1126.77');
       // await user.calculateTotalCost('10').toEq('2281.98');
       // await user.calculateTotalCost('20').toEq('4680.66');
       // await user.calculateTotalCost('30').toEq('7202.0');
-      await user.calculateTotalCost('100').toEq('28855.65');
+      await user.calculateTotalCost('100').toEq('42000.0');
       // await user.calculateTotalCost('5000').toEq('28855.641455224455');
     });
   });
