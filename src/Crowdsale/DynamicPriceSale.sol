@@ -18,6 +18,7 @@ interface IMinterDAO {
 
 contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2StepUpgradeable, PausableUpgradeable {
     using SafeMathUpgradeable for uint256;
+    using SafeMathUpgradeable for int256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     IERC20Upgradeable public token;
@@ -96,7 +97,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         uint256 amount
     ) internal {
         (uint256 newPrice, uint256 totalCost) = calculateTotalCost(amount); // 18 decimals
-        quote.safeTransferFrom(spender, treasury, totalCost);
+        quote.safeTransferFrom(spender, treasury, uint256(totalCost));
         currentPrice = newPrice;
         minter.mintCommunityTokenTo(to, amount);
         emit SuccessBuy(to, amount);
@@ -136,18 +137,20 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     /// @return totalCost TODO
     function calculateTotalCost(uint256 amount) public view returns (uint256 newPrice, uint256 totalCost) {
         uint256 currentSupply = token.totalSupply();
-        require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
-        require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
-        /// @dev sale-function coefficients
-        uint256 c = 420;
-        uint256 b = 32000461777723 * (10**54);
-        uint256 a = 11680057722 * (10**36);
+        // require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
+        // require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
+        // /// @dev sale-function coefficients
 
-        uint256 start = currentSupply;
-        uint256 end = start + amount;
-        newPrice = c - a / end**2 + b / end**3;
-        totalCost = c * (end - start) + a * (1 / end - 1 / start) - (b / 2) * (1 / end**2 - 1 / start**2);
+        int256 c = 420;
+        int256 b = 32000461777723 * (10**54);
+        int256 a = 11680057722 * (10**36);
+
+        int256 start = int256(currentSupply);
+        int256 end = start + int256(amount);
+        int256 _newPrice = c - (a / end**2) + (b / end**3);
+        int256 _totalCost = c*10**54 * (end - start) + a * ((10**54 / end) - (10**54 / start)) - (b / 2) * ((10**54 / end**2) - (10**54 / start**2));
+        newPrice = uint256(_newPrice);
+        totalCost = uint((_totalCost/10**70)*10**16);
     }
-
     // endregion:     --- Price Calculations
 }
