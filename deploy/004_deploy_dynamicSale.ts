@@ -34,6 +34,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const sale = await deploy('DynamicSale', {
     from: deployer,
+    gasPrice: ethers.utils.parseUnits('100', 'gwei'), // specify a higher gas price
     proxy: {
       proxyContract: 'OptimizedTransparentProxy',
       execute: {

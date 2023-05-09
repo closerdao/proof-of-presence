@@ -97,7 +97,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         uint256 amount
     ) internal {
         (uint256 newPrice, uint256 totalCost) = calculateTotalCost(amount); // 18 decimals
-        quote.safeTransferFrom(spender, treasury, uint256(totalCost));
+        quote.safeTransferFrom(spender, treasury, totalCost);
         currentPrice = newPrice;
         minter.mintCommunityTokenTo(to, amount);
         emit SuccessBuy(to, amount);
@@ -137,8 +137,8 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     /// @return totalCost TODO
     function calculateTotalCost(uint256 amount) public view returns (uint256 newPrice, uint256 totalCost) {
         uint256 currentSupply = token.totalSupply();
-        // require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
-        // require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
+        require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
+        require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
         // /// @dev sale-function coefficients
 
         int256 c = 420;
