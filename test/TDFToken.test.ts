@@ -1,11 +1,10 @@
 import {expect} from './chai-setup';
 import {ethers, deployments, getUnnamedAccounts, getNamedAccounts} from 'hardhat';
-import {DAOAllowTransfersMock, TDFToken, TDFDiamond} from '../typechain';
+import {DAOAllowTransfersMock, TDFToken, TDFDiamond, PrelaunchDAO} from '../typechain';
 import {setupUser, setupUsers, getMock} from './utils';
 import {MAX_UINT256, ZERO_ADDRESS} from '../utils';
 import {parseEther} from 'ethers/lib/utils';
 import DiamondDeployment from '../future_deploy/004_deploy_diamond';
-import {PrelauncDAO} from '../typechain/PrelauncDAO';
 
 const setup = deployments.createFixture(async (hre) => {
   await deployments.fixture();
@@ -17,7 +16,7 @@ const setup = deployments.createFixture(async (hre) => {
     TDFToken: <TDFToken>await ethers.getContract('TDFToken'),
     TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond'),
     DAOMock: <DAOAllowTransfersMock>await getMock('DAOAllowTransfersMock', deployer, []),
-    PrelauchDAO: <PrelauncDAO>await ethers.getContract('PrelaunchDAO'),
+    PrelauchDAO: <PrelaunchDAO>await ethers.getContract('PrelaunchDAO'),
   };
   const users = await setupUsers(await getUnnamedAccounts(), contracts);
   return {
