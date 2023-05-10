@@ -2,12 +2,12 @@
 pragma solidity 0.8.9;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ITransferPermitter} from "../Interfaces/ITransferPermitter.sol";
+import {ITransferPermitter} from "./Interfaces/ITransferPermitter.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
-import {ITDFToken} from "../Interfaces/ITDFToken.sol";
+import {ITDFToken} from "./Interfaces/ITDFToken.sol";
 
-contract PrelauncDao is ITransferPermitter, Ownable, Pausable {
+contract PrelaunchDAO is ITransferPermitter, Ownable, Pausable {
     IERC20 public communityToken;
     address public saleContract;
 
