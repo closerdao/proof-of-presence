@@ -46,6 +46,9 @@ const namedAccounts = {
     default: 0,
     // alfajores: '0xDa037704F51AA75f4E3893957dB0D0B996331c0e',
   },
+  TDFTreasury: {
+    default: '0x9151e20ec7f2D89D78C92B9edD86DFAFB664e985',
+  },
   julienFirst: {
     default: 1,
     alfajores: '0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716',

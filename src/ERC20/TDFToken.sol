@@ -28,18 +28,18 @@ contract TDFToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         _;
     }
 
-    function initialize(address manager) public initializer {
-        __TDFToken_init(manager);
+    function initialize(address _daoAddress) public initializer {
+        __TDFToken_init(_daoAddress);
     }
 
-    function __TDFToken_init(address manager) internal onlyInitializing {
+    function __TDFToken_init(address _daoAddress) internal onlyInitializing {
         __ERC20_init("TDF Token", "TDF");
-        __TDFToken_init_unchained(manager);
+        __TDFToken_init_unchained(_daoAddress);
         __Ownable2Step_init();
     }
 
-    function __TDFToken_init_unchained(address manager) internal onlyInitializing {
-        _daoContract = ITransferPermitter(manager);
+    function __TDFToken_init_unchained(address _daoAddress) internal onlyInitializing {
+        _daoContract = ITransferPermitter(_daoAddress);
         _paused = false;
     }
 
