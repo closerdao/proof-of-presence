@@ -1,6 +1,5 @@
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {DeployFunction} from 'hardhat-deploy/types';
-import {ZERO_ADDRESS} from '../utils';
 import {ethers} from 'hardhat';
 import {PrelaunchDAO} from '../typechain';
 

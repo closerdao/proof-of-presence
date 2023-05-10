@@ -14,7 +14,7 @@ import * as bookingHelpers from './bookingHelpers';
 import * as membershipHelpers from './membershipHelpers';
 import * as adminHelpers from './adminHelpers';
 import type {TDFToken, TDFDiamond} from '../../../typechain';
-
+import DDeployment from '../../../future_deploy/004_deploy_diamond';
 export {ROLES} from '../../../utils';
 
 const BN = ethers.BigNumber;
@@ -177,6 +177,9 @@ export const setupContext = deployments.createFixture(async (hre) => {
   const accounts = await getNamedAccounts();
   const users = await getUnnamedAccounts();
   const {deployer, TDFTokenBeneficiary} = accounts;
+
+  // TODO: this is to test DIAMOND before it is deployed
+  await DDeployment(hre);
 
   const token: TDFToken = await ethers.getContract('TDFToken', deployer);
   const contracts = {

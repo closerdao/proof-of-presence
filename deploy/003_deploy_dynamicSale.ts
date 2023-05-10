@@ -2,13 +2,12 @@ import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {DeployFunction} from 'hardhat-deploy/types';
 import {PrelaunchDAO} from '../typechain';
 import {ethers} from 'hardhat';
-import {ROLES} from '../utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
   const {deploy} = deployments;
   const accounts = await getNamedAccounts();
-  const {deployer, TDFDevMultisig} = accounts;
+  const {deployer, TDFTreasury} = accounts;
 
   const TDFToken = await deployments.get('TDFToken');
   const dao = (await ethers.getContract('PrelaunchDAO', deployer)).connect(
@@ -39,7 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     proxy: {
       proxyContract: 'OptimizedTransparentProxy',
       execute: {
-        init: {methodName: `initialize`, args: [TDFToken.address, eur, dao.address, TDFDevMultisig]},
+        init: {methodName: `initialize`, args: [TDFToken.address, eur, dao.address, TDFTreasury]},
       },
     },
     log: true,
