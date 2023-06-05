@@ -145,12 +145,23 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         int256 b = 32000461777723 * (10**54);
         int256 a = 11680057722 * (10**36);
 
-        int256 start = int256(currentSupply);
-        int256 end = start + int256(amount);
-        int256 _newPrice = c - (a / end**2) + (b / end**3);
-        int256 _totalCost = c*10**54 * (end - start) + a * ((10**54 / end) - (10**54 / start)) - (b / 2) * ((10**54 / end**2) - (10**54 / start**2));
+        // Get current supply
+        int256 supplyBeforeBuy = int256(currentSupply);
+        // Calculate supply after buying
+        int256 supplyAfterBuy = supplyBeforeBuy + int256(amount);
+        // Get unit price after amount has been bought acoording to formula: c + a/S^2 + b/S^3
+        int256 _newPrice = c - (a / supplyAfterBuy**2) + (b / supplyAfterBuy**3);
+        // Calculate total induced cost
+        int256 _totalCost = c *
+            (10**54) *
+            (supplyAfterBuy - supplyBeforeBuy) +
+            a *
+            ((10**54 / supplyAfterBuy) - (10**54 / supplyBeforeBuy)) -
+            (b / 2) *
+            ((10**54 / supplyAfterBuy**2) - (10**54 / supplyBeforeBuy**2));
+
         newPrice = uint256(_newPrice);
-        totalCost = uint((_totalCost/10**70)*10**16);
+        totalCost = uint256((_totalCost / 10**70) * 10**16);
     }
     // endregion:     --- Price Calculations
 }
