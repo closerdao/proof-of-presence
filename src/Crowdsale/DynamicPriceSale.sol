@@ -130,6 +130,15 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
 
     // region:     --- Price Calculations
 
+    /// @notice calculates the current price on the bonding curve
+    /// @dev calculates the current price of the token
+    /// @return _currentPrice The current price of the token, based on the current supply
+    function calculateCurrentPrice() public view returns (uint256 _currentPrice) {
+        int256 currentSupply = int256(token.totalSupply());
+
+        _currentPrice = _calculatePrice(currentSupply);
+    }
+
     /// @notice calculates the total cost of the amount to be bought from curve
     /// @dev the cost function based on formula as stated in the whitepaper
     /// @param amount amount of token to be bought
@@ -149,8 +158,6 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         int256 supplyBeforeBuy = int256(currentSupply);
         // Calculate supply after buying
         int256 supplyAfterBuy = supplyBeforeBuy + int256(amount);
-        // Get unit price after amount has been bought acoording to formula: c + a/S^2 + b/S^3
-        int256 _newPrice = c - (a / supplyAfterBuy**2) + (b / supplyAfterBuy**3);
         // Calculate total induced cost
         int256 _totalCost = c *
             (10**54) *
@@ -160,8 +167,17 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
             (b / 2) *
             ((10**54 / supplyAfterBuy**2) - (10**54 / supplyBeforeBuy**2));
 
-        newPrice = uint256(_newPrice);
+        // Get unit price after amount has been bought
+        newPrice = _calculatePrice(supplyAfterBuy);
         totalCost = uint256((_totalCost / 10**70) * 10**16);
+    }
+
+    function _calculatePrice(int256 _tokenSupply) private pure returns (uint256 _tokenPrice) {
+        int256 c = 420;
+        int256 b = 32000461777723 * (10**54);
+        int256 a = 11680057722 * (10**36);
+
+        _tokenPrice = uint256(c - (a / _tokenSupply**2) + (b / _tokenSupply**3));
     }
     // endregion:     --- Price Calculations
 }
