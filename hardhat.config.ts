@@ -15,7 +15,6 @@ import './hardhatExtensions';
 
 // This is the mnemonic used by celo-devchain
 const DEVCHAIN_MNEMONIC = 'myth like bonus scare over problem client lizard pioneer submit female collect';
-
 const getAccounts = (
   def: [string] | {mnemonic: string} | undefined = undefined
 ): [string] | {mnemonic: string} | undefined => {

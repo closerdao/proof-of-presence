@@ -18,6 +18,7 @@ interface IMinterDAO {
 
 contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2StepUpgradeable, PausableUpgradeable {
     using SafeMathUpgradeable for uint256;
+    using SafeMathUpgradeable for int256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     IERC20Upgradeable public token;
@@ -27,9 +28,9 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     uint256 public saleHardCap;
     address public treasury;
     /// @dev mininum value for usable part of the curve
-    uint256 public priceCurveMinValue = 4109 ether;
+    uint256 public priceCurveMinValue;
     /// @dev maximum safe value for curve to protect against integer overflows
-    uint256 public priceCurveMaxValue = 200000 ether;
+    uint256 public priceCurveMaxValue;
 
     event SuccessBuy(address to, uint256 amount);
 
@@ -70,8 +71,10 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
         currentPrice = 222 ether;
-        saleHardCap = 7000 ether;
+        saleHardCap = 70000 ether;
         treasury = treasury_;
+        priceCurveMinValue = 4109 ether;
+        priceCurveMaxValue = 200000 ether;
     }
 
     // Buy:
@@ -127,6 +130,15 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
 
     // region:     --- Price Calculations
 
+    /// @notice calculates the current price on the bonding curve
+    /// @dev calculates the current price of the token
+    /// @return _currentPrice The current price of the token, based on the current supply
+    function calculateCurrentPrice() public view returns (uint256 _currentPrice) {
+        int256 currentSupply = int256(token.totalSupply());
+
+        _currentPrice = _calculatePrice(currentSupply);
+    }
+
     /// @notice calculates the total cost of the amount to be bought from curve
     /// @dev the cost function based on formula as stated in the whitepaper
     /// @param amount amount of token to be bought
@@ -136,16 +148,36 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         uint256 currentSupply = token.totalSupply();
         require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
         require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
-        /// @dev sale-function coefficients
-        uint256 c = 420;
-        uint256 b = 32000461777723 * (10**54);
-        uint256 a = 11680057722 * (10**36);
+        // /// @dev sale-function coefficients
 
-        uint256 start = currentSupply;
-        uint256 end = start + amount;
-        newPrice = c - a / end**2 + b / end**3;
-        totalCost = c * (end - start) + a * (1 / end - 1 / start) - (b / 2) * (1 / end**2 - 1 / start**2);
+        int256 c = 420;
+        int256 b = 32000461777723 * (10**54);
+        int256 a = 11680057722 * (10**36);
+
+        // Get current supply
+        int256 supplyBeforeBuy = int256(currentSupply);
+        // Calculate supply after buying
+        int256 supplyAfterBuy = supplyBeforeBuy + int256(amount);
+        // Calculate total induced cost
+        int256 _totalCost = c *
+            (10**54) *
+            (supplyAfterBuy - supplyBeforeBuy) +
+            a *
+            ((10**54 / supplyAfterBuy) - (10**54 / supplyBeforeBuy)) -
+            (b / 2) *
+            ((10**54 / supplyAfterBuy**2) - (10**54 / supplyBeforeBuy**2));
+
+        // Get unit price after amount has been bought
+        newPrice = _calculatePrice(supplyAfterBuy);
+        totalCost = uint256((_totalCost / 10**70) * 10**16);
     }
 
+    function _calculatePrice(int256 _tokenSupply) private pure returns (uint256 _tokenPrice) {
+        int256 c = 420;
+        int256 b = 32000461777723 * (10**54);
+        int256 a = 11680057722 * (10**36);
+
+        _tokenPrice = uint256(c - (a / _tokenSupply**2) + (b / _tokenSupply**3));
+    }
     // endregion:     --- Price Calculations
 }
