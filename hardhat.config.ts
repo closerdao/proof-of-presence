@@ -37,13 +37,13 @@ const namedAccounts = {
   },
   TDFTokenBeneficiary: {
     default: 0,
-    // alfajores: '0xDa037704F51AA75f4E3893957dB0D0B996331c0e',
+    alfajores: '0x2Ba5dCb83a95e998c57410435bb7699B8Bca929e',
     localhost: 1,
     hardhat: 1,
   },
   TDFDevMultisig: {
     default: 0,
-    // alfajores: '0xDa037704F51AA75f4E3893957dB0D0B996331c0e',
+    alfajores: '0xBD9658A4286459DD599Ab8b02bDa6167d750A288',
   },
   julienFirst: {
     default: 1,
