@@ -13,20 +13,23 @@ import "../libraries/AccessControlLib.sol";
 import "../libraries/MembershipLib.sol";
 import "../libraries/StakeLibV2.sol";
 
+// when upgrading AppStorage add new state vars to the end of the struct
+// structs can only be upgraded if they are referred to within AppStorage by a mapping
 struct AppStorage {
     bool initialized;
     // execution
     bool paused;
     // The ERC!!
     IERC20 communityToken;
-    // Roles
+    // Roles; the AccessControlLib.RoleStore struct can be upgraded
     AccessControlLib.RoleStore _roleStore;
-    // Booking
+    // Booking; the BookingMapLib.UserStore struct can be upgraded
+    // BookingMapLib.YearsStore cannot be upgraded
     mapping(address => BookingMapLib.UserStore) _accommodationBookings;
     BookingMapLib.YearsStore _accommodationYears;
-    // Stake
+    // Stake; the OrderedStakeLib.Store struct can be upgraded
     mapping(address => OrderedStakeLib.Store) staking;
-    // Members
+    // Members; the MembershipLib.Store struct cannot be upgraded
     MembershipLib.Store members;
 }
 

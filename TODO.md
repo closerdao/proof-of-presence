@@ -34,9 +34,9 @@
 
 - [ ] Review and mark with annotations all AppStorage variables for updates with
 
-  - [ ] immutable struct
-  - [ ] mutable struct
-  - [ ] where to add variables
+  - [x] immutable struct
+  - [x] mutable struct
+  - [x] where to add variables
   - [ ] review storage slots and or verify
 
 - [ ] move staking logic to a Library example: <https://github.com/aavegotchi/aavegotchi-contracts/blob/master/contracts/Aavegotchi/libraries/LibAavegotchi.sol#L252>
