@@ -72,8 +72,11 @@ export async function getInactiveContract(name: string, args?: []): Promise<Cont
     // Example:
     case 'TDFSale': {
       const {weth, TDFTokenBeneficiary} = accounts;
-      const TDFToken = await ethers.getContract('TDFToken');
-      await deployments.deploy('TDFSale', {from: deployer, args: [TDFToken.address, weth, TDFTokenBeneficiary, 1, 1]});
+      const TDFTokenTest = await ethers.getContract('TDFTokenTest');
+      await deployments.deploy('TDFSale', {
+        from: deployer,
+        args: [TDFTokenTest.address, weth, TDFTokenBeneficiary, 1, 1],
+      });
       return ethers.getContract('TDFSale', deployer);
     }
     default: {

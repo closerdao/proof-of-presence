@@ -1,16 +1,16 @@
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {DeployFunction} from 'hardhat-deploy/types';
 import {ethers} from 'hardhat';
-import {TDFToken} from '../typechain';
+import {TDFTokenTest} from '../typechain';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
   const {diamond} = deployments;
 
   const {deployer} = await getNamedAccounts();
-  const realTDFToken = (await ethers.getContract('TDFToken', deployer)).connect(
+  const realTDFToken = (await ethers.getContract('TDFTokenTest', deployer)).connect(
     await ethers.getSigner(deployer)
-  ) as TDFToken;
+  ) as TDFTokenTest;
 
   const contract = await diamond.deploy('TDFDiamond', {
     from: deployer,
@@ -22,7 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       {name: 'MembershipFacet'},
       {name: 'DiamondInit'},
     ],
-    // diamondContractArgs: [TDFToken.address],
+    // diamondContractArgs: [TDFTokenTest.address],
     execute: {
       methodName: 'init',
       args: [realTDFToken.address],

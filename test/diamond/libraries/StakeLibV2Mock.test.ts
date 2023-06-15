@@ -551,7 +551,7 @@ describe('StakingLibV2Mock', () => {
     await user.token.faucet(parseEther('10000'));
     expect(await token.balanceOf(user.address), 'user to have initial balance').to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
-    // await user.TDFToken.approve(deployer.address, parseEther('10'));
+    // await user.TDFTokenTest.approve(deployer.address, parseEther('10'));
     await user.token.approve(stake.address, parseEther('10'));
     let initLockAt = buildDate(3);
     ///////////////////////////////////////////////

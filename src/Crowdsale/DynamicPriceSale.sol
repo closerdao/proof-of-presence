@@ -16,7 +16,7 @@ interface IMinterDAO {
     function mintCommunityTokenTo(address to, uint256 amount) external;
 }
 
-contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2StepUpgradeable, PausableUpgradeable {
+contract DynamicSaleTest is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2StepUpgradeable, PausableUpgradeable {
     using SafeMathUpgradeable for uint256;
     using SafeMathUpgradeable for int256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -35,10 +35,10 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     event SuccessBuy(address to, uint256 amount);
 
     modifier buyAmountConstraints(uint256 amount) {
-        require(amount >= 1 ether, "DynamicSale: (MinBuy) required 1 ether minimum buy");
-        require(amount % 1 ether == 0, "DynamicSale: (NonWholeUnit) only whole units allowed");
-        require(amount <= 100 ether, "DynamicSale: (MaxAllowed) max buy allowed is 100");
-        require(token.totalSupply() + amount <= saleHardCap, "DynamicSale: (MaxSupply) maximum supply reached");
+        require(amount >= 1 ether, "DynamicSaleTest: (MinBuy) required 1 ether minimum buy");
+        require(amount % 1 ether == 0, "DynamicSaleTest: (NonWholeUnit) only whole units allowed");
+        require(amount <= 100 ether, "DynamicSaleTest: (MaxAllowed) max buy allowed is 100");
+        require(token.totalSupply() + amount <= saleHardCap, "DynamicSaleTest: (MaxSupply) maximum supply reached");
         _;
     }
 
@@ -146,8 +146,8 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     /// @return totalCost TODO
     function calculateTotalCost(uint256 amount) public view returns (uint256 newPrice, uint256 totalCost) {
         uint256 currentSupply = token.totalSupply();
-        require(currentSupply >= priceCurveMinValue, "DynamicSale: current totalSupply too low");
-        require(currentSupply + amount <= priceCurveMaxValue, "DynamicSale: totalSupply limit reached");
+        require(currentSupply >= priceCurveMinValue, "DynamicSaleTest: current totalSupply too low");
+        require(currentSupply + amount <= priceCurveMaxValue, "DynamicSaleTest: totalSupply limit reached");
         // /// @dev sale-function coefficients
 
         int256 c = 420;

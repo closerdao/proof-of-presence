@@ -1,5 +1,5 @@
 import {getNamedAccounts, getUnnamedAccounts, ethers, run} from 'hardhat';
-import {TDFToken, FakeEURToken, DynamicSale} from '../typechain';
+import {TDFTokenTest, FakeEURToken, DynamicSaleTest} from '../typechain';
 import {Contract} from 'ethers';
 import {formatEther, parseEther} from 'ethers/lib/utils';
 import fs from 'fs-extra';
@@ -19,9 +19,9 @@ async function main() {
   const namedAccounts = await getNamedAccounts();
   const users = await getUnnamedAccounts();
   const contracts = {
-    token: <TDFToken>await ethers.getContract('TDFToken', namedAccounts.deployer),
+    token: <TDFTokenTest>await ethers.getContract('TDFTokenTest', namedAccounts.deployer),
     fakeEur: <FakeEURToken>await ethers.getContract('FakeEURToken', namedAccounts.deployer),
-    sale: <DynamicSale>await ethers.getContract('DynamicSale', namedAccounts.deployer),
+    sale: <DynamicSaleTest>await ethers.getContract('DynamicSaleTest', namedAccounts.deployer),
   };
 
   const user = await setupUser(users[0], contracts);

@@ -8,7 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const {deployer} = await getNamedAccounts();
 
-  await deploy('TDFToken', {
+  await deploy('TDFTokenTest', {
     from: deployer,
     proxy: {
       proxyContract: 'OptimizedTransparentProxy',
@@ -17,4 +17,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 };
 export default func;
-func.tags = ['TDFToken'];
+func.tags = ['TDFTokenTest'];

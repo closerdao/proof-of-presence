@@ -1,6 +1,6 @@
 import {expect} from './chai-setup';
 import {deployments, ethers, getUnnamedAccounts, getNamedAccounts} from 'hardhat';
-import {TDFToken, TDFDiamond, DynamicSale, FakeEURToken} from '../typechain';
+import {TDFTokenTest, TDFDiamond, DynamicSaleTest, FakeEURToken} from '../typechain';
 import {setupUser, setupUsers} from './utils';
 import {formatEther, parseEther} from 'ethers/lib/utils';
 
@@ -9,9 +9,9 @@ const setup = deployments.createFixture(async () => {
   const {deployer} = await getNamedAccounts();
   const contracts = {
     FakeEURToken: <FakeEURToken>await ethers.getContract('FakeEURToken'),
-    TDFToken: <TDFToken>await ethers.getContract('TDFToken'),
+    TDFTokenTest: <TDFTokenTest>await ethers.getContract('TDFTokenTest'),
     TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond'),
-    DynamicSale: <DynamicSale>await ethers.getContract('DynamicSale'),
+    DynamicSaleTest: <DynamicSaleTest>await ethers.getContract('DynamicSaleTest'),
   };
   const users = await setupUsers(await getUnnamedAccounts(), contracts);
   return {
@@ -29,15 +29,15 @@ const setSigner = (user: User, context: Context) => ({
   address: user.address,
   buy: (amount: string) => ({
     success: async () => {
-      await expect(user.DynamicSale.buy(parseEther(amount))).to.emit(context.DynamicSale, 'SuccessBuy');
+      await expect(user.DynamicSaleTest.buy(parseEther(amount))).to.emit(context.DynamicSaleTest, 'SuccessBuy');
     },
     fail: async () => {
-      await expect(user.DynamicSale.buy(parseEther(amount))).to.be.reverted;
+      await expect(user.DynamicSaleTest.buy(parseEther(amount))).to.be.reverted;
     },
   }),
   calculateTotalCost: (amount: string) => ({
     toEq: async (expectedTotalCost: string, expectedNewPrice: string) => {
-      const resultObj = await context.DynamicSale.calculateTotalCost(parseEther(amount));
+      const resultObj = await context.DynamicSaleTest.calculateTotalCost(parseEther(amount));
       expect(
         resultObj.totalCost,
         `calculateTotalCost: for(${amount}) toEq(${expectedTotalCost}) Got(${formatEther(resultObj.totalCost)})`
@@ -48,12 +48,12 @@ const setSigner = (user: User, context: Context) => ({
       ).to.eq(expectedNewPrice);
     },
     fail: async (revertMsg: string) => {
-      await expect(context.DynamicSale.calculateTotalCost(parseEther(amount))).to.be.revertedWith(revertMsg);
+      await expect(context.DynamicSaleTest.calculateTotalCost(parseEther(amount))).to.be.revertedWith(revertMsg);
     },
   }),
   testers: {
     balances: async (token: string, quote?: string) => {
-      expect(await context.TDFToken.balanceOf(user.address), 'token Balance').to.eq(parseEther(token));
+      expect(await context.TDFTokenTest.balanceOf(user.address), 'token Balance').to.eq(parseEther(token));
       if (quote) {
         expect(await context.FakeEURToken.balanceOf(user.address), 'quote balance').to.eq(parseEther(quote));
       }
@@ -64,16 +64,16 @@ const setSigner = (user: User, context: Context) => ({
       await user.FakeEURToken.faucet(parseEther(amount));
     },
     approve: async (amount: string) => {
-      await user.FakeEURToken.approve(context.DynamicSale.address, parseEther(amount));
+      await user.FakeEURToken.approve(context.DynamicSaleTest.address, parseEther(amount));
     },
     mintTDF: async (amount: number) => {
       for (let i = 0; i < amount; i += 100) {
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('100'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('100'));
       }
     },
   },
 });
-describe('DynamicSale', () => {
+describe('DynamicSaleTest', () => {
   let context: Context;
   let user: Signer;
   describe('buy', async () => {
@@ -83,7 +83,7 @@ describe('DynamicSale', () => {
       user = setSigner(context.users[0], context);
       await user.helpers.topup('100000');
       await user.helpers.approve('10000');
-      await context.deployer.TDFToken.mint(context.deployer.address, parseEther('10000'));
+      await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('10000'));
     });
     it('should buy', async () => {
       await user.buy('1').success();
@@ -102,29 +102,29 @@ describe('DynamicSale', () => {
     });
     describe('with supply of 10k', () => {
       it('calculates the correct total cost for the next buy of 100 units', async () => {
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('5381'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('5381'));
         await user.calculateTotalCost('19').toEq('4224.39', '223');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('19'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('19'));
         await user.calculateTotalCost('100').toEq('22444.71', '226');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('100'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('100'));
         await user.calculateTotalCost('100').toEq('22799.54', '230');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('100'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('100'));
         await user.calculateTotalCost('51').toEq('11764.14', '232');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('51'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('51'));
         await user.calculateTotalCost('9').toEq('2085.56', '232');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('9'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('9'));
         await user.calculateTotalCost('40').toEq('9303.74', '233');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('40'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('40'));
         await user.calculateTotalCost('100').toEq('23505.32', '237');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('100'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('100'));
         await user.calculateTotalCost('100').toEq('23854.19', '240');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('100'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('100'));
         await user.calculateTotalCost('100').toEq('24199.29', '244');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('100'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('100'));
         await user.calculateTotalCost('100').toEq('24539.98', '247');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('100'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('100'));
         await user.calculateTotalCost('100').toEq('24875.76', '251');
-        await context.deployer.TDFToken.mint(context.deployer.address, parseEther('100'));
+        await context.deployer.TDFTokenTest.mint(context.deployer.address, parseEther('100'));
         await user.calculateTotalCost('100').toEq('25206.2', '253');
         await user.helpers.mintTDF(3800);
         await user.calculateTotalCost('100').toEq('33588.26', '337');
@@ -241,7 +241,7 @@ describe('DynamicSale', () => {
     describe('with supply of 200k', () => {
       it('reverts if trying to calculate costs for additional purchase', async () => {
         await user.helpers.mintTDF(10000);
-        await user.calculateTotalCost('100').fail('DynamicSale: totalSupply limit reached');
+        await user.calculateTotalCost('100').fail('DynamicSaleTest: totalSupply limit reached');
       });
     });
   });

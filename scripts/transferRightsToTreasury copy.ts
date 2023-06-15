@@ -21,28 +21,29 @@ async function main() {
     token: <TDFTokenTest>await ethers.getContract('TDFTokenTest', namedAccounts.deployer),
     TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', namedAccounts.deployer),
     sale: <DynamicSaleTest>await ethers.getContract('DynamicSaleTest', namedAccounts.deployer),
-    // fakeEur: <FakeEURToken>await ethers.getContract('FakeEURToken', namedAccounts.deployer),
+    fakeEur: <FakeEURToken>await ethers.getContract('FakeEURToken', namedAccounts.deployer),
   };
 
   const deployer = await setupUser(namedAccounts.deployer, contracts);
+  // await deployer.fakeEur.faucet(parseEther('1000000000'));
+  // await deployer.fakeEur.approve(contracts.sale.address, parseEther('1000000000'));
 
-  // Grant Roles
-  await deployer.TDFDiamond.grantRole(ROLES['DEFAULT_ADMIN_ROLE'], namedAccounts.TDFTokenBeneficiary);
+  // await deployer.token.mint(namedAccounts.TDFTokenBeneficiary, parseEther('5201'));
 
-  // Renounce Roles
-  // await deployer.TDFDiamond.renounceRole(ROLES['DEFAULT_ADMIN_ROLE'], deployer.address);
-  // await deployer.TDFDiamond.renounceRole(ROLES['MINTER_ROLE'], deployer.address);
-  // await deployer.TDFDiamond.renounceRole(ROLES['BOOKING_MANAGER_ROLE'], deployer.address);
-  // await deployer.TDFDiamond.renounceRole(ROLES['STAKE_MANAGER_ROLE'], deployer.address);
-  // await deployer.TDFDiamond.renounceRole(ROLES['VAULT_MANAGER_ROLE'], deployer.address);
-  // await deployer.TDFDiamond.renounceRole(ROLES['MEMBERSHIP_MANAGER_ROLE'], deployer.address);
+  // // // Grant Roles
+  // await deployer.TDFDiamond.grantRole(ROLES['DEFAULT_ADMIN_ROLE'], namedAccounts.TDFTokenBeneficiary);
 
-  // Transfer Ownership
-  // Initiate 2 step transfer ownership. PLEASE NOTE: this transfer has to be accepted by the treasury
-  await deployer.token.transferOwnership(namedAccounts.TDFDevMultisig);
-  await deployer.sale.transferOwnership(namedAccounts.TDFDevMultisig);
-  console.log(await deployer.sale.pendingOwner());
-  console.log(await deployer.sale.pendingOwner());
+  // // Transfer Ownership
+  // // Initiate 2 step transfer ownership. PLEASE NOTE: this transfer has to be accepted by the treasury
+  // await deployer.token.transferOwnership(namedAccounts.TDFTokenBeneficiary);
+  // await deployer.sale.transferOwnership(namedAccounts.TDFTokenBeneficiary);
+
+  await deployer.sale.buy(parseEther('80'));
+  console.log(1 * 10 ** 18);
+  const supply = await deployer.token.totalSupply();
+  console.log(supply.toString());
+  const price = await deployer.sale.calculateCurrentPrice();
+  console.log(price.toString());
 }
 
 main()

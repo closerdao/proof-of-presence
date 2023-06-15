@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "../Interfaces/ITransferPermitter.sol";
 
-contract TDFToken is ERC20Upgradeable, Ownable2StepUpgradeable {
+contract TDFTokenTest is ERC20Upgradeable, Ownable2StepUpgradeable {
     /**
      * @dev Emitted when the pause is triggered by `account`.
      */

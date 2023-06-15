@@ -13,7 +13,7 @@ const incYears = async (days: number) => {
 describe('StakingFacet', () => {
   it('lock and unlockMax', async () => {
     const context = await setup();
-    const {users, TDFToken} = context;
+    const {users, TDFTokenTest} = context;
 
     const user = await setDiamondUser({
       user: users[0],
@@ -21,7 +21,7 @@ describe('StakingFacet', () => {
     });
     const test = await userTesters({user: users[0], ...context});
 
-    expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
+    expect(await TDFTokenTest.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
     await user.depositStake('1').success();
@@ -44,7 +44,7 @@ describe('StakingFacet', () => {
   });
   it('lock and unlock', async () => {
     const context = await setup();
-    const {users, TDFDiamond, TDFToken} = context;
+    const {users, TDFDiamond, TDFTokenTest} = context;
 
     const user = await setDiamondUser({
       user: users[0],
@@ -53,7 +53,7 @@ describe('StakingFacet', () => {
 
     const test = await userTesters({user: users[0], ...context});
 
-    expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
+    expect(await TDFTokenTest.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
     ///////////////////////////////////////////////
@@ -124,7 +124,7 @@ describe('StakingFacet', () => {
 
   it('restakeMax', async () => {
     const context = await setup();
-    const {users, TDFToken} = context;
+    const {users, TDFTokenTest} = context;
 
     const user = await setDiamondUser({
       user: users[0],
@@ -132,7 +132,7 @@ describe('StakingFacet', () => {
     });
     const test = await userTesters({user: users[0], ...context});
 
-    expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
+    expect(await TDFTokenTest.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
     await user.depositStake('1').success();
@@ -153,7 +153,7 @@ describe('StakingFacet', () => {
   });
   it('restake(uint256 amount)', async () => {
     const context = await setup();
-    const {users, TDFToken} = context;
+    const {users, TDFTokenTest} = context;
 
     const user = await setDiamondUser({
       user: users[0],
@@ -161,7 +161,7 @@ describe('StakingFacet', () => {
     });
     const test = await userTesters({user: users[0], ...context});
 
-    expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('10000'));
+    expect(await TDFTokenTest.balanceOf(users[0].address)).to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
 
     ///////////////////////////////////////////////

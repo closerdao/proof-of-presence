@@ -1,5 +1,5 @@
 import {getNamedAccounts, ethers} from 'hardhat';
-import {TDFToken, Crowdsale, FakeEURToken} from '../typechain';
+import {TDFTokenTest, Crowdsale, FakeEURToken} from '../typechain';
 import {Contract} from 'ethers';
 import {parseEther} from 'ethers/lib/utils';
 
@@ -17,7 +17,7 @@ async function setupUser<T extends {[contractName: string]: Contract}>(
 async function main() {
   const {TDFDevMultisig, TDFTokenBeneficiary, julienFirst, JulienSecond, sam, deployer} = await getNamedAccounts();
   const contracts = {
-    token: <TDFToken>await ethers.getContract('TDFToken', deployer),
+    token: <TDFTokenTest>await ethers.getContract('TDFTokenTest', deployer),
     fakeEur: <FakeEURToken>await ethers.getContract('FakeEURToken', deployer),
     crowdsale: <Crowdsale>await ethers.getContract('Crowdsale', deployer),
   };

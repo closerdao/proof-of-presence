@@ -13,13 +13,13 @@ import * as stakingHelpers from './stakingHelpers';
 import * as bookingHelpers from './bookingHelpers';
 import * as membershipHelpers from './membershipHelpers';
 import * as adminHelpers from './adminHelpers';
-import type {TDFToken, TDFDiamond} from '../../../typechain';
+import type {TDFTokenTest, TDFDiamond} from '../../../typechain';
 
 export {ROLES} from '../../../utils';
 
 const BN = ethers.BigNumber;
 
-export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => {
+export const userTesters = async ({TDFTokenTest, TDFDiamond, user}: TestContext) => {
   enum BookingStatus {
     Pending = 'Pending',
     Confirmed = 'Confirmed',
@@ -27,7 +27,7 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
   }
   return {
     balances: async (diamondTokenBalance: string, stakedBalance: string, userTokenBalance: string) => {
-      let current = await TDFToken.balanceOf(TDFDiamond.address);
+      let current = await TDFTokenTest.balanceOf(TDFDiamond.address);
       expect(current, `balances diamondTokenBalance to Eq(${diamondTokenBalance}), GOT(${formatEther(current)})`).to.eq(
         parseEther(diamondTokenBalance)
       );
@@ -35,7 +35,7 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
       expect(current, `balances stakedBalance to Eq(${stakedBalance}), GOT(${formatEther(current)})`).to.eq(
         parseEther(stakedBalance)
       );
-      current = await TDFToken.balanceOf(user.address);
+      current = await TDFTokenTest.balanceOf(user.address);
       expect(current, `balances userTokenBalance to Eq(${userTokenBalance}), GOT(${formatEther(current)})`).to.eq(
         parseEther(userTokenBalance)
       );
@@ -178,9 +178,9 @@ export const setupContext = deployments.createFixture(async (hre) => {
   const users = await getUnnamedAccounts();
   const {deployer, TDFTokenBeneficiary} = accounts;
 
-  const token: TDFToken = await ethers.getContract('TDFToken', deployer);
+  const token: TDFTokenTest = await ethers.getContract('TDFTokenTest', deployer);
   const contracts = {
-    TDFToken: token,
+    TDFTokenTest: token,
     TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', deployer),
   };
 
@@ -194,10 +194,10 @@ export const setupContext = deployments.createFixture(async (hre) => {
     accounts,
   };
   // fund users with TDF token
-  await conf.deployer.TDFToken.mint(deployer, parseEther('10000'));
+  await conf.deployer.TDFTokenTest.mint(deployer, parseEther('10000'));
   await Promise.all(
     users.map((e) => {
-      return conf.deployer.TDFToken.mint(e, parseEther('10000'));
+      return conf.deployer.TDFTokenTest.mint(e, parseEther('10000'));
     })
   );
   return conf;

@@ -1,12 +1,12 @@
 import {expect} from './chai-setup';
 import {deployments, getUnnamedAccounts} from 'hardhat';
-import {TDFToken} from '../typechain';
+import {TDFTokenTest} from '../typechain';
 import {setupUser, setupUsers, getMock} from './utils';
 import {parseEther} from 'ethers/lib/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function deploySale(setup: Record<string, any>, price: string, minbuy: string) {
-  const {TDFTokenBeneficiary, FakeEURToken, TDFToken, deployer} = setup;
+  const {TDFTokenBeneficiary, FakeEURToken, TDFTokenTest, deployer} = setup;
   const addresses = await getUnnamedAccounts();
 
   // fund users with fake EUR
@@ -19,14 +19,14 @@ async function deploySale(setup: Record<string, any>, price: string, minbuy: str
 
   // Deploy sell
   const c = await getMock('Crowdsale', deployer.address, [
-    TDFToken.address,
+    TDFTokenTest.address,
     FakeEURToken.address,
     TDFTokenBeneficiary.address,
     p,
     min,
   ]);
   const allowance = parseEther('500000');
-  await TDFTokenBeneficiary.TDFToken.approve(c.address, allowance);
+  await TDFTokenBeneficiary.TDFTokenTest.approve(c.address, allowance);
   return {
     saleUsers: await setupUsers(addresses, {Sale: c}),
     saleDeployer: await setupUser(deployer.address, {Sale: c}),
@@ -42,10 +42,10 @@ const setup = deployments.createFixture(async (hre) => {
   const users = await getUnnamedAccounts();
   const {deployer, TDFTokenBeneficiary} = accounts;
 
-  const token: TDFToken = await ethers.getContract('TDFToken', deployer);
+  const token: TDFTokenTest = await ethers.getContract('TDFTokenTest', deployer);
   const eur = await getMock('FakeEURToken', deployer, []);
   const contracts = {
-    TDFToken: token,
+    TDFTokenTest: token,
     FakeEURToken: eur,
   };
 
@@ -64,11 +64,11 @@ describe('Crowdsale', () => {
   xit('[buy] - price 350 - with two decimals', async () => {
     // SETUP
     const config = await setup();
-    const {users, TDFTokenBeneficiary, FakeEURToken, TDFToken} = config;
+    const {users, TDFTokenBeneficiary, FakeEURToken, TDFTokenTest} = config;
     const {saleUsers, Sale} = await deploySale(config, '350', '1');
 
     // Balances
-    const tdfBal = await TDFToken.balanceOf(TDFTokenBeneficiary.address);
+    const tdfBal = await TDFTokenTest.balanceOf(TDFTokenBeneficiary.address);
     const eurBal = await FakeEURToken.balanceOf(users[0].address);
     const rem = await Sale.remainingTokens();
     expect(rem).to.gt(parseEther('1'));
@@ -82,22 +82,22 @@ describe('Crowdsale', () => {
       .withArgs(saleUsers[0].address, saleUsers[0].address, parseEther('1.55'), parseEther('542.5'));
 
     // Check results
-    expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('1.55'));
+    expect(await TDFTokenTest.balanceOf(users[0].address)).to.eq(parseEther('1.55'));
     expect(await FakeEURToken.balanceOf(TDFTokenBeneficiary.address)).to.eq(parseEther('542.5'));
     // wei raised
     expect(await Sale.weiRaised()).to.eq(parseEther('542.5'));
 
-    expect(await TDFToken.balanceOf(TDFTokenBeneficiary.address)).to.lt(tdfBal);
+    expect(await TDFTokenTest.balanceOf(TDFTokenBeneficiary.address)).to.lt(tdfBal);
     expect(await FakeEURToken.balanceOf(users[0].address)).to.lt(eurBal);
   });
 
   it('getters', async () => {
     // SETUP
     const config = await setup();
-    const {TDFTokenBeneficiary, TDFToken, FakeEURToken} = config;
+    const {TDFTokenBeneficiary, TDFTokenTest, FakeEURToken} = config;
     const {Sale} = await deploySale(config, '350', '1');
 
-    expect(await Sale.token()).to.eq(TDFToken.address);
+    expect(await Sale.token()).to.eq(TDFTokenTest.address);
     expect(await Sale.quote()).to.eq(FakeEURToken.address);
     expect(await Sale.wallet()).to.eq(TDFTokenBeneficiary.address);
     expect(await Sale.price()).to.eq(parseEther('350'));

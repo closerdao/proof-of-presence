@@ -44,6 +44,7 @@ const namedAccounts = {
   TDFDevMultisig: {
     default: 0,
     alfajores: '0xBD9658A4286459DD599Ab8b02bDa6167d750A288',
+    celo: '0x5269046Fc87eeD2542b39AA9C3A37814a6729f80',
   },
   julienFirst: {
     default: 1,
@@ -85,12 +86,12 @@ const config: HardhatUserConfig = {
       initialBaseFeePerGas: 0, // to fix : https://github.com/sc-forks/solidity-coverage/issues/652, see https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
     },
     alfajores: {
-      url: 'https://alfajores-forno.celo-testnet.org',
+      url: 'https://celo-alfajores.infura.io/v3/37d519a4210447cd8f303e95cacab27d',
       accounts: getAccounts(),
       chainId: 44787,
     },
     celo: {
-      url: 'https://forno.celo.org',
+      url: 'https://celo-mainnet.infura.io/v3/37d519a4210447cd8f303e95cacab27d',
       accounts: getAccounts(),
       chainId: 42220,
     },
