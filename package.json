@@ -85,6 +85,7 @@
     "@openzeppelin/contracts-upgradeable": "^4.8.0-rc.1",
     "@types/lodash": "^4.14.182",
     "date-fns": "^2.28.0",
+    "ethers-multisend": "^2.4.0",
     "lodash": "^4.17.21"
   }
 }
