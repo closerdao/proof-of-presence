@@ -24,7 +24,7 @@ const setup = deployments.createFixture(async () => {
   };
 });
 
-describe.only('SweatToken', function () {
+describe('SweatToken', function () {
   let context: Context;
   let users: Signers;
 
