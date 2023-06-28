@@ -15,7 +15,7 @@ async function setupUser<T extends {[contractName: string]: Contract}>(
   return user as {address: string} & T;
 }
 async function main() {
-  const {TDFDevMultisig, TDFTokenBeneficiary, julienFirst, JulienSecond, sam, deployer} = await getNamedAccounts();
+  const {TDFMultisig, TDFTokenBeneficiary, julienFirst, JulienSecond, sam, deployer} = await getNamedAccounts();
   const contracts = {
     token: <TDFToken>await ethers.getContract('TDFToken', deployer),
     fakeEur: <FakeEURToken>await ethers.getContract('FakeEURToken', deployer),
@@ -23,7 +23,7 @@ async function main() {
   };
 
   const beneficiary = await setupUser(TDFTokenBeneficiary, contracts);
-  const multisig = await setupUser(TDFDevMultisig, contracts);
+  const multisig = await setupUser(TDFMultisig, contracts);
   const admin = await setupUser(deployer, contracts);
 
   await beneficiary.token.transfer(julienFirst, parseEther('10000'));

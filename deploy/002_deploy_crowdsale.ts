@@ -13,7 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const TDFToken = await deployments.get('TDFToken');
 
-  const {deployer, TDFDevMultisig} = await getNamedAccounts();
+  const {deployer, TDFMultisig} = await getNamedAccounts();
 
   const eur = await deploy('FakeEURToken', {
     from: deployer,
@@ -24,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await deploy('Crowdsale', {
     from: deployer,
-    args: [TDFToken.address, eur.address, TDFDevMultisig, parseEther('150'), parseEther('0.5')],
+    args: [TDFToken.address, eur.address, TDFMultisig, parseEther('150'), parseEther('0.5')],
     log: true,
     autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
   });
