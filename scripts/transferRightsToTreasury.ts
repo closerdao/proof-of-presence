@@ -1,9 +1,8 @@
-import {getNamedAccounts, ethers, run} from 'hardhat';
+import {getNamedAccounts, ethers} from 'hardhat';
 import {TDFToken, TDFDiamond, DynamicSale, FakeEURToken, SweatToken} from '../typechain';
 import {Contract} from 'ethers';
 
 import {ROLES} from '../utils';
-import {parseEther} from 'ethers/lib/utils';
 async function setupUser<T extends {[contractName: string]: Contract}>(
   address: string,
   contracts: T
@@ -27,8 +26,11 @@ async function main() {
 
   const deployer = await setupUser(namedAccounts.deployer, contracts);
 
+  // Pause Dynamic Sale contract
+  await deployer.sale.pause();
+
   // Grant Roles
-  await deployer.TDFDiamond.grantRole(ROLES['DEFAULT_ADMIN_ROLE'], namedAccounts.TDFTokenBeneficiary);
+  await deployer.TDFDiamond.grantRole(ROLES['DEFAULT_ADMIN_ROLE'], namedAccounts.TDFMultisig);
 
   // Renounce Roles
   await deployer.TDFDiamond.renounceRole(ROLES['DEFAULT_ADMIN_ROLE'], deployer.address);
@@ -40,10 +42,10 @@ async function main() {
 
   // Transfer Ownership
   // Initiate 2 step transfer ownership. PLEASE NOTE: this transfer has to be accepted by the treasury
-  await deployer.token.transferOwnership(namedAccounts.TDFTokenBeneficiary);
-  await deployer.sale.transferOwnership(namedAccounts.TDFTokenBeneficiary);
+  await deployer.token.transferOwnership(namedAccounts.TDFMultisig);
+  await deployer.sale.transferOwnership(namedAccounts.TDFMultisig);
   // Default transferOwnership
-  await deployer.sweatToken.transferOwnership(namedAccounts.TDFTokenBeneficiary);
+  await deployer.sweatToken.transferOwnership(namedAccounts.TDFMultisig);
 }
 
 main()

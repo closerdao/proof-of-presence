@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const TDFDiamond = await deployments.get('TDFDiamond');
 
   const accounts = await getNamedAccounts();
-  const {deployer, TDFDevMultisig} = accounts;
+  const {deployer, TDFMultisig} = accounts;
   let eur: string;
 
   switch (hre.network.name) {
@@ -38,7 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     proxy: {
       proxyContract: 'OptimizedTransparentProxy',
       execute: {
-        init: {methodName: `initialize`, args: [TDFToken.address, eur, TDFDiamond.address, TDFDevMultisig]},
+        init: {methodName: `initialize`, args: [TDFToken.address, eur, TDFDiamond.address, TDFMultisig]},
       },
     },
     log: true,
