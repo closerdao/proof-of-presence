@@ -3,6 +3,7 @@ import {deployments, getUnnamedAccounts, getNamedAccounts, ethers} from 'hardhat
 import {SweatToken} from '../typechain';
 import {setupUser, setupUsers, getMock} from './utils';
 import {parseEther} from 'ethers/lib/utils';
+import {timeStamp} from 'console';
 
 type Context = Awaited<ReturnType<typeof setup>>;
 type Signers = Context['users'];
@@ -23,7 +24,7 @@ const setup = deployments.createFixture(async () => {
   };
 });
 
-describe('SweatToken', function () {
+describe.only('SweatToken', function () {
   let context: Context;
   let users: Signers;
 
@@ -34,7 +35,9 @@ describe('SweatToken', function () {
     });
 
     it('should be able to mint', async () => {
-      await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('10'))).to.not.be.reverted;
+      await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('10')))
+        .to.emit(context.SweatToken, 'SweatMinted')
+        .withArgs(users[0].address, parseEther('10'), timeStamp);
     });
 
     it('should not mint when not Treasury', async () => {

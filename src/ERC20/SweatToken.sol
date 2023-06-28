@@ -9,6 +9,8 @@ contract SweatToken is ISweatToken, ERC20, Ownable {
     // 20% of total TDF supply of 18600
     uint256 public constant MAX_SUPPLY = 3720 ether;
 
+    event SweatMinted(address indexed receiver, uint256 indexed amount, uint256 indexed timestamp);
+
     // solhint-disable-next-line no-empty-blocks
     constructor() ERC20("Sweat", "SW") Ownable() {}
 
@@ -28,6 +30,7 @@ contract SweatToken is ISweatToken, ERC20, Ownable {
      */
     function mint(address account, uint256 amount) public onlyOwner validateMaxSupply(amount) {
         _mint(account, amount);
+        emit SweatMinted(account, amount, block.timestamp);
     }
 
     /**
