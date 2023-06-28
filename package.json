@@ -17,6 +17,7 @@
     "solidity"
   ],
   "devDependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@0.3.0-beta.12",
     "@openzeppelin/contracts": "^4.7.0",
     "@typechain/ethers-v5": "^9.0.0",

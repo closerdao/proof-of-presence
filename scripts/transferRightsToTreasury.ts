@@ -1,5 +1,5 @@
 import {getNamedAccounts, ethers, run} from 'hardhat';
-import {TDFToken, TDFDiamond, DynamicSale, FakeEURToken} from '../typechain';
+import {TDFToken, TDFDiamond, DynamicSale, FakeEURToken, SweatToken} from '../typechain';
 import {Contract} from 'ethers';
 
 import {ROLES} from '../utils';
@@ -21,6 +21,7 @@ async function main() {
     token: <TDFToken>await ethers.getContract('TDFToken', namedAccounts.deployer),
     TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', namedAccounts.deployer),
     sale: <DynamicSale>await ethers.getContract('DynamicSale', namedAccounts.deployer),
+    sweatToken: <SweatToken>await ethers.getContract('SweatToken', namedAccounts.deployer),
     fakeEur: <FakeEURToken>await ethers.getContract('FakeEURToken', namedAccounts.deployer),
   };
 
@@ -41,6 +42,8 @@ async function main() {
   // Initiate 2 step transfer ownership. PLEASE NOTE: this transfer has to be accepted by the treasury
   await deployer.token.transferOwnership(namedAccounts.TDFTokenBeneficiary);
   await deployer.sale.transferOwnership(namedAccounts.TDFTokenBeneficiary);
+  // Default transferOwnership
+  await deployer.sweatToken.transferOwnership(namedAccounts.TDFTokenBeneficiary);
 }
 
 main()
