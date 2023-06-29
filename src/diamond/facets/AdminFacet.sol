@@ -141,6 +141,8 @@ contract AdminFacet is Modifiers {
     ) external view returns (bool) {
         // minting
         if (from == address(0)) return true;
+        // transferring from the Treasury
+        if (from == s.tdfTreasury) return true;
         // burning
         if (to == address(0)) return true;
         // from this contract
