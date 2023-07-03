@@ -43,6 +43,7 @@ const namedAccounts = {
   },
   TDFMultisig: {
     default: 0,
+    hardhat: 1,
     alfajores: '0xBD9658A4286459DD599Ab8b02bDa6167d750A288',
     celo: '0x5E810b93c51981eccA16e030Ea1cE8D8b1DEB83b',
   },

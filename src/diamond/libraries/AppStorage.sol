@@ -31,6 +31,8 @@ struct AppStorage {
     mapping(address => OrderedStakeLib.Store) staking;
     // Members; the MembershipLib.Store struct cannot be upgraded
     MembershipLib.Store members;
+    // Address of the TDF Treasury, used to make exception for transferring TDF while not yet go-live event
+    address tdfTreasury;
 }
 
 library LibAppStorage {
