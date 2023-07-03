@@ -10,7 +10,7 @@ type Signers = Context['users'];
 
 const setup = deployments.createFixture(async () => {
   await deployments.fixture();
-  const {deployer} = await getNamedAccounts();
+  const {deployer, TDFMultisig} = await getNamedAccounts();
   const contracts = {
     SweatToken: <SweatToken>await ethers.getContractOrNull('SweatToken')
       ? <SweatToken>await ethers.getContract('SweatToken')
@@ -21,6 +21,7 @@ const setup = deployments.createFixture(async () => {
     ...contracts,
     users,
     deployer: await setupUser(deployer, contracts),
+    TDFMultisig: await setupUser(TDFMultisig, contracts),
   };
 });
 
@@ -65,7 +66,14 @@ describe('SweatToken', function () {
       context = await setup();
       ({users} = context);
     });
-    it('should revert', async () => {
+    it('should be able to transfer from Treasury', async () => {
+      await expect(context.deployer.SweatToken.mint(context.TDFMultisig.address, parseEther('10'))).to.not.be.reverted;
+      expect(await context.deployer.SweatToken.balanceOf(users[0].address)).to.eq(parseEther('0'));
+
+      await expect(context.TDFMultisig.SweatToken.transfer(users[0].address, parseEther('5'))).to.not.be.reverted;
+      expect(await context.deployer.SweatToken.balanceOf(users[0].address)).to.eq(parseEther('5'));
+    });
+    it('should revert from contributor addresses', async () => {
       await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('10'))).to.not.be.reverted;
 
       await expect(context.users[0].SweatToken.transfer(users[0].address, parseEther('5'))).to.be.revertedWith(

@@ -5,10 +5,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
   const {deploy} = deployments;
 
-  const {deployer} = await getNamedAccounts();
+  const {deployer, TDFMultisig} = await getNamedAccounts();
 
   await deploy('SweatToken', {
     from: deployer,
+    args: [TDFMultisig],
   });
 };
 export default func;

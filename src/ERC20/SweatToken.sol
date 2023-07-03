@@ -8,11 +8,15 @@ import "../Interfaces/ISweatToken.sol";
 contract SweatToken is ISweatToken, ERC20, Ownable {
     // 20% of total TDF supply of 18600
     uint256 public constant MAX_SUPPLY = 3720 ether;
+    // Address of treasury, which is allowed to transfer tokens from its address to another
+    address treasury;
 
     event SweatMinted(address indexed receiver, uint256 indexed amount, uint256 indexed timestamp);
 
     // solhint-disable-next-line no-empty-blocks
-    constructor() ERC20("Sweat", "SW") Ownable() {}
+    constructor(address _treasury) ERC20("Sweat", "SW") Ownable() {
+        treasury = _treasury;
+    }
 
     /**
      * Modifier which reverts when max supply is reached or if buy amount would exeed max supply
@@ -43,6 +47,6 @@ contract SweatToken is ISweatToken, ERC20, Ownable {
         uint256 amount
     ) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
-        if (from != address(0) && to != address(0)) revert SweatToken_SweatIsNonTransferable();
+        if (from != treasury && from != address(0) && to != address(0)) revert SweatToken_SweatIsNonTransferable();
     }
 }
