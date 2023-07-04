@@ -31,13 +31,18 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
     uint256 public priceCurveMinValue;
     /// @dev maximum safe value for curve to protect against integer overflows
     uint256 public priceCurveMaxValue;
+    uint256 public constant MAX_BUYABLE_AMOUNT_PER_WALLET = 915 ether;
 
     event SuccessBuy(address to, uint256 amount);
 
-    modifier buyAmountConstraints(uint256 amount) {
+    modifier buyAmountConstraints(uint256 amount, address receiver) {
         require(amount >= 1 ether, "DynamicSale: (MinBuy) required 1 ether minimum buy");
         require(amount % 1 ether == 0, "DynamicSale: (NonWholeUnit) only whole units allowed");
-        require(amount <= 100 ether, "DynamicSale: (MaxAllowed) max buy allowed is 100");
+        require(amount <= 100 ether, "DynamicSale: (maxBuyAllowed) maximum buyable amount is 100");
+        require(
+            token.balanceOf(receiver) + amount <= MAX_BUYABLE_AMOUNT_PER_WALLET,
+            "DynamicSale: wallet balance + buy amount exceeds maxBuyableAmountPerWallet"
+        );
         require(token.totalSupply() + amount <= saleHardCap, "DynamicSale: (MaxSupply) maximum supply reached");
         _;
     }
@@ -71,7 +76,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
         currentPrice = 222 ether;
-        saleHardCap = 5674 ether;
+        saleHardCap = 6668 ether;
         treasury = treasury_;
         priceCurveMinValue = 4109 ether;
         priceCurveMaxValue = 200000 ether;
@@ -79,7 +84,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
 
     // Buy:
     // @amount: amount of tokens to buy
-    function buy(uint256 amount) public whenNotPaused buyAmountConstraints(amount) nonReentrant {
+    function buy(uint256 amount) public whenNotPaused buyAmountConstraints(amount, _msgSender()) nonReentrant {
         _buyFrom(_msgSender(), _msgSender(), amount);
     }
 
@@ -87,7 +92,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         address spender,
         address to,
         uint256 amount
-    ) public whenNotPaused buyAmountConstraints(amount) nonReentrant {
+    ) public whenNotPaused buyAmountConstraints(amount, to) nonReentrant {
         _buyFrom(spender, to, amount);
     }
 
