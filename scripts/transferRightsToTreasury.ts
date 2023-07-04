@@ -29,6 +29,9 @@ async function main() {
   // Pause Dynamic Sale contract
   await deployer.sale.pause();
 
+  // set DAO contract
+  await deployer.token.setDAOContract(deployer.TDFDiamond.address);
+
   // Grant Roles
   await deployer.TDFDiamond.grantRole(ROLES['DEFAULT_ADMIN_ROLE'], namedAccounts.TDFMultisig);
 
