@@ -84,6 +84,7 @@ describe('DynamicSale', () => {
       await user.helpers.topup('100000');
       await user.helpers.approve('10000');
       await context.deployer.TDFToken.mint(context.deployer.address, parseEther('10000'));
+      await context.deployer.DynamicSale.setMaxLiquidSupply(parseEther('70000'));
     });
     it('should buy', async () => {
       await user.buy('1').success();

@@ -22,6 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
     default: {
       const eur_contract = await deploy('FakeEURToken', {
+        gasPrice: ethers.utils.parseUnits('100', 'gwei'), // specify a higher gas price
         from: deployer,
         args: [],
         log: true,
