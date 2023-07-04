@@ -77,12 +77,13 @@ describe('DynamicSale', () => {
   let context: Context;
   let user: Signer;
   describe('buy', async () => {
-    before(async () => {
+    beforeEach(async () => {
       context = await setup();
 
       user = setSigner(context.users[0], context);
-      await user.helpers.topup('100000');
-      await user.helpers.approve('10000');
+      await user.helpers.topup('100000000');
+
+      await user.helpers.approve('1000000');
       await context.deployer.TDFToken.mint(context.deployer.address, parseEther('10000'));
       await context.deployer.DynamicSale.setMaxLiquidSupply(parseEther('70000'));
     });
@@ -90,7 +91,19 @@ describe('DynamicSale', () => {
       await user.buy('1').success();
       await user.testers.balances('1');
     });
-    it('should fail on amount to high', async () => {
+    it('should buy max amount per wallet', async () => {
+      await user.buy('100').success();
+      await user.testers.balances('100');
+    });
+    it('should fail on amount + balance > max amount per wallet', async () => {
+      // Buy 900 tokens
+      for (let i = 0; i < 9; i++) {
+        await user.buy('100').success();
+      }
+      await user.testers.balances('900');
+      await user.buy('16').fail();
+    });
+    it('should fail on buy amount > 100', async () => {
       await user.buy('101').fail();
     });
   });
