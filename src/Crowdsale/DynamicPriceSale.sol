@@ -71,7 +71,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         quote = IERC20Upgradeable(quote_);
         minter = IMinterDAO(minter_);
         currentPrice = 222 ether;
-        saleHardCap = 70000 ether;
+        saleHardCap = 5674 ether;
         treasury = treasury_;
         priceCurveMinValue = 4109 ether;
         priceCurveMaxValue = 200000 ether;
