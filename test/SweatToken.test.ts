@@ -34,30 +34,19 @@ describe('SweatToken', function () {
       context = await setup();
       ({users} = context);
     });
-
     it('should be able to mint', async () => {
       await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('10')))
         .to.emit(context.SweatToken, 'SweatMinted')
         .withArgs(users[0].address, parseEther('10'), timeStamp);
     });
-
+    it('should be able to mint high amount', async () => {
+      await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('100000')))
+        .to.emit(context.SweatToken, 'SweatMinted')
+        .withArgs(users[0].address, parseEther('100000'), timeStamp);
+    });
     it('should not mint when not Treasury', async () => {
       await expect(context.users[0].SweatToken.mint(users[1].address, parseEther('10'))).to.be.revertedWith(
         'Ownable: caller is not the owner'
-      );
-    });
-    it('should revert when mint amount exceeds max supply', async () => {
-      await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('3710'))).to.not.be.reverted;
-
-      await expect(context.deployer.SweatToken.mint(users[1].address, parseEther('11'))).to.be.revertedWith(
-        'SweatToken_MintAmountExceedsMaxSupply'
-      );
-    });
-    it('should not mint when max supply reached', async () => {
-      await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('3720'))).to.not.be.reverted;
-
-      await expect(context.deployer.SweatToken.mint(users[1].address, parseEther('10'))).to.be.revertedWith(
-        'SweatToken_MaxSweatSupplyReached'
       );
     });
   });
