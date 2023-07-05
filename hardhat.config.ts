@@ -24,6 +24,7 @@ const getAccounts = (
 const namedAccounts = {
   ceur: {
     alfajores: '0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F',
+    celo: '0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73',
   },
   deployer: {
     default: 0,

@@ -33,7 +33,7 @@ contract TDFToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     }
 
     function __TDFToken_init(address manager) internal onlyInitializing {
-        __ERC20_init("TDF Token", "TDF");
+        __ERC20_init("Traditional Dream Factory", "TDF");
         __TDFToken_init_unchained(manager);
         __Ownable2Step_init();
     }
