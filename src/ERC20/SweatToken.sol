@@ -1,38 +1,34 @@
 // SPDX-License-Identifier: AGPL-1.0
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "../Interfaces/ISweatToken.sol";
 
-contract SweatToken is ISweatToken, ERC20, Ownable {
-    // 20% of total TDF supply of 18600
-    uint256 public constant MAX_SUPPLY = 3720 ether;
+contract SweatToken is ISweatToken, ERC20Upgradeable, Ownable2StepUpgradeable {
     // Address of treasury, which is allowed to transfer tokens from its address to another
-    address treasury;
+    address public treasury;
 
     event SweatMinted(address indexed receiver, uint256 indexed amount, uint256 indexed timestamp);
 
-    // solhint-disable-next-line no-empty-blocks
-    constructor(address _treasury) ERC20("Sweat", "SW") Ownable() {
-        treasury = _treasury;
+    function initialize(address _treasury) public initializer {
+        __SweatToken_init(_treasury);
     }
 
-    /**
-     * Modifier which reverts when max supply is reached or if buy amount would exeed max supply
-     */
-    modifier validateMaxSupply(uint256 amount) {
-        uint256 totalSupply = totalSupply();
+    function __SweatToken_init(address _treasury) internal onlyInitializing {
+        __ERC20_init("TDF Sweat", "SWEAT");
+        __SweatToken_init_unchained(_treasury);
+        __Ownable2Step_init();
+    }
 
-        if (totalSupply == MAX_SUPPLY) revert SweatToken_MaxSweatSupplyReached();
-        if ((totalSupply + amount) > MAX_SUPPLY) revert SweatToken_MintAmountExceedsMaxSupply();
-        _;
+    function __SweatToken_init_unchained(address _treasury) internal onlyInitializing {
+        treasury = _treasury;
     }
 
     /**
      * Mint new $Sweat tokens to address
      */
-    function mint(address account, uint256 amount) public onlyOwner validateMaxSupply(amount) {
+    function mint(address account, uint256 amount) public onlyOwner {
         _mint(account, amount);
         emit SweatMinted(account, amount, block.timestamp);
     }
