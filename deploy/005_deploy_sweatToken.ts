@@ -11,7 +11,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await deploy('SweatToken', {
     gasPrice: ethers.utils.parseUnits('100', 'gwei'), // specify a higher gas price
     from: deployer,
-    args: [TDFMultisig],
+    proxy: {
+      proxyContract: 'OptimizedTransparentProxy',
+      execute: {init: {methodName: `initialize`, args: [TDFMultisig]}},
+    },
   });
 };
 export default func;
