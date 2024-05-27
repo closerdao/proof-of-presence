@@ -134,11 +134,7 @@ contract AdminFacet is Modifiers {
         ITDFToken(address(s.communityToken)).mint(account, amount);
     }
 
-    function isTokenTransferPermitted(
-        address from,
-        address to,
-        uint256
-    ) external view returns (bool) {
+    function isTokenTransferPermitted(address from, address to, uint256) external view returns (bool) {
         // minting
         if (from == address(0)) return true;
         // transferring from the Treasury

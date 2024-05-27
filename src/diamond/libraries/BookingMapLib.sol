@@ -11,7 +11,8 @@ library BookingMapLib {
     enum BookingStatus {
         Pending,
         Confirmed,
-        CheckedIn
+        CheckedIn,
+        CheckedOut
     }
 
     struct Booking {
@@ -66,11 +67,7 @@ library BookingMapLib {
         return false;
     }
 
-    function get(
-        UserStore storage store,
-        uint16 _year,
-        uint16 dayOfYear
-    ) internal view returns (bool, Booking memory) {
+    function get(UserStore storage store, uint16 _year, uint16 dayOfYear) internal view returns (bool, Booking memory) {
         bytes32 key = _buildKey(_year, dayOfYear);
         if (store.dates[_year].contains(key)) {
             return (true, store.bookings[key]);
@@ -95,11 +92,7 @@ library BookingMapLib {
         return bookings;
     }
 
-    function remove(
-        UserStore storage store,
-        uint16 _year,
-        uint16 _dayOfYear
-    ) internal returns (bool, Booking memory) {
+    function remove(UserStore storage store, uint16 _year, uint16 _dayOfYear) internal returns (bool, Booking memory) {
         bytes32 key = _buildKey(_year, _dayOfYear);
         if (store.dates[_year].remove(key)) {
             Booking memory booking = store.bookings[key];

@@ -1,25 +1,25 @@
-import {expect} from '../../chai-setup';
-import {parseEther, formatEther} from 'ethers/lib/utils';
-import {ethers, network, deployments, getUnnamedAccounts} from 'hardhat';
-import {DateTime} from 'luxon';
+import { expect } from '../../chai-setup';
+import { parseEther, formatEther } from 'ethers/lib/utils';
+import { ethers, network, deployments, getUnnamedAccounts } from 'hardhat';
+import { DateTime } from 'luxon';
 
-import {BookingMapLib} from '../../../typechain/TDFDiamond';
+import { BookingMapLib } from '../../../typechain/TDFDiamond';
 
-import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
-import {setupUser, setupUsers} from '..';
+import { addDays, getUnixTime, getDayOfYear } from 'date-fns';
+import { setupUser, setupUsers } from '..';
 
-import {DatesTestData} from './types';
+import { DatesTestData } from './types';
 import * as stakingHelpers from './stakingHelpers';
 import * as bookingHelpers from './bookingHelpers';
 import * as membershipHelpers from './membershipHelpers';
 import * as adminHelpers from './adminHelpers';
-import type {TDFToken, TDFDiamond} from '../../../typechain';
+import type { TDFToken, TDFDiamond } from '../../../typechain';
 
-export {ROLES} from '../../../utils';
+export { ROLES } from '../../../utils';
 
 const BN = ethers.BigNumber;
 
-export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => {
+export const userTesters = async ({ TDFToken, TDFDiamond, user }: TestContext) => {
   enum BookingStatus {
     Pending = 'Pending',
     Confirmed = 'Confirmed',
@@ -114,7 +114,7 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
 };
 
 export const buildDates = (initDate: Date, amount: number): DatesTestData => {
-  const acc: DatesTestData = {data: [], inputs: []};
+  const acc: DatesTestData = { data: [], inputs: [] };
   for (let i = 0; i < amount; i++) {
     const nDate = addDays(initDate, i);
     acc.data.push({
@@ -128,9 +128,9 @@ export const buildDates = (initDate: Date, amount: number): DatesTestData => {
 };
 
 export const newBuildDates = (date: DateTime, amount: number) => {
-  const acc: DatesTestData = {data: [], inputs: []};
+  const acc: DatesTestData = { data: [], inputs: [] };
   for (let i = 0; i < amount; i++) {
-    const nDate = date.plus({days: i});
+    const nDate = date.plus({ days: i });
     acc.data.push({
       year: nDate.year,
       day: getDayOfYear(nDate.toJSDate()),
@@ -142,7 +142,7 @@ export const newBuildDates = (date: DateTime, amount: number) => {
 };
 
 export const collectDates = (dates: DatesTestData, indexes: number[]): DatesTestData => {
-  const acc: DatesTestData = {data: [], inputs: []};
+  const acc: DatesTestData = { data: [], inputs: [] };
   indexes.forEach((i) => {
     acc.data.push(dates.data[i]);
     acc.inputs.push(dates.inputs[i]);
@@ -158,25 +158,25 @@ export const timeTravelTo = async (time: number) => {
 // TODO: no need to be a function
 export const yearData = () => {
   return {
-    '2022': {number: 2022, leapYear: false, start: 1640995200, end: 1672531199},
-    '2023': {number: 2023, leapYear: false, start: 1672531200, end: 1704067199},
-    '2024': {number: 2024, leapYear: true, start: 1704067200, end: 1735689599},
-    '2025': {number: 2025, leapYear: false, start: 1735689600, end: 1767225599},
-    '2026': {number: 2026, leapYear: false, start: 1767225600, end: 1798761599},
-    '2027': {number: 2027, leapYear: false, start: 1798761600, end: 1830297599},
-    '2028': {number: 2028, leapYear: true, start: 1830297600, end: 1861919999},
-    '2029': {number: 2029, leapYear: false, start: 1861920000, end: 1893455999},
-    '2030': {number: 2030, leapYear: false, start: 1893456000, end: 1924991999},
+    '2022': { number: 2022, leapYear: false, start: 1640995200, end: 1672531199 },
+    '2023': { number: 2023, leapYear: false, start: 1672531200, end: 1704067199 },
+    '2024': { number: 2024, leapYear: true, start: 1704067200, end: 1735689599 },
+    '2025': { number: 2025, leapYear: false, start: 1735689600, end: 1767225599 },
+    '2026': { number: 2026, leapYear: false, start: 1767225600, end: 1798761599 },
+    '2027': { number: 2027, leapYear: false, start: 1798761600, end: 1830297599 },
+    '2028': { number: 2028, leapYear: true, start: 1830297600, end: 1861919999 },
+    '2029': { number: 2029, leapYear: false, start: 1861920000, end: 1893455999 },
+    '2030': { number: 2030, leapYear: false, start: 1893456000, end: 1924991999 },
   };
 };
 
 export const setupContext = deployments.createFixture(async (hre) => {
-  const {deployments, getNamedAccounts, ethers} = hre;
+  const { deployments, getNamedAccounts, ethers } = hre;
   await deployments.fixture();
 
   const accounts = await getNamedAccounts();
   const users = await getUnnamedAccounts();
-  const {deployer, TDFTokenBeneficiary} = accounts;
+  const { deployer, TDFTokenBeneficiary } = accounts;
 
   const token: TDFToken = await ethers.getContract('TDFToken', deployer);
   const contracts = {
@@ -203,7 +203,7 @@ export const setupContext = deployments.createFixture(async (hre) => {
   return conf;
 });
 type setupReturnType = Awaited<ReturnType<typeof setupContext>>;
-export type TestContext = {user: setupReturnType['deployer']} & setupReturnType;
+export type TestContext = { user: setupReturnType['deployer'] } & setupReturnType;
 
 export const setDiamondUser = async (testContext: TestContext) => {
   return {

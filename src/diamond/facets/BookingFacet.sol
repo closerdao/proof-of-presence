@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-1.0
-
 pragma solidity 0.8.9;
+
 import "@openzeppelin/contracts/utils/Context.sol";
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
@@ -15,6 +15,7 @@ contract BookingFacet is Modifiers {
     event CanceledBookings(address account, uint16[2][] bookings);
     event BookingConfirmed(address executer, address account, uint16[2][] bookings);
     event BookingCheckedIn(address executer, address account, uint16[2][] bookings);
+    event BookingCheckedOut(address executer, address account, uint16[2][] bookings, uint256 presenceMinted);
 
     event YearAdded(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled);
     event YearRemoved(uint16 number);
@@ -23,10 +24,9 @@ contract BookingFacet is Modifiers {
     // TODO: add preview Booking action
 
     function bookAccommodation(uint16[2][] calldata dates, uint256 price) external whenNotPaused {
-        BookingMapLib.BookingStatus status;
-        if (_isMember(_msgSender())) {
-            status = BookingMapLib.BookingStatus.Confirmed;
-        }
+        BookingMapLib.BookingStatus status = _isMember(_msgSender())
+            ? BookingMapLib.BookingStatus.Confirmed
+            : BookingMapLib.BookingStatus.Pending;
         for (uint256 i = 0; i < dates.length; i++) {
             BookingMapLib.Booking memory value = _insertBooking(status, _msgSender(), dates[i][0], dates[i][1], price);
             _stakeLibBookingContext(_msgSender(), dates[i][0]).handleBooking(
@@ -35,7 +35,6 @@ contract BookingFacet is Modifiers {
                 value.timestamp
             );
         }
-
         emit NewBookings(_msgSender(), dates);
     }
 
@@ -49,8 +48,7 @@ contract BookingFacet is Modifiers {
         return acc;
     }
 
-    // END: TODO --------------------
-
+    // Insert booking
     function _insertBooking(
         BookingMapLib.BookingStatus status,
         address account,
@@ -70,11 +68,73 @@ contract BookingFacet is Modifiers {
         return value;
     }
 
-    function cancelAccommodationFor(address account, uint16[2][] calldata dates)
-        external
-        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
-        whenNotPaused
-    {
+    // Check-in accommodation
+    function checkinAccommodationFor(
+        address account,
+        uint16[2][] calldata dates
+    ) external onlyRole(AccessControlLib.SPACE_HOST_ROLE) {
+        uint16 count;
+        for (uint256 i = 0; i < dates.length; i++) {
+            bool success = s._accommodationBookings[account].updateStatus(
+                dates[i][0],
+                dates[i][1],
+                BookingMapLib.BookingStatus.CheckedIn
+            );
+            if (success) {
+                count += 1;
+            }
+        }
+        if (count > 0) {
+            emit BookingCheckedIn(_msgSender(), account, dates);
+        }
+    }
+
+    // Check-out accommodation and mint $Presence tokens
+    function checkOutAccommodationFor(
+        address account,
+        uint16[2][] calldata dates
+    ) external onlyRole(AccessControlLib.SPACE_HOST_ROLE) {
+        uint16 totalNights;
+        for (uint256 i = 0; i < dates.length; i++) {
+            (bool found, BookingMapLib.Booking memory _booking) = s._accommodationBookings[account].get(
+                dates[i][0],
+                dates[i][1]
+            );
+            if (!found) {
+                continue;
+            }
+            if (_booking.status == BookingMapLib.BookingStatus.CheckedIn) {
+                bool success = s._accommodationBookings[account].updateStatus(
+                    dates[i][0],
+                    dates[i][1],
+                    BookingMapLib.BookingStatus.CheckedOut
+                );
+                if (success) {
+                    totalNights += 1;
+                }
+            }
+        }
+
+        if (totalNights > 0) {
+            uint256 presenceMinted = totalNights; // One $Presence token per night
+            //_mintPresence(account, presenceMinted); // Uncomment and implement this line to mint tokens
+            emit BookingCheckedOut(_msgSender(), account, dates, presenceMinted);
+        }
+    }
+
+    // Cancel accommodation
+    function cancelAccommodation(uint16[2][] calldata dates) external whenNotPaused {
+        for (uint256 i = 0; i < dates.length; i++) {
+            BookingMapLib.Booking memory booking = _getBooking(_msgSender(), dates[i][0], dates[i][1]);
+            _cancel(_msgSender(), booking);
+        }
+        emit CanceledBookings(_msgSender(), dates);
+    }
+
+    function cancelAccommodationFor(
+        address account,
+        uint16[2][] calldata dates
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) whenNotPaused {
         for (uint256 i = 0; i < dates.length; i++) {
             BookingMapLib.Booking memory booking = _getBooking(account, dates[i][0], dates[i][1]);
             require(
@@ -83,14 +143,13 @@ contract BookingFacet is Modifiers {
             );
             _cancel(account, booking);
         }
-
         emit CanceledBookings(account, dates);
     }
 
-    function confirmAccommodationFor(address account, uint16[2][] calldata dates)
-        external
-        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
-    {
+    function confirmAccommodationFor(
+        address account,
+        uint16[2][] calldata dates
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
         uint16 count;
         for (uint256 i = 0; i < dates.length; i++) {
             (bool found, BookingMapLib.Booking memory _booking) = s._accommodationBookings[account].get(
@@ -116,35 +175,6 @@ contract BookingFacet is Modifiers {
         }
     }
 
-    function checkinAccommodationFor(address account, uint16[2][] calldata dates)
-        external
-        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
-    {
-        uint16 count;
-        for (uint256 i = 0; i < dates.length; i++) {
-            bool success = s._accommodationBookings[account].updateStatus(
-                dates[i][0],
-                dates[i][1],
-                BookingMapLib.BookingStatus.CheckedIn
-            );
-            if (success) {
-                count += 1;
-            }
-        }
-        if (count > 0) {
-            emit BookingCheckedIn(_msgSender(), account, dates);
-        }
-    }
-
-    function cancelAccommodation(uint16[2][] calldata dates) external whenNotPaused {
-        for (uint256 i = 0; i < dates.length; i++) {
-            BookingMapLib.Booking memory booking = _getBooking(_msgSender(), dates[i][0], dates[i][1]);
-            _cancel(_msgSender(), booking);
-        }
-
-        emit CanceledBookings(_msgSender(), dates);
-    }
-
     function _getBooking(
         address account,
         uint16 year,
@@ -166,21 +196,13 @@ contract BookingFacet is Modifiers {
         );
     }
 
-    function unlockedStakeAt(
-        address account,
-        uint16 year,
-        uint16 day
-    ) public view returns (uint256) {
+    function unlockedStakeAt(address account, uint16 year, uint16 day) public view returns (uint256) {
         (bool success, uint256 tm) = s._accommodationYears.buildTimestamp(year, day);
         require(success, "unable to build timestamp");
         return _stakeLibContext(_msgSender()).releasableAt(s.staking[account], tm);
     }
 
-    function lockedStakeAt(
-        address account,
-        uint16 year,
-        uint16 day
-    ) public view returns (uint256) {
+    function lockedStakeAt(address account, uint16 year, uint16 day) public view returns (uint256) {
         (bool success, uint256 tm) = s._accommodationYears.buildTimestamp(year, day);
         require(success, "unable to build timestamp");
         return _stakeLibContext(_msgSender()).lockedAt(s.staking[account], tm);
@@ -194,11 +216,10 @@ contract BookingFacet is Modifiers {
         return s._accommodationBookings[account].get(yearNum, dayOfYear);
     }
 
-    function getAccommodationBookings(address account, uint16 _year)
-        external
-        view
-        returns (BookingMapLib.Booking[] memory)
-    {
+    function getAccommodationBookings(
+        address account,
+        uint16 _year
+    ) external view returns (BookingMapLib.Booking[] memory) {
         return s._accommodationBookings[account].list(_year);
     }
 
@@ -244,10 +265,10 @@ contract BookingFacet is Modifiers {
         emit YearUpdated(number, leapYear, start, end, enabled);
     }
 
-    function enableAccommodationYear(uint16 number, bool enable)
-        external
-        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
-    {
+    function enableAccommodationYear(
+        uint16 number,
+        bool enable
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
         (, BookingMapLib.Year memory y) = s._accommodationYears.get(number);
         y.enabled = enable;
         require(s._accommodationYears.update(y), "BookingFacet: Unable to update year");

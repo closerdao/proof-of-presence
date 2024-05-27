@@ -14,6 +14,7 @@ library AccessControlLib {
     bytes32 constant STAKE_MANAGER_ROLE = keccak256("STAKE_MANAGER_ROLE");
     bytes32 constant VAULT_MANAGER_ROLE = keccak256("VAULT_MANAGER_ROLE");
     bytes32 constant MEMBERSHIP_MANAGER_ROLE = keccak256("MEMBERSHIP_MANAGER_ROLE");
+    bytes32 constant SPACE_HOST_ROLE = keccak256("SPACE_HOST_ROLE");
 
     struct RoleData {
         mapping(address => bool) members;
@@ -70,11 +71,7 @@ library AccessControlLib {
      *
      *  /^AccessControl: account (0x[0-9a-f]{40}) is missing role (0x[0-9a-f]{64})$/
      */
-    function checkRole(
-        RoleStore storage store,
-        bytes32 role,
-        address account
-    ) internal view {
+    function checkRole(RoleStore storage store, bytes32 role, address account) internal view {
         if (!hasRole(store, role, account)) {
             revert(
                 string(
@@ -92,11 +89,7 @@ library AccessControlLib {
     /**
      * @dev Returns `true` if `account` has been granted `role`.
      */
-    function hasRole(
-        RoleStore storage store,
-        bytes32 role,
-        address account
-    ) internal view returns (bool) {
+    function hasRole(RoleStore storage store, bytes32 role, address account) internal view returns (bool) {
         return store._roles[role].members[account];
     }
 
@@ -115,11 +108,7 @@ library AccessControlLib {
      *
      * Emits a {RoleAdminChanged} event.
      */
-    function setRoleAdmin(
-        RoleStore storage store,
-        bytes32 role,
-        bytes32 adminRole
-    ) internal {
+    function setRoleAdmin(RoleStore storage store, bytes32 role, bytes32 adminRole) internal {
         bytes32 previousAdminRole = getRoleAdmin(store, role);
         store._roles[role].adminRole = adminRole;
         emit RoleAdminChanged(role, previousAdminRole, adminRole);
@@ -132,11 +121,7 @@ library AccessControlLib {
      *
      * May emit a {RoleGranted} event.
      */
-    function grantRole(
-        RoleStore storage store,
-        bytes32 role,
-        address account
-    ) internal {
+    function grantRole(RoleStore storage store, bytes32 role, address account) internal {
         if (!hasRole(store, role, account)) {
             store._roles[role].members[account] = true;
             emit RoleGranted(role, account, msg.sender);
@@ -151,11 +136,7 @@ library AccessControlLib {
      *
      * May emit a {RoleRevoked} event.
      */
-    function revokeRole(
-        RoleStore storage store,
-        bytes32 role,
-        address account
-    ) internal {
+    function revokeRole(RoleStore storage store, bytes32 role, address account) internal {
         if (hasRole(store, role, account)) {
             store._roles[role].members[account] = false;
             emit RoleRevoked(role, account, msg.sender);
