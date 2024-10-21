@@ -1,6 +1,7 @@
 # Proof of Presence
 
 This is a collection of contracts aiming to implement tokenized timeshare access to land projects.
+You can read more about Closer in our [Documentation](https://closer.gitbook.io/closer-protocol/)
 
 This contracts include:
 
@@ -33,7 +34,6 @@ sequenceDiagram
 ## BUG BOUNTY
 
 If you find critical security gaps in our smart contract code, please reach sam@closer.earth.
-We are offering a bounty of 1000CUSD + our eternal gratitute + free tickets for an event of your choice at [Traditional Dream Factory](https://traditionaldreamfactory.com/) (Maybe join us at the Regenerative Network State Summit?).
 For smaller issues you can create tickets in our open source code repositories and we will happily consider an appropriate reward.
 
 ## INSTALL
@@ -197,4 +197,4 @@ Behind the scene it uses `hardhat node` command so you can append any argument f
 
 ## LICENCE
 
-All rights reserved.
+This software is released under [MIT licence](https://github.com/closerdao/proof-of-presence/blob/main/LICENSE)
