@@ -23,6 +23,8 @@ contract BookingFacet is Modifiers {
     // TODO: add preview Booking action
 
     function bookAccommodation(uint16[2][] calldata dates, uint256 price) external whenNotPaused {
+        // TODO max duration of booking be 1 year
+
         BookingMapLib.BookingStatus status;
         if (_isMember(_msgSender())) {
             status = BookingMapLib.BookingStatus.Confirmed;
@@ -82,6 +84,8 @@ contract BookingFacet is Modifiers {
                 "BookingFacet: (NotPending) Can not cancel confirmed accommodation"
             );
             _cancel(account, booking);
+            // TODO burn $PRESENCE here?
+            //  if yes, how to handle the decaying?
         }
 
         emit CanceledBookings(account, dates);
@@ -156,6 +160,8 @@ contract BookingFacet is Modifiers {
     }
 
     function _cancel(address account, BookingMapLib.Booking memory booking) internal {
+        // TODO burn $PRESENCE token here
+        //  if yes, how to handle the decaying?
         require(booking.timestamp > block.timestamp, "BookingFacet: Can not cancel past booking");
         (bool success, ) = s._accommodationBookings[account].remove(booking.year, booking.dayOfYear);
         require(success, "BookingFacet: Unable to delete Booking");

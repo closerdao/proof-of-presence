@@ -124,7 +124,7 @@ contract AdminFacet is Modifiers {
         s._roleStore.revokeRole(role, account);
     }
 
-    function getRoles() public pure returns (string[2][5] memory) {
+    function getRoles() public pure returns (string[2][6] memory) {
         return AccessControlLib.getRoles();
     }
 
