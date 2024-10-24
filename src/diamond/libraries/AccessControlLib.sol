@@ -14,7 +14,6 @@ library AccessControlLib {
     bytes32 constant STAKE_MANAGER_ROLE = keccak256("STAKE_MANAGER_ROLE");
     bytes32 constant VAULT_MANAGER_ROLE = keccak256("VAULT_MANAGER_ROLE");
     bytes32 constant MEMBERSHIP_MANAGER_ROLE = keccak256("MEMBERSHIP_MANAGER_ROLE");
-    // TODO does it make sense to differentiate between BOOKING_PLATFORM_ROLE and BOOKING_MANAGER_ROLE?
     bytes32 constant BOOKING_PLATFORM_ROLE = keccak256("BOOKING_PLATFORM_ROLE");
 
     struct RoleData {
