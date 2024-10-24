@@ -5,6 +5,10 @@ interface IPresenceToken {
     //--------------------------------------------------------------------------
     // Errors
 
-    /// @notice Presence token is non-transferable
+    error TransferNotAllowed();
+    error ApproveNotAllowed();
+
     error PresenceToken_PresenceIsNonTransferable();
+
+    error Unauthorized(address sender, bytes32[] allowedRoles);
 }
