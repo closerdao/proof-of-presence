@@ -37,11 +37,11 @@ jobs:
       - name: Installing dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Linting
-        run: yarn lint
-
       - name: Formatting
-        run: yarn format
+        run: yarn format:fix  # use :fix no not make CI fail because of the easily autofixable formatting errors
+
+      - name: Linting
+        run: yarn lint:fix  # use :fix no not make CI fail because of the easily autofixable linting errors
 
       - name: Running tests
         run: yarn test

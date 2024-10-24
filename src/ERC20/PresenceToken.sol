@@ -29,9 +29,9 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      * Set by DAO, value allows up to DECAY_RATE_PER_DAY_DECIMALS. We assume that year have 365 days for a simplicity.
      * Converting from decay per year to decay per rate is done by this formula:
      * decayRatePerDay = (1 - ((1 - percentageDecayPerYear / 100)^(1/365))) * 100 * 10^DECAY_RATE_PER_DAY_DECIMALS
-     * 
-     * Example: 
-     *          10% decay rate per year 
+     *
+     * Example:
+     *          10% decay rate per year
      *          => (1 - ((1 - 10/100)^1/365)) * 100 * 10^6 = 28861.72890 => strip decimal part == 28861 decayRatePerDay
      */
     uint256 public decayRatePerDay;
@@ -42,7 +42,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     /**
      * @dev necessary for iterating over `lastDecayedBalance` mapping when calculating decayed totalSupply
      */
-    address[] public holders; 
+    address[] public holders;
 
     // TODO can this be public?
     // TODO is there a better way to get the roles from dao?
@@ -114,10 +114,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         __PresenceToken_init_unchained(_daoAddress, _decayRatePerDay);
     }
 
-    function __PresenceToken_init_unchained(
-        address _daoAddress,
-        uint256 _decayRatePerDay
-    ) internal onlyInitializing {
+    function __PresenceToken_init_unchained(address _daoAddress, uint256 _decayRatePerDay) internal onlyInitializing {
         daoAddress = TDFDiamondPartial(_daoAddress);
         setDecayRatePerDay(_decayRatePerDay);
         // TODO anything else to put here?
@@ -190,7 +187,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     // TODO allow also owner to call this or only dao?
     function setDecayRatePerDay(uint256 _newDecayRatePerDay) public onlyDAOorOwner {
         if (_newDecayRatePerDay > MAX_DECAY_RATE_PER_DAY) {
-            revert InvalidDecayRatePerDay({ value: _newDecayRatePerDay, maxAllowedValue: MAX_DECAY_RATE_PER_DAY });
+            revert InvalidDecayRatePerDay({value: _newDecayRatePerDay, maxAllowedValue: MAX_DECAY_RATE_PER_DAY});
         }
 
         decayRatePerDay = _newDecayRatePerDay;

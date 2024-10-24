@@ -29,6 +29,7 @@ sequenceDiagram
     SaleContract-->>User: Finish Operation
 ```
 
+For introspection of the diamond you can use [Louper](https://louper.dev/).
 
 ## BUG BOUNTY
 
