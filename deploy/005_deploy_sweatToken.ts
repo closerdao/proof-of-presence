@@ -15,6 +15,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       proxyContract: 'OptimizedTransparentProxy',
       execute: {init: {methodName: `initialize`, args: [TDFMultisig]}},
     },
+    log: true,
+    autoMine: true,
   });
 };
 export default func;

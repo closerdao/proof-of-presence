@@ -1,14 +1,13 @@
-import {soliditySha3} from 'web3-utils';
+import { utils } from 'ethers';
 
 export const ROLES = {
   DEFAULT_ADMIN_ROLE: '0x0000000000000000000000000000000000000000000000000000000000000000',
-  /* eslint-disable @typescript-eslint/no-non-null-assertion */
-  MINTER_ROLE: soliditySha3('MINTER_ROLE')!,
-  BOOKING_MANAGER_ROLE: soliditySha3('BOOKING_MANAGER_ROLE')!,
-  STAKE_MANAGER_ROLE: soliditySha3('STAKE_MANAGER_ROLE')!,
-  VAULT_MANAGER_ROLE: soliditySha3('VAULT_MANAGER_ROLE')!,
-  MEMBERSHIP_MANAGER_ROLE: soliditySha3('MEMBERSHIP_MANAGER_ROLE')!,
-  /* eslint-enable @typescript-eslint/no-non-null-assertion */
+  MINTER_ROLE: utils.keccak256(utils.toUtf8Bytes('MINTER_ROLE')),
+  BOOKING_MANAGER_ROLE: utils.keccak256(utils.toUtf8Bytes('BOOKING_MANAGER_ROLE')),
+  STAKE_MANAGER_ROLE: utils.keccak256(utils.toUtf8Bytes('STAKE_MANAGER_ROLE')),
+  VAULT_MANAGER_ROLE: utils.keccak256(utils.toUtf8Bytes('VAULT_MANAGER_ROLE')),
+  MEMBERSHIP_MANAGER_ROLE: utils.keccak256(utils.toUtf8Bytes('MEMBERSHIP_MANAGER_ROLE')),
+  BOOKING_PLATFORM_ROLE: utils.keccak256(utils.toUtf8Bytes('BOOKING_PLATFORM_ROLE'))
 } as const;
 
 export * from './Constants';

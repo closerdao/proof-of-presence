@@ -8,7 +8,8 @@ import "../diamond/libraries/AppStorage.sol";
 
 // TODO is there a better way how to e.g. auto generate the interface for all the methods on diamond automatically,
 //  so it's always up to date and no need to write it manually?
-interface TDFDiamond {
+interface TDFDiamondPartial {
+    // only contains functions from the diamond that we care about in the PresenceToken contract
     function hasRole(bytes32 role, address account) external view returns (bool);
 }
 
@@ -26,11 +27,12 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
 
     /**
      * Set by DAO, value allows up to DECAY_RATE_PER_DAY_DECIMALS. We assume that year have 365 days for a simplicity.
+     * Converting from decay per year to decay per rate is done by this formula:
+     * decayRatePerDay = (1 - ((1 - percentageDecayPerYear / 100)^(1/365))) * 100 * 10^DECAY_RATE_PER_DAY_DECIMALS
+     * 
      * Example: 
-     *          8% decay rate per year 
-     *          => 8 / 365 = 0.02191780822% decay rate per day 
-     *          => 0.02191780822 * 10^DECAY_RATE_PER_DAY_DECIMALS = 21 917.80822
-     *          => 21 917 (after removal of the decimal part) == final value of decayRatePerDay set when targetting 8% decay rate per day
+     *          10% decay rate per year 
+     *          => (1 - ((1 - 10/100)^1/365)) * 100 * 10^6 = 28861.72890 => strip decimal part == 28861 decayRatePerDay
      */
     uint256 public decayRatePerDay;
 
@@ -44,10 +46,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
 
     // TODO can this be public?
     // TODO is there a better way to get the roles from dao?
-    TDFDiamond public tdfDiamond;
-
-    // TODO also add setter?
-    address public daoContractAddress;
+    TDFDiamondPartial public daoAddress;
 
     /*----------------------------------------------------------*|
     |*  # ERRORS DEFINITIONS                                    *|
@@ -79,7 +78,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
 
     modifier onlyDAOorOwner() {
         bool isOwner = owner() == _msgSender();
-        bool isDao = address(daoContractAddress) == _msgSender();
+        bool isDao = address(daoAddress) == _msgSender();
 
         if (!isOwner && !isDao) {
             string[] memory allowedRoles = new string[](2);
@@ -96,30 +95,30 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
 
     // TODO pass ERC20 name + symbol as a parameter?
     function initialize(
-        address _tdfDiamond,
-        address _daoContractAddress,
+        string memory _name,
+        string memory _symbol,
+        address _daoAddress,
         uint256 _decayRatePerDay
     ) public initializer {
-        __PresenceToken_init(_tdfDiamond, _daoContractAddress, _decayRatePerDay);
+        __PresenceToken_init(_name, _symbol, _daoAddress, _decayRatePerDay);
     }
 
     function __PresenceToken_init(
-        address _tdfDiamond,
-        address _daoContractAddress,
+        string memory _name,
+        string memory _symbol,
+        address _daoAddress,
         uint256 _decayRatePerDay
     ) internal onlyInitializing {
-        __ERC20_init("TDF Presence", "$PRESENCE"); // TODO is this name + symbol good?
+        __ERC20_init(_name, _symbol); // TODO is this name + symbol good?
         __Ownable2Step_init(); // TODO do we need to call this?
-        __PresenceToken_init_unchained(_tdfDiamond, _daoContractAddress, _decayRatePerDay);
+        __PresenceToken_init_unchained(_daoAddress, _decayRatePerDay);
     }
 
     function __PresenceToken_init_unchained(
-        address _tdfDiamond,
-        address _daoContractAddress,
+        address _daoAddress,
         uint256 _decayRatePerDay
     ) internal onlyInitializing {
-        tdfDiamond = TDFDiamond(_tdfDiamond);
-        daoContractAddress = _daoContractAddress;
+        daoAddress = TDFDiamondPartial(_daoAddress);
         setDecayRatePerDay(_decayRatePerDay);
         // TODO anything else to put here?
     }
@@ -128,10 +127,10 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     |*  # PUBLIC / EXTERNAL STATE-MUTATING FUNCTIONS            *|
     |*----------------------------------------------------------*/
 
-    // TODO do we need this setter or the diamond will never change?
+    // TODO do we need this setter or the address will never change?
     // TODO any other role can change this? currently the owner of the PresenceToken == owner of TDF Diamond
-    function setTdfDiamond(address _newTdfDiamond) public onlyOwner {
-        tdfDiamond = TDFDiamond(_newTdfDiamond);
+    function setDaoAddress(address _newDaoAddress) public onlyOwner {
+        daoAddress = TDFDiamondPartial(_newDaoAddress);
     }
 
     // TODO allow onlyOwner?
@@ -274,7 +273,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
 
     function checkPermission(bytes32[] memory _allowedRoles) internal view returns (bool) {
         for (uint256 i = 0; i < _allowedRoles.length; i++) {
-            if (tdfDiamond.hasRole(_allowedRoles[i], _msgSender())) {
+            if (daoAddress.hasRole(_allowedRoles[i], _msgSender())) {
                 return true;
             }
         }
