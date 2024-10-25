@@ -164,14 +164,14 @@ library AccessControlLib {
         store._roleMembers[role].remove(account);
     }
 
-    function getRoles() internal pure returns (string[2][6] memory roles) {
+    function getRoles() internal pure returns (string[2][7] memory roles) {
         roles[0] = ["DEFAULT_ADMIN_ROLE", string(abi.encodePacked(DEFAULT_ADMIN_ROLE))];
         roles[1] = ["MINTER_ROLE", string(abi.encodePacked(MINTER_ROLE))];
         roles[2] = ["BOOKING_MANAGER_ROLE", string(abi.encodePacked(BOOKING_MANAGER_ROLE))];
         roles[3] = ["STAKE_MANAGER_ROLE", string(abi.encodePacked(STAKE_MANAGER_ROLE))];
         roles[4] = ["VAULT_MANAGER_ROLE", string(abi.encodePacked(VAULT_MANAGER_ROLE))];
-        // TODO here is missing the MEMBERSHIP_MANAGER_ROLE, is that intentional?
-        roles[5] = ["BOOKING_PLATFORM_ROLE", string(abi.encodePacked(BOOKING_PLATFORM_ROLE))];
+        roles[5] = ["MEMBERSHIP_MANAGER_ROLE", string(abi.encodePacked(MEMBERSHIP_MANAGER_ROLE))];
+        roles[6] = ["BOOKING_PLATFORM_ROLE", string(abi.encodePacked(BOOKING_PLATFORM_ROLE))];
         return roles;
     }
 }

@@ -37,11 +37,12 @@ jobs:
       - name: Installing dependencies
         run: yarn install --frozen-lockfile
 
+      # TODO include pre-commit hooks to make sure formatting and linting is done on local before running CI where this can make the full pipeline fail?
       - name: Formatting
-        run: yarn format:fix  # use :fix no not make CI fail because of the easily autofixable formatting errors
+        run: yarn format
 
       - name: Linting
-        run: yarn lint:fix  # use :fix no not make CI fail because of the easily autofixable linting errors
+        run: yarn lint
 
       - name: Running tests
         run: yarn test

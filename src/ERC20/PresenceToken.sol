@@ -93,7 +93,6 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     |*  # CONSTRUCTOR                                           *|
     |*----------------------------------------------------------*/
 
-    // TODO pass ERC20 name + symbol as a parameter?
     function initialize(
         string memory _name,
         string memory _symbol,
@@ -109,15 +108,14 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         address _daoAddress,
         uint256 _decayRatePerDay
     ) internal onlyInitializing {
-        __ERC20_init(_name, _symbol); // TODO is this name + symbol good?
-        __Ownable2Step_init(); // TODO do we need to call this?
+        __ERC20_init(_name, _symbol);
+        __Ownable2Step_init();
         __PresenceToken_init_unchained(_daoAddress, _decayRatePerDay);
     }
 
     function __PresenceToken_init_unchained(address _daoAddress, uint256 _decayRatePerDay) internal onlyInitializing {
         daoAddress = TDFDiamondPartial(_daoAddress);
         setDecayRatePerDay(_decayRatePerDay);
-        // TODO anything else to put here?
     }
 
     /*----------------------------------------------------------*|
@@ -148,6 +146,8 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
             decayedAmountToSubstract += calculateDecayForDays(burnDataArray[i].amount, burnDataArray[i].daysAgo);
         }
 
+        require(decayedAmountToSubstract <= lastDecayedBalance[account], "Burn amount exceeds balance");
+
         // TODO check here if it's not negative?
         lastDecayedBalance[account] -= decayedAmountToSubstract;
         // TODO we should probably not update the timestamp here, but let's make sure.
@@ -177,9 +177,9 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
             revert Unauthorized({sender: _msgSender(), allowedRoles: allowedRolesStr});
         }
 
-        addHolderIfNotExists(_msgSender());
-        lastDecayedBalance[_msgSender()] = calculateDecayedBalance(_msgSender()) + amount;
-        lastDecayTimestamp[_msgSender()] = block.timestamp;
+        addHolderIfNotExists(account);
+        lastDecayedBalance[account] = calculateDecayedBalance(account) + amount;
+        lastDecayTimestamp[account] = block.timestamp;
 
         _mint(account, amount);
     }
@@ -202,7 +202,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         return ERC20Upgradeable.balanceOf(_account);
     }
 
-    function balanceOf(address _account) public view override returns (uint256 balance) {
+    function balanceOf(address _account) public view override returns (uint256) {
         return calculateDecayedBalance(_account);
     }
 
@@ -211,6 +211,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         return ERC20Upgradeable.totalSupply();
     }
 
+    // TODO make this external to prevent calling this from internal function as this is quite gas extensive?
     function totalSupply() public view override returns (uint256 decayedTotalSupply) {
         decayedTotalSupply = 0;
         for (uint256 i = 0; i < holders.length; i++) {
@@ -232,7 +233,6 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         if (from != address(0) && to != address(0)) {
             revert TransferNotAllowed();
         }
-        // TODO super. or ERC20Upgradeable here?
         super._beforeTokenTransfer(from, to, amount);
     }
 
@@ -248,9 +248,11 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     }
 
     function calculateDecayForDays(uint256 amount, uint256 daysAgo) internal view returns (uint256) {
+        // TODO use library for this calculation?
         if (daysAgo > 0) {
             for (uint256 i = 0; i < daysAgo; i++) {
-                uint256 amountToSubstract = (amount / 100) * (decayRatePerDay / 100);
+                // TODO is this correct?
+                uint256 amountToSubstract = (amount * decayRatePerDay) / 10**DECAY_RATE_PER_DAY_DECIMALS;
                 amount -= amountToSubstract;
             }
         }
