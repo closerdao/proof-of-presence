@@ -8,6 +8,8 @@ import {
   DEFAULT_PRESENCE_TOKEN_NAME,
   DEFAULT_PRESENCE_TOKEN_SYMBOL,
 } from '../deploy/006_deploy_presenceToken';
+import {parseUnits} from 'ethers/lib/utils';
+import {BigNumber} from 'ethers';
 
 const setup = deployments.createFixture(async () => {
   await deployments.fixture();
@@ -82,8 +84,9 @@ describe('PresenceToken Contract', function () {
 
     it('should fail to set decay rate if exceeding max limit', async function () {
       const tooHighDecayRate = 300001; // example exceeding value
-      await presenceToken.connect(owner);
-      await expect(presenceToken.setDecayRatePerDay(tooHighDecayRate)).to.be.revertedWith('InvalidDecayRatePerDay');
+      await expect(presenceToken.connect(owner).setDecayRatePerDay(tooHighDecayRate)).to.be.revertedWith(
+        'InvalidDecayRatePerDay'
+      );
     });
 
     it('should fail to set a decay if not authorized', async function () {
@@ -109,18 +112,17 @@ describe('PresenceToken Contract', function () {
     });
 
     it('should calculate decayed balance correctly', async function () {
-      await presenceToken.connect(owner).mint(user.address, 1000);
+      await presenceToken.connect(owner).setDecayRatePerDay(28861); // eta 10% per year
+      await presenceToken.connect(owner).mint(user.address, parseUnits('1', 18));
       // Simulate time passing and check balance
       await ethers.provider.send('evm_increaseTime', [86400]); // 1 day
-
-      // TODO I think calling evm_mine is probably unnecessary, need to check it
       await ethers.provider.send('evm_mine', []); // mine a block
 
       const decayedBalance = await presenceToken.balanceOf(user.address);
+      expect(decayedBalance).to.be.equal(BigNumber.from('971139000000000000'));
 
-      // TODO why is conversion to Number necessary here? shouldn't it work with BigNumber as well?
-      expect(Number(decayedBalance)).to.be.lessThan(1000);
-      // TODO add exact number to check to also test if the calculations are correct
+      // TODO also test decay after year, e.g. that with 10% decay rate per year the
+      //  balanceOf returns truly correct values
     });
   });
 });
