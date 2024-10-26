@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "../diamond/libraries/AccessControlLib.sol";
 import "../diamond/libraries/AppStorage.sol";
+import "../Libraries/FixedPointMathLib.sol";
 
 // TODO is there a better way how to e.g. auto generate the interface for all the methods on diamond automatically,
 //  so it's always up to date and no need to write it manually?
@@ -18,21 +19,48 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     |*  # VARIABLES & CONSTANTS DEFINITIONS                     *|
     |*----------------------------------------------------------*/
 
-    // TODO what is correct value to use here?
-    uint256 public constant DECAY_RATE_PER_DAY_DECIMALS = 6;
+    uint256 public constant DECAY_RATE_PER_DAY_DECIMALS = 9;
 
     // TODO what is the best value here?
-    uint256 public constant MAX_DECAY_RATE_PER_DAY = 219_178; // equals to ~80% decay per year
+    uint256 public constant MAX_DECAY_RATE_PER_DAY = 4_399_711; // equals to ~80% decay per year
     // TODO set also minimal decay? or let it allow 0?
+
+    /*----------------------------------------------------------*|
+    |*  # DECAY CALCULATION                                     *|
+    |*----------------------------------------------------------*/
+
+    // For all decay calculations we assume here that the year has 365 days.
+    
+    /**
+     * DECAY RATE PER YEAR => DECAY RATE PER DAY
+     * Formula: 1 - (1 - [percentageDecayPerYear] / 100)^(1/365)
+     *   for getting a percentage, multiply the result by 100
+     *   for getting a decayRatePerDay as stored/used in this contract, multiply the result by 10^DECAY_RATE_PER_DECIMALS
+     */
+
+    /**
+     * DECAY RATE PER DAY =>. DECAY RATE PER YEAR
+     * Formula: 1 - (1 - [percentageDecayPerDay] / 100)^365
+     *   for getting a percentage, multiply the result by 100
+     */
+
+    /**
+     * AMOUNT DECAY AFTER X DAYS
+     * Formula: [initialAmount] * (1 - [percentageDecayPerDay] / 100)^[numberOfDays]
+     */
 
     /**
      * Set by DAO, value allows up to DECAY_RATE_PER_DAY_DECIMALS. We assume that year have 365 days for a simplicity.
      * Converting from decay per year to decay per rate is done by this formula:
-     * decayRatePerDay = (1 - ((1 - percentageDecayPerYear / 100)^(1/365))) * 100 * 10^DECAY_RATE_PER_DAY_DECIMALS
+     * decayRatePerDay = (1 - ((1 - percentageDecayPerYear / 100)^(1/365))) * 10^DECAY_RATE_PER_DAY_DECIMALS
      *
      * Example:
      *          10% decay rate per year
      *          => (1 - ((1 - 10/100)^1/365)) * 100 * 10^6 = 28861.72890 => strip decimal part == 28861 decayRatePerDay
+     */
+
+    /**
+     * @notice decayRatePerDay is set by DAO
      */
     uint256 public decayRatePerDay;
 
@@ -126,6 +154,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     // TODO any other role can change this? currently the owner of the PresenceToken == owner of TDF Diamond
     function setDaoAddress(address _newDaoAddress) public onlyOwner {
         daoAddress = TDFDiamondPartial(_newDaoAddress);
+        // TODO emit event here?
     }
 
     // TODO allow onlyOwner?
@@ -137,7 +166,12 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         uint256 daysAgo;
     }
 
+    // TODO also allow user itself to burn it's own tokens?
     function burn(address account, BurnData[] memory burnDataArray) external onlyOwner {
+        if (burnDataArray.length == 0) {
+            revert("burnDataArray parameter is empty");
+        }
+
         uint256 nonDecayedAmountToBurn = 0;
         uint256 decayedAmountToSubstract = 0;
 
@@ -146,12 +180,10 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
             decayedAmountToSubstract += calculateDecayForDays(burnDataArray[i].amount, burnDataArray[i].daysAgo);
         }
 
-        require(decayedAmountToSubstract <= lastDecayedBalance[account], "Burn amount exceeds balance");
-
+        ERC20Upgradeable._burn(account, nonDecayedAmountToBurn);
         // TODO check here if it's not negative?
         lastDecayedBalance[account] -= decayedAmountToSubstract;
         // TODO we should probably not update the timestamp here, but let's make sure.
-        ERC20Upgradeable._burn(account, nonDecayedAmountToBurn);
     }
 
     // TODO allow onlyOwner?
@@ -160,6 +192,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         ERC20Upgradeable._burn(account, nonDecayedBalanceOf(account));
         lastDecayedBalance[account] = 0;
         lastDecayTimestamp[account] = 0;
+        // TODO remove here from holders array? or no?
     }
 
     // TODO override _mint() or mint()?
@@ -167,13 +200,15 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     // TODO allow also owner of this contract to call it?
     // TODO allow dao to call this?
     function mint(address account, uint256 amount) external {
+        // TODO should we revert here when `amount == 0`?
+
         bytes32[] memory allowedRoles = new bytes32[](2);
         allowedRoles[0] = AccessControlLib.BOOKING_PLATFORM_ROLE;
         allowedRoles[1] = AccessControlLib.BOOKING_MANAGER_ROLE;
         if (!checkPermission(allowedRoles)) {
             string[] memory allowedRolesStr = new string[](2);
-            allowedRoles[0] = "BOOKING_PLATFORM_ROLE";
-            allowedRoles[1] = "BOOKING_MANAGER_ROLE";
+            allowedRolesStr[0] = "BOOKING_PLATFORM_ROLE";
+            allowedRolesStr[1] = "BOOKING_MANAGER_ROLE";
             revert Unauthorized({sender: _msgSender(), allowedRoles: allowedRolesStr});
         }
 
@@ -220,9 +255,23 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         return decayedTotalSupply;
     }
 
+    // TODO add getter for getting decayRatePerRay
+
     /*----------------------------------------------------------*|
     |*  # INTERNAL FUNCTIONS                                    *|
     |*----------------------------------------------------------*/
+    
+    // TODO put this unto internal functions?
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public virtual override returns (bool) {
+        from;
+        to;
+        amount;
+        revert TransferNotAllowed();
+    }
 
     function _beforeTokenTransfer(
         address from,
@@ -247,17 +296,67 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         revert ApproveNotAllowed();
     }
 
-    function calculateDecayForDays(uint256 amount, uint256 daysAgo) internal view returns (uint256) {
-        // TODO use library for this calculation?
-        if (daysAgo > 0) {
-            for (uint256 i = 0; i < daysAgo; i++) {
-                // TODO is this correct?
-                uint256 amountToSubstract = (amount * decayRatePerDay) / 10**DECAY_RATE_PER_DAY_DECIMALS;
-                amount -= amountToSubstract;
-            }
-        }
-        return amount;
+    /// @notice Calculates decay over a number of days with high precision
+    /// @param amount The initial amount (with 18 decimals)
+    /// @param daysAgo Number of days to calculate decay for
+    /// @return The decayed amount (with 18 decimals)
+    function calculateDecayForDays(uint256 amount, uint256 daysAgo) public view returns (uint256) {
+        if (daysAgo == 0) return amount;
+
+        // For better precision and gas efficiency, we can use the compound formula:
+        // amount * (1 - decayRate)^daysAgo
+        
+        // Convert decay rate to 18 decimal precision
+        uint256 decayRateScaled = (decayRatePerDay * 10**18) / (10**DECAY_RATE_PER_DAY_DECIMALS);
+        
+        // Calculate (1 - decayRate) with 18 decimals precision
+        uint256 retentionRate = 10**18 - decayRateScaled;
+        
+        // Calculate (1 - decayRate)^daysAgo
+        uint256 totalRetentionRate = powWithPrecision(retentionRate, daysAgo);
+        
+        // Calculate final amount
+        uint256 result = FixedPointMathLib.mulDiv(amount, totalRetentionRate, 10**18);
+        
+        return result;
     }
+
+    /// @notice Helper function to calculate power with high precision
+    /// @param base The base number (with 18 decimals)
+    /// @param exponent The exponent
+    /// @return The result (with 18 decimals)
+    function powWithPrecision(uint256 base, uint256 exponent) internal pure returns (uint256) {
+        uint256 result = 10**18;
+        
+        while (exponent != 0) {
+            if (exponent & 1 == 1) {
+                result = FixedPointMathLib.mulDiv(result, base, 10**18);
+            }
+            base = FixedPointMathLib.mulDiv(base, base, 10**18);
+            exponent = exponent >> 1;
+        }
+        
+        return result;
+    }
+
+    // function calculateDecayForDays(uint256 amount, uint256 daysAgo) internal view returns (uint256) {
+    //     // TODO use library for this calculation?
+    //     //  probably ABDKMath64x64 , Solmate or some open zeppelin?
+    //     if (daysAgo == 0) {
+    //         return amount;
+    //     }
+
+    //     // uint256 decayFactor = 1e18 - (decayRatePerDay * 1e12);
+    
+    //     for (uint256 i = 0; i < daysAgo; i++) {
+    //         // TODO is this correct?
+    //         // uint256 amountToSubstract = FixedPointMathLib.mulDiv(amount, decayFactor, 10**18);
+    //         uint256 amountToSubstract = FixedPointMathLib.mulDiv(amount, decayRatePerDay, 10**DECAY_RATE_PER_DAY_DECIMALS);
+    //         // uint256 amountToSubstract = (amount * decayRatePerDay) / 10**DECAY_RATE_PER_DAY_DECIMALS;
+    //         amount -= amountToSubstract;
+    //     }
+    //     return amount;
+    // }
 
     function calculateDecayedBalance(address userAddress) internal view returns (uint256 balance) {
         uint256 lastUserDecayTimestamp = lastDecayTimestamp[userAddress];

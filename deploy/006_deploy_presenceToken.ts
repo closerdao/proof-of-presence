@@ -6,7 +6,7 @@ import {TDFDiamond} from '../typechain';
 // TODO what should be the default values for these?
 export const DEFAULT_PRESENCE_TOKEN_NAME = 'TDF Presence';
 export const DEFAULT_PRESENCE_TOKEN_SYMBOL = '$PRESENCE';
-export const DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY = 28861; // eta 10% per year
+export const DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY = 288_617; // eta 10% per year
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
