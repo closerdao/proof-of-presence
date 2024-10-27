@@ -1269,4 +1269,71 @@ library FixedPointMathLib {
             z := mulmod(x, y, d)
         }
     }
+
+    /*
+     * CUSTOM ADDITIONS
+     */
+
+    /**
+     * @notice Helper function to calculate power with high precision
+     * @param base The base number (with 18 decimals)
+     * @param exponent The exponent
+     * @return The result (with 18 decimals)
+     */
+    function powWithPrecision(uint256 base, uint256 exponent) internal pure returns (uint256) {
+        uint256 result = 10**18;
+
+        while (exponent != 0) {
+            if (exponent & 1 == 1) {
+                result = mulDiv(result, base, 10**18);
+            }
+            base = mulDiv(base, base, 10**18);
+            exponent = exponent >> 1;
+        }
+
+        return result;
+    }
+
+    /**
+     * @notice Calculates nth root using binary search
+     * @param value The value to find the root of (with 18 decimals)
+     * @param n The root to calculate (e.g., 2 for square root)
+     * @return The nth root of the value (with 18 decimals)
+     */
+    function nthRoot(uint256 value, uint256 n) internal pure returns (uint256) {
+        uint256 SCALE = 10**18;
+
+        if (value == 0) return 0;
+        if (n == 0) return SCALE;
+        if (n == 1) return value;
+
+        uint256 low = 0;
+        uint256 high = SCALE;
+        uint256 mid;
+
+        // Binary search with high precision
+        while (low <= high && high - low > 1) {
+            mid = (low + high) / 2;
+
+            uint256 midToN = powWithPrecision(mid, n);
+
+            if (midToN == value) {
+                return mid;
+            } else if (midToN < value) {
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+
+        // Return the closest value
+        uint256 lowToN = powWithPrecision(low, n);
+        uint256 highToN = powWithPrecision(high, n);
+
+        if (value - lowToN < highToN - value) {
+            return low;
+        } else {
+            return high;
+        }
+    }
 }

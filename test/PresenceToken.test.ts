@@ -117,6 +117,28 @@ describe('PresenceToken Contract', function () {
       const newDecayRate = 100_000;
       await expect(presenceToken.connect(user).setDecayRatePerDay(newDecayRate)).to.be.revertedWith('Unauthorized');
     });
+
+    it('should return correct result for getDecayRatePerYear', async function () {
+      await presenceToken.connect(owner).setDecayRatePerDay(DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY);
+      // 9 == decay rate decimals precision
+      expect(await presenceToken.getCurrentDecayRatePerYear()).to.be.equal(parseUnits('0.099999905', 9));
+    });
+
+    it('should return correct result for getDecayRatePerDay', async function () {
+      // 10% == 0.1
+      // 9 == decay rate decimals precision
+      expect(await presenceToken.getDecayRatePerDay(parseUnits('0.1', 9))).to.be.equal(
+        DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY
+      );
+    });
+
+    it('getDecayRatePerYear -> getDecayRatePerDay should return almost same value', async function () {
+      const initialDecayRatePerDay = DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY;
+      const firstDecayRatePerYear = await presenceToken.getDecayRatePerYear(initialDecayRatePerDay);
+      const calculatedDecayRatePerDay = await presenceToken.getDecayRatePerDay(firstDecayRatePerYear);
+      // 1 is the arithemtic error difference, however should be negligible
+      expect(calculatedDecayRatePerDay).to.be.equal(initialDecayRatePerDay - 1);
+    });
   });
 
   describe('Non-Transferable Token Behavior', function () {
