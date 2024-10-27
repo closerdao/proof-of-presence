@@ -9,9 +9,8 @@ import {
   DEFAULT_PRESENCE_TOKEN_SYMBOL,
 } from '../deploy/006_deploy_presenceToken';
 import {parseUnits} from 'ethers/lib/utils';
-import {BigNumber} from 'ethers';
 
-const ONE_PRESENCE_TOKEN = parseUnits("1", 18)
+const ONE_PRESENCE_TOKEN = parseUnits('1', 18);
 
 const setup = deployments.createFixture(async () => {
   await deployments.fixture();
@@ -61,7 +60,9 @@ describe('PresenceToken Contract', function () {
     });
 
     it('should fail to mint if not authorized', async function () {
-      await expect(presenceToken.connect(user).mint(user.address, ONE_PRESENCE_TOKEN)).to.be.revertedWith('Unauthorized');
+      await expect(presenceToken.connect(user).mint(user.address, ONE_PRESENCE_TOKEN)).to.be.revertedWith(
+        'Unauthorized'
+      );
     });
   });
 
@@ -80,15 +81,19 @@ describe('PresenceToken Contract', function () {
       expect(await presenceToken.balanceOf(user.address)).to.equal(0);
     });
 
-    it('should fail to burn if not owner', async function() {
+    it('should fail to burn if not owner', async function () {
       // checking with dao to make sure that dao can't burn neither
-      await ethers.provider.send("hardhat_impersonateAccount", [dao])
-      const daoSigner = await ethers.getSigner(dao)
-      await ethers.provider.send("hardhat_setBalance", [daoSigner.address, "0x1BC16D674EC80000"])
-      await expect(presenceToken.connect(daoSigner).burn(user.address, [{amount: ONE_PRESENCE_TOKEN, daysAgo: 0}])).to.be.revertedWith("Ownable: caller is not the owner")
-      await expect(presenceToken.connect(daoSigner).burnAll(user.address)).to.be.revertedWith("Ownable: caller is not the owner")
-      await ethers.provider.send("hardhat_stopImpersonatingAccount", [daoSigner.address])
-    })
+      await ethers.provider.send('hardhat_impersonateAccount', [dao]);
+      const daoSigner = await ethers.getSigner(dao);
+      await ethers.provider.send('hardhat_setBalance', [daoSigner.address, '0x1BC16D674EC80000']);
+      await expect(
+        presenceToken.connect(daoSigner).burn(user.address, [{amount: ONE_PRESENCE_TOKEN, daysAgo: 0}])
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(presenceToken.connect(daoSigner).burnAll(user.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
+      await ethers.provider.send('hardhat_stopImpersonatingAccount', [daoSigner.address]);
+    });
 
     // TODO add test case for checking burns with daysAgo > 0 to also check if the decay works propoerly
     //  in case of burn
@@ -117,7 +122,9 @@ describe('PresenceToken Contract', function () {
   describe('Non-Transferable Token Behavior', function () {
     it('should not allow token transfers', async function () {
       await expect(presenceToken.connect(user).transfer(dao, 100)).to.be.revertedWith('TransferNotAllowed');
-      await expect(presenceToken.connect(user).transferFrom(user.address, dao, 100)).to.be.revertedWith('TransferNotAllowed')
+      await expect(presenceToken.connect(user).transferFrom(user.address, dao, 100)).to.be.revertedWith(
+        'TransferNotAllowed'
+      );
     });
 
     it('should not allow approval', async function () {

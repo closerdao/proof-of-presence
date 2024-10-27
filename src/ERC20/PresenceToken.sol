@@ -10,7 +10,6 @@ import "../Libraries/FixedPointMathLib.sol";
 // TODO remove before merging
 import "hardhat/console.sol";
 
-
 // TODO is there a better way how to e.g. auto generate the interface for all the methods on diamond automatically,
 //  so it's always up to date and no need to write it manually?
 interface TDFDiamondPartial {
@@ -34,7 +33,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     |*----------------------------------------------------------*/
 
     // For all decay calculations we assume here that the year has 365 days.
-    
+
     /**
      * DECAY RATE PER YEAR => DECAY RATE PER DAY
      * Formula: 1 - (1 - [percentageDecayPerYear] / 100)^(1/365)
@@ -189,29 +188,20 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
             decayedAmountToSubstract += calculateDecayForDays(burnDataArray[i].amount, burnDataArray[i].daysAgo);
         }
 
-        console.log("nonDecayed amount to burn");
-        console.log(nonDecayedAmountToBurn);
-
         // update decayed balances and timestamp
         lastDecayedBalance[account] = calculateDecayedBalance(account);
         lastDecayTimestamp[account] = block.timestamp;
-
-        console.log("decayedAmountToSubstract");
-        console.log(decayedAmountToSubstract);
-
-        console.log("current lastDecayedBalance");
-        console.log(lastDecayedBalance[account]);
 
         ERC20Upgradeable._burn(account, nonDecayedAmountToBurn);
 
         // TODO is this okay to have this padding?
         if (decayedAmountToSubstract > lastDecayedBalance[account]) {
             uint256 difference = decayedAmountToSubstract - lastDecayedBalance[account];
-            // allowed padding due to rounding errors
+            // allowed padding due to rounding errors + get rid of dust
             if (difference > 100_000) {
                 revert("Amount to burn is bigger than the decayed user balance");
             }
-            
+
             lastDecayedBalance[account] = 0;
         } else {
             // TODO add unchecked?
@@ -293,7 +283,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     /*----------------------------------------------------------*|
     |*  # INTERNAL FUNCTIONS                                    *|
     |*----------------------------------------------------------*/
-    
+
     // TODO put this unto internal functions?
     function transferFrom(
         address from,
@@ -338,16 +328,16 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
 
         // For better precision and gas efficiency, we can use the compound formula:
         // amount * (1 - decayRate)^daysAgo
-        
+
         // Convert decay rate to 18 decimal precision
         uint256 decayRateScaled = (decayRatePerDay * 10**18) / (10**DECAY_RATE_PER_DAY_DECIMALS);
-        
+
         // Calculate (1 - decayRate) with 18 decimals precision
         uint256 retentionRate = 10**18 - decayRateScaled;
-        
+
         // Calculate (1 - decayRate)^daysAgo
         uint256 totalRetentionRate = powWithPrecision(retentionRate, daysAgo);
-        
+
         // Calculate final amount
         uint256 result = FixedPointMathLib.mulDiv(amount, totalRetentionRate, 10**18);
 
@@ -360,7 +350,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     /// @return The result (with 18 decimals)
     function powWithPrecision(uint256 base, uint256 exponent) internal pure returns (uint256) {
         uint256 result = 10**18;
-        
+
         while (exponent != 0) {
             if (exponent & 1 == 1) {
                 result = FixedPointMathLib.mulDiv(result, base, 10**18);
@@ -368,7 +358,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
             base = FixedPointMathLib.mulDiv(base, base, 10**18);
             exponent = exponent >> 1;
         }
-        
+
         return result;
     }
 
@@ -380,7 +370,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     //     }
 
     //     // uint256 decayFactor = 1e18 - (decayRatePerDay * 1e12);
-    
+
     //     for (uint256 i = 0; i < daysAgo; i++) {
     //         // TODO is this correct?
     //         // uint256 amountToSubstract = FixedPointMathLib.mulDiv(amount, decayFactor, 10**18);
