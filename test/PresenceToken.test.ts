@@ -125,22 +125,4 @@ describe('PresenceToken Contract', function () {
       await expect(presenceToken.connect(user).increaseAllowance(dao, 100)).to.be.revertedWith('ApproveNotAllowed');
     });
   });
-
-  describe('Balance Calculation', function () {
-    it('should calculate decayed balance correctly', async function () {
-      await presenceToken.connect(owner).setDecayRatePerDay(288_617); // ~10% per year
-      await presenceToken.connect(owner).mint(user.address, parseUnits('1', 18));
-      // Simulate time passing and check balance
-      await ethers.provider.send('evm_increaseTime', [86400]); // 1 day
-      await ethers.provider.send('evm_mine', []); // mine a block
-
-      const decayedBalance = await presenceToken.balanceOf(user.address);
-      expect(decayedBalance).to.be.equal(BigNumber.from('971139000000000000'));
-
-      // TODO also test decay after year, e.g. that with 10% decay rate per year the
-      //  balanceOf returns truly correct values
-    });
-
-    // TODO more tests and variations for decay calculation here
-  });
 });

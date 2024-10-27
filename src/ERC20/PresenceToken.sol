@@ -7,6 +7,10 @@ import "../diamond/libraries/AccessControlLib.sol";
 import "../diamond/libraries/AppStorage.sol";
 import "../Libraries/FixedPointMathLib.sol";
 
+// TODO remove before merging
+import "hardhat/console.sol";
+
+
 // TODO is there a better way how to e.g. auto generate the interface for all the methods on diamond automatically,
 //  so it's always up to date and no need to write it manually?
 interface TDFDiamondPartial {
@@ -162,10 +166,15 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     // TODO does this make sense or we will need to manually track when every token was minted to correctly
     //  calculate this?
     struct BurnData {
-        uint256 amount;
+        uint256 amount; // TODO remove amount and always count with amount == 1
         uint256 daysAgo;
     }
 
+    // TODO is it okay to let the caller of the burn() function assume to know
+    //  when was a token that he would like to burn minted?
+    //   downside of this approach is that there is no way to verify onchain
+    //   that the passed daysAgo is actually correct, since we do not hold any mapping
+    //   of when each PRESENCE token has been minted
     // TODO also allow user itself to burn it's own tokens?
     function burn(address account, BurnData[] memory burnDataArray) external onlyOwner {
         if (burnDataArray.length == 0) {
@@ -180,10 +189,34 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
             decayedAmountToSubstract += calculateDecayForDays(burnDataArray[i].amount, burnDataArray[i].daysAgo);
         }
 
+        console.log("nonDecayed amount to burn");
+        console.log(nonDecayedAmountToBurn);
+
+        // update decayed balances and timestamp
+        lastDecayedBalance[account] = calculateDecayedBalance(account);
+        lastDecayTimestamp[account] = block.timestamp;
+
+        console.log("decayedAmountToSubstract");
+        console.log(decayedAmountToSubstract);
+
+        console.log("current lastDecayedBalance");
+        console.log(lastDecayedBalance[account]);
+
         ERC20Upgradeable._burn(account, nonDecayedAmountToBurn);
-        // TODO check here if it's not negative?
-        lastDecayedBalance[account] -= decayedAmountToSubstract;
-        // TODO we should probably not update the timestamp here, but let's make sure.
+
+        // TODO is this okay to have this padding?
+        if (decayedAmountToSubstract > lastDecayedBalance[account]) {
+            uint256 difference = decayedAmountToSubstract - lastDecayedBalance[account];
+            // allowed padding due to rounding errors
+            if (difference > 100_000) {
+                revert("Amount to burn is bigger than the decayed user balance");
+            }
+            
+            lastDecayedBalance[account] = 0;
+        } else {
+            // TODO add unchecked?
+            lastDecayedBalance[account] -= decayedAmountToSubstract;
+        }
     }
 
     // TODO allow onlyOwner?
@@ -317,7 +350,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         
         // Calculate final amount
         uint256 result = FixedPointMathLib.mulDiv(amount, totalRetentionRate, 10**18);
-        
+
         return result;
     }
 

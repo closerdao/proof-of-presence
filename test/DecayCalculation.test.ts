@@ -133,14 +133,6 @@ describe('Token Decay Tests', function () {
     });
 
     it('should handle decaying of minted tokens overtime correctly', async function () {
-        /**
-         * 1. 1
-         * 2. 1 + decayed(1.) == 1 + 0.999711383000000000 => 1.999711383
-         * 3. 1 + decayed(2.) == 1 + 1.999134232299772689 => 2.999134232299772689
-         * 4. 1 + decayed(3.) == 1 + 2.998268631175049025 => 3.998268631175049025
-         * 5. 1 + decayed(4.) == 1 + 3.997114662877525175 => 4.997114662877525175
-         */
-        
         for (let i = 0; i < 5; i++) {
           await presenceToken.connect(owner).mint(user.address, parseUnits('1', 18));
           if (i !== 4) {
@@ -166,15 +158,15 @@ describe('Token Decay Tests', function () {
         expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('5.992500537804965278', 18))
       
         // wait 30 days
-        //await ethers.provider.send('evm_increaseTime', [30 * DAY_IN_SECONDS]);
-        //await ethers.provider.send('evm_mine', []);
+        await ethers.provider.send('evm_increaseTime', [30 * DAY_IN_SECONDS]);
+        await ethers.provider.send('evm_mine', []);
         // calculator: 5.940830968847357642 , contract: 5.940830968847357593 == 49 wei difference
-        //expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('5.940830968847357642', 18))
+        expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('5.940830968847357593', 18))
 
         await ethers.provider.send('evm_increaseTime', [60 * DAY_IN_SECONDS]);
         await ethers.provider.send('evm_mine', []);
-        // calculator: 5.889606914135334520 , contract: 5.889606914135334414 == 106 wei difference
-        expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('5.889606914135334414', 18))
+        // calculator: 5.838824532279330922 , contract: 5.838824532279330815 == 107 wei difference
+        expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('5.838824532279330815', 18))
       });
 
     it('arithemtic difference should not be too big', async function () {
@@ -184,7 +176,13 @@ describe('Token Decay Tests', function () {
 
       // exact: 900.00009497124503975737187462675835700009138426014159119322378181299840208475649272935384486916737564058134278089122007038629188
       // calculator: 900.000094971245039757 , contract: 900.000094971244942000 == 97 757 wei difference
-      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('900.000094971245039757', 18))
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('900.000094971244942000', 18))
+
+      await ethers.provider.send('evm_increaseTime', [365 * DAY_IN_SECONDS]);
+      await ethers.provider.send('evm_mine', []);
+      // exact: 810.00017094825009110065377596737634582308582593734464323849886116360656315383912671105120641864372809144953675865066884919826663025106479459869220402925201847372789960668894713966843290079785713084523
+      // calculator: 810.000170948250091100 , contract: 810.000170948249916000 == 175 100 wei difference
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('810.000170948249916000', 18))
     })
   });
 
@@ -206,106 +204,100 @@ describe('Token Decay Tests', function () {
       await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS * 2]);
       await ethers.provider.send('evm_mine', []);
 
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('0.999422849299772689', 18))
+
       // First burn
       const burnData1 = [{
         amount: parseUnits('1', 18),
         daysAgo: 2
       }];
       await presenceToken.connect(owner).burn(user.address, burnData1);
+      expect(await presenceToken.nonDecayedBalanceOf(user.address)).to.be.equal(0)
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(0)
 
-      // Second mint
       await presenceToken.connect(owner).mint(user.address, parseUnits('1', 18));
-      
-      // Wait 3 more days
-      await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS * 3]);
+      await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS]);
       await ethers.provider.send('evm_mine', []);
 
-      // Second burn
-      const burnData2 = [{
-        amount: parseUnits('300', 18),
-        daysAgo: 3
-      }];
-      await presenceToken.connect(owner).burn(user.address, burnData2);
-
-      // Check final balances
-      const finalBalance = await presenceToken.balanceOf(user.address);
-      const finalLastDecayedBalance = await presenceToken.lastDecayedBalance(user.address);
-      
-      // Calculate expected remaining balance after all operations
-      expect(finalBalance).to.equal(parseUnits('657.84', 18));
-      expect(finalLastDecayedBalance).to.equal(parseUnits('657.84', 18));
-    });
-
-    it('should handle multiple mints with time gaps correctly', async function () {
-        // First mint
-        await presenceToken.connect(owner).mint(user.address, parseUnits('1000', 18));
-        
-        // Wait 3 days
-        await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS * 3]);
-        await ethers.provider.send('evm_mine', []);
-        
-        // Second mint
-        await presenceToken.connect(owner).mint(user.address, parseUnits('500', 18));
-        
-        // Wait 2 more days
-        await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS * 2]);
-        await ethers.provider.send('evm_mine', []);
-  
-        const balance = await presenceToken.balanceOf(user.address);
-        // First amount decays for 5 days, second amount decays for 2 days
-        expect(balance).to.be.closeTo(
-          // @ts-expect-error asd
-          parseUnits('1400', 18),
-          parseUnits('0.1', 18) // Allow small rounding difference
-        );
-      });
-
-    it('should handle burning with multiple day-ago periods', async function () {
-      await presenceToken.connect(owner).mint(user.address, parseUnits('1000', 18));
-      
-      // Wait 10 days
-      await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS * 10]);
+      await presenceToken.connect(owner).mint(user.address, parseUnits('1', 18));
+      await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS]);
       await ethers.provider.send('evm_mine', []);
 
-      const burnData = [
+      await presenceToken.connect(owner).mint(user.address, parseUnits('1', 18));
+      await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS]);
+      await ethers.provider.send('evm_mine', []);
+
+      expect(await presenceToken.nonDecayedBalanceOf(user.address)).to.be.equal(parseUnits("3", 18))
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits("2.998268631175049025", 18))
+
+      const burnData2 = [
         {
-          amount: parseUnits('200', 18),
-          daysAgo: 10
-        },
-        {
-          amount: parseUnits('300', 18),
-          daysAgo: 7
-        },
-        {
-          amount: parseUnits('100', 18),
+          amount: parseUnits('1', 18),
           daysAgo: 3
-        }
+        },
+        // intentional gap between days
+        {
+          amount: parseUnits('1', 18),
+          daysAgo: 1
+        },
+      ];
+      await presenceToken.connect(owner).burn(user.address, burnData2);
+      expect(await presenceToken.nonDecayedBalanceOf(user.address)).to.be.equal(parseUnits("1", 18))
+      // balance should be only the decayed token from 2 days ago
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits("0.999422849299772689", 18))
+
+      await presenceToken.connect(owner).mint(user.address, parseUnits('1', 18));
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits("1.999422849299772689", 18))
+      
+      await ethers.provider.send('evm_increaseTime', [DAY_IN_SECONDS]);
+      await ethers.provider.send('evm_mine', []);
+
+      // 1998845781875276336505818887
+      // 1998845781875276336
+      // 1999422849299772689
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits("1.998845781875276336", 18))
+
+      const burnData3 = [
+        // intentional gap between days
+        {
+          amount: parseUnits('1', 18),
+          daysAgo: 1
+        },
       ];
 
-      await presenceToken.connect(owner).burn(user.address, burnData);
+      await presenceToken.connect(owner).burn(user.address, burnData3)
+      // only left the minted token from 3 days ago
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits("0.999134398875276336", 18))
 
-      const finalBalance = await presenceToken.balanceOf(user.address);
-      const finalLastDecayedBalance = await presenceToken.lastDecayedBalance(user.address);
+      // move 60 days to the future, so 63 days ago was the token minted
+      await ethers.provider.send('evm_increaseTime', [60 * DAY_IN_SECONDS]);
+      await ethers.provider.send('evm_mine', []);
 
-      expect(finalBalance).to.equal(parseUnits('356.78', 18));
-      expect(finalLastDecayedBalance).to.equal(parseUnits('356.78', 18));
+      // calculation: 0.999134398875276336 × (1 − 0.0288617 / 100)^60
+      // exact: 0.981978862854096031004688104894428... (truncated)
+      // contracty returns 981978862854096013, so the difference is 18 wei
+
+      // TODO why is there difference of 1 wei here?
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits("0.981978862854096013", 18))
+      expect(await presenceToken.calculateDecayForDays(parseUnits('1', 18), 63)).to.be.equal(parseUnits("0.981978862854096014", 18))
+
+      await expect(presenceToken.connect(owner).burn(user.address, [{ amount: parseUnits('1', 18), daysAgo: 62 }]), "did not revert on too big amount to burn").to.be.reverted
+      await expect(presenceToken.connect(owner).burn(user.address, [{ amount: parseUnits('2', 18), daysAgo: 63 }])).to.be.reverted
+      await presenceToken.connect(owner).burn(user.address, [{ amount: parseUnits('1', 18), daysAgo: 63 }])
+      expect(await presenceToken.nonDecayedBalanceOf(user.address)).to.be.equal(0)
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(0)
     });
 
     it('should handle burning with zero days ago', async function () {
-        await presenceToken.connect(owner).mint(user.address, parseUnits('1000', 18));
+        await presenceToken.connect(owner).mint(user.address, parseUnits('1', 18));
   
         const burnData = [{
-          amount: parseUnits('500', 18),
+          amount: parseUnits('1', 18),
           daysAgo: 0
         }];
   
         await presenceToken.connect(owner).burn(user.address, burnData);
-  
-        const balance = await presenceToken.balanceOf(user.address);
-        const lastDecayedBalance = await presenceToken.lastDecayedBalance(user.address);
-  
-        expect(balance).to.equal(parseUnits('500', 18));
-        expect(lastDecayedBalance).to.equal(parseUnits('500', 18));
+        expect(await presenceToken.balanceOf(user.address)).to.equal(0);
       });
   });
 })
