@@ -399,7 +399,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      * to correctly calculate the decayed balance.
      */
     function _mint(address account, uint256 amount) internal override {
-        if (amount > 0) {
+        if (amount == 0) {
             revert MintWithZeroAmount();
         }
 
