@@ -596,17 +596,14 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      * @custom:throws Unauthorized if called by user without permissioned roles
      */
     function checkPermission(bytes32[] memory allowedRoles, string[] memory allowedRolesStr) internal view {
-        bool hasRole = false;
         TDFDiamondPartial daoAddress_ = daoAddress; // read from storage only once
         for (uint256 i = 0; i < allowedRoles.length; i++) {
             if (daoAddress_.hasRole(allowedRoles[i], _msgSender())) {
-                hasRole = true;
+                return;
             }
         }
 
-        if (!hasRole) {
-            revert Unauthorized({sender: _msgSender(), allowedRoles: allowedRolesStr});
-        }
+        revert Unauthorized({sender: _msgSender(), allowedRoles: allowedRolesStr});
     }
 
     /**
