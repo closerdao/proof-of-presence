@@ -28,7 +28,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       execute: {
         init: {
           methodName: `initialize`,
-          // TODO what name and symbol to set?
           args: [
             DEFAULT_PRESENCE_TOKEN_NAME,
             DEFAULT_PRESENCE_TOKEN_SYMBOL,

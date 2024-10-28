@@ -427,6 +427,8 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         uint256 amount;
     }
 
+    // TODO allow also owner of this contract to call it?
+    // TODO allow dao to call this?
     /**
      * @notice Batch mint function, possibly useful for saving gas when want to mint PRESENCE for all people
      *          that stayed in the accomodation during the night.
@@ -444,10 +446,6 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     |*  # BURNING                                               *|
     |*----------------------------------------------------------*/
 
-    // TODO allow onlyOwner?
-    // TODO allow someone else?
-    // TODO does this make sense or we will need to manually track when every token was minted to correctly
-    //  calculate this?
     struct BurnData {
         // TODO remove amount and always count with amount == 1?
         uint256 amount;
@@ -460,7 +458,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     //   that the passed daysAgo is actually correct, since we do not hold any mapping
     //   of when each PRESENCE token has been minted
     // TODO also allow user itself to burn it's own tokens?
-
+    // TODO allow someone else to call this?
     /**
      * @notice Burn PRESENCE tokens for a user.
      * @notice This function can be only called by the owner of the contract, which will be the TDF Multisig.
@@ -469,10 +467,10 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      *          correctly calculate and update the decayed balance (=> PRESENCE token minted 10 days ago is already
      *          more decayed than PRESENCE token minted 2 days ago, so for us to correctly calculate the decayed
      *          balance to burn, we need to know when the PRESENCE token was minted).
-     * @return Account's decayed balance after burning. Useful for e.g. preview of the burn operation to make sure
+     * @return finalBalance Account's decayed balance after burning. Useful for e.g. preview of the burn operation to make sure
      *          that the passed burnDataArray makes sense and leads to the desireable result.
      */
-    function burn(address account, BurnData[] calldata burnDataArray) external onlyOwner returns (uint256) {
+    function burn(address account, BurnData[] calldata burnDataArray) external onlyOwner returns (uint256 finalBalance) {
         if (burnDataArray.length == 0) {
             revert("burnDataArray parameter is empty");
         }
@@ -485,27 +483,34 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
             decayedAmountToSubstract += calculateDecayForDays(burnDataArray[i].amount, burnDataArray[i].daysAgo);
         }
 
-        // update decayed balances and timestamp
-        lastDecayedBalance[account] = calculateDecayedBalance(account);
+        // update decayed balances and timestamp before burning
+        finalBalance = calculateDecayedBalance(account);
+        lastDecayedBalance[account] = finalBalance;
         lastDecayTimestamp[account] = block.timestamp;
 
         ERC20Upgradeable._burn(account, nonDecayedAmountToBurn);
 
-        // TODO is this okay to have this padding?
-        if (decayedAmountToSubstract > lastDecayedBalance[account]) {
-            uint256 difference = decayedAmountToSubstract - lastDecayedBalance[account];
-            // allowed padding due to rounding errors + get rid of dust
+        if (decayedAmountToSubstract > finalBalance) {
+            uint256 difference = decayedAmountToSubstract - finalBalance;
             if (difference > 100_000) {
                 revert("Amount to burn is bigger than the decayed user balance");
             }
 
-            lastDecayedBalance[account] = 0;
+            // TODO is this fine to have in contracts??
+            // In a certain cases there are some very small rounding arithmetic
+            // differences in the calculations, so this should prevent the `burn`
+            // from underflow revert, if the difference is very small (max 100_000 wei)
+            finalBalance = 0;
+            lastDecayedBalance[account] = finalBalance;
         } else {
-            // TODO add unchecked?
-            lastDecayedBalance[account] -= decayedAmountToSubstract;
+            // TODO is this unchecked okay?
+            unchecked {
+                finalBalance -= decayedAmountToSubstract;
+                lastDecayedBalance[account] = finalBalance;
+            }
         }
 
-        return lastDecayedBalance[account];
+        return finalBalance;
     }
 
     // TODO allow onlyOwner?
@@ -518,9 +523,9 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     function burnAll(address account) external onlyOwner {
         ERC20Upgradeable._burn(account, nonDecayedBalanceOf(account));
         lastDecayedBalance[account] = 0;
+        lastDecayTimestamp[account] = block.timestamp;
         // TODO set here the lastDecayTimestamp to 0 or no?
-        lastDecayTimestamp[account] = 0;
-        // TODO remove here from holders array? or no?
+        // TODO remove here from holders array or no?
     }
 
     /*----------------------------------------------------------*|
@@ -570,8 +575,9 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         view
         returns (bool)
     {
+        TDFDiamondPartial daoAddress_ = daoAddress; // read from storage only once
         for (uint256 i = 0; i < allowedRoles.length; i++) {
-            if (daoAddress.hasRole(allowedRoles[i], _msgSender())) {
+            if (daoAddress_.hasRole(allowedRoles[i], _msgSender())) {
                 return true;
             }
         }
