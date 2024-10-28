@@ -147,6 +147,8 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      */
     error InvalidDecayRatePerDay(uint256 value, uint256 maxAllowedValue);
 
+    error MintDataEmpty();
+
     error MintWithZeroAmount();
 
     error BurnDataEmpty();
@@ -450,7 +452,10 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      * @custom:see PresenceToken._mint function docs for description of additions to mint functionality
      */
     function mintBatch(MintData[] memory mintDataArray) external {
-        require(mintDataArray.length > 0, "mintDataArray should contain at least one item");
+        if (mintDataArray.length == 0) {
+            revert MintDataEmpty();
+        }
+
         checkMintPermission();
         for (uint256 i = 0; i < mintDataArray.length; i++) {
             _mint(mintDataArray[i].account, mintDataArray[i].amount);
