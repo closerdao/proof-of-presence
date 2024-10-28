@@ -382,8 +382,12 @@ describe('PresenceToken Contract', function () {
         parseUnits('0.981978862854096014', 18)
       );
 
-      await expect(presenceToken.connect(owner).burn(user.address, [{amount: parseUnits('1', 18), daysAgo: 62}])).to.be.revertedWith("BurnAmountExceedsDecayedBalance");
-      await expect(presenceToken.connect(owner).burn(user.address, [{amount: parseUnits('2', 18), daysAgo: 63}])).to.be.revertedWith("BurnAmountExceedsDecayedBalance");
+      await expect(
+        presenceToken.connect(owner).burn(user.address, [{amount: parseUnits('1', 18), daysAgo: 62}])
+      ).to.be.revertedWith('BurnAmountExceedsDecayedBalance');
+      await expect(
+        presenceToken.connect(owner).burn(user.address, [{amount: parseUnits('2', 18), daysAgo: 63}])
+      ).to.be.revertedWith('BurnAmountExceedsDecayedBalance');
       await presenceToken.connect(owner).burn(user.address, [{amount: parseUnits('1', 18), daysAgo: 63}]);
       expect(await presenceToken.nonDecayedBalanceOf(user.address)).to.be.equal(0);
       expect(await presenceToken.balanceOf(user.address)).to.be.equal(0);
