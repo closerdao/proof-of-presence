@@ -24,7 +24,7 @@ interface TDFDiamondPartial {
  *                  - minting
  *                  - burning
  *
- *          The fact the the PRESENCE token is non-transferrable means that we do not need to handle
+ *          The fact that the PRESENCE token is non-transferrable means that we do not need to handle
  *          the balance changes during transfers, but only during the `mint`, `burn` and `balanceOf` functions.
  *
  *          There are 2 additional mappings introduced:
@@ -34,7 +34,7 @@ interface TDFDiamondPartial {
  *
  *          We also override the `balanceOf` function, where we calculate the current decayed balance, using
  *          the 2 mappings `lastDecayedBalance` and `lastDecayedTimestamp`. Additional decay calculation on top of these
- *          2 mappins is necessary inside the `balanceOf` function because the values in these mappings are not regularly updated
+ *          2 mappings is necessary inside the `balanceOf` function because the values in these mappings are not regularly updated
  *          so they can contain even e.g. 1 year+ outdated data (if the user did not mint or burn any token during that time),
  *          but inside the `balanceOf` function we want to return the current decayed balance at the time of calling.
  *
@@ -73,6 +73,12 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     /*----------------------------------------------------------*|
     |*  # VARIABLES FOR DECAY FUNCTIONALITY                     *|
     |*----------------------------------------------------------*/
+
+    // TODO what is the correct value for this rounding error?
+    /**
+     * @notice denominated in wei, used for preventing underflows when small rounding error happens (e.g. during burn)
+     */
+    uint256 public constant MAX_ALLOWED_ROUNDING_ERROR = 100_000;
 
     uint256 public constant DECAY_RATE_PER_DAY_DECIMALS = 9;
 
@@ -142,6 +148,15 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     error InvalidDecayRatePerDay(uint256 value, uint256 maxAllowedValue);
 
     error MintWithZeroAmount();
+
+    error BurnDataEmpty();
+
+    error BurnAmountExceedsDecayedBalance(
+        uint256 nonDecayedAmountToBurn,
+        uint256 decayedAmountToBurn,
+        uint256 nonDecayedUserBalance,
+        uint256 decayedUserBalance
+    );
 
     /*----------------------------------------------------------*|
     |*  # MODIFIERS DEFINITIONS                                    *|
@@ -470,17 +485,21 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      * @return finalBalance Account's decayed balance after burning. Useful for e.g. preview of the burn operation to make sure
      *          that the passed burnDataArray makes sense and leads to the desireable result.
      */
-    function burn(address account, BurnData[] calldata burnDataArray) external onlyOwner returns (uint256 finalBalance) {
+    function burn(address account, BurnData[] calldata burnDataArray)
+        external
+        onlyOwner
+        returns (uint256 finalBalance)
+    {
         if (burnDataArray.length == 0) {
-            revert("burnDataArray parameter is empty");
+            revert BurnDataEmpty();
         }
 
         uint256 nonDecayedAmountToBurn = 0;
-        uint256 decayedAmountToSubstract = 0;
+        uint256 decayedAmountToBurn = 0;
 
         for (uint256 i = 0; i < burnDataArray.length; i++) {
             nonDecayedAmountToBurn += burnDataArray[i].amount;
-            decayedAmountToSubstract += calculateDecayForDays(burnDataArray[i].amount, burnDataArray[i].daysAgo);
+            decayedAmountToBurn += calculateDecayForDays(burnDataArray[i].amount, burnDataArray[i].daysAgo);
         }
 
         // update decayed balances and timestamp before burning
@@ -488,27 +507,32 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         lastDecayedBalance[account] = finalBalance;
         lastDecayTimestamp[account] = block.timestamp;
 
-        ERC20Upgradeable._burn(account, nonDecayedAmountToBurn);
-
-        if (decayedAmountToSubstract > finalBalance) {
-            uint256 difference = decayedAmountToSubstract - finalBalance;
-            if (difference > 100_000) {
-                revert("Amount to burn is bigger than the decayed user balance");
-            }
-
+        if (decayedAmountToBurn > finalBalance) {
             // TODO is this fine to have in contracts??
             // In a certain cases there are some very small rounding arithmetic
             // differences in the calculations, so this should prevent the `burn`
-            // from underflow revert, if the difference is very small (max 100_000 wei)
+            // from underflow revert, if the difference is very small (MAX_ALLOWED_ROUNDING_ERROR wei)
+            uint256 difference = decayedAmountToBurn - finalBalance;
+            if (difference > MAX_ALLOWED_ROUNDING_ERROR) {
+                revert BurnAmountExceedsDecayedBalance({
+                    nonDecayedAmountToBurn: nonDecayedAmountToBurn,
+                    decayedAmountToBurn: decayedAmountToBurn,
+                    nonDecayedUserBalance: nonDecayedBalanceOf(account),
+                    decayedUserBalance: finalBalance
+                });
+            }
+
             finalBalance = 0;
             lastDecayedBalance[account] = finalBalance;
         } else {
             // TODO is this unchecked okay?
             unchecked {
-                finalBalance -= decayedAmountToSubstract;
+                finalBalance -= decayedAmountToBurn;
                 lastDecayedBalance[account] = finalBalance;
             }
         }
+
+        ERC20Upgradeable._burn(account, nonDecayedAmountToBurn);
 
         return finalBalance;
     }
@@ -524,8 +548,6 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         ERC20Upgradeable._burn(account, nonDecayedBalanceOf(account));
         lastDecayedBalance[account] = 0;
         lastDecayTimestamp[account] = block.timestamp;
-        // TODO set here the lastDecayTimestamp to 0 or no?
-        // TODO remove here from holders array or no?
     }
 
     /*----------------------------------------------------------*|
@@ -570,25 +592,28 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     |*  # HELPER FUNCTIONS                                      *|
     |*----------------------------------------------------------*/
 
-    function checkPermission(bytes32[] memory allowedRoles, string[] memory allowedRolesStr)
-        internal
-        view
-        returns (bool)
-    {
+    /**
+     * @custom:throws Unauthorized if called by user without permissioned roles
+     */
+    function checkPermission(bytes32[] memory allowedRoles, string[] memory allowedRolesStr) internal view {
+        bool hasRole = false;
         TDFDiamondPartial daoAddress_ = daoAddress; // read from storage only once
         for (uint256 i = 0; i < allowedRoles.length; i++) {
             if (daoAddress_.hasRole(allowedRoles[i], _msgSender())) {
-                return true;
+                hasRole = true;
             }
         }
 
-        revert Unauthorized({sender: _msgSender(), allowedRoles: allowedRolesStr});
+        if (!hasRole) {
+            revert Unauthorized({sender: _msgSender(), allowedRoles: allowedRolesStr});
+        }
     }
 
     /**
      * @notice only accounts with BOOKING_MANAGER_ROLE or BOOKING_PLATFORM_ROLE should be able to mint new tokens
+     * @custom:throws Unauthorized if called by user without permissioned roles
      */
-    function checkMintPermission() internal view returns (bool) {
+    function checkMintPermission() internal view {
         bytes32[] memory allowedRoles = new bytes32[](2);
         allowedRoles[0] = AccessControlLib.BOOKING_PLATFORM_ROLE;
         allowedRoles[1] = AccessControlLib.BOOKING_MANAGER_ROLE;
@@ -596,8 +621,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         string[] memory allowedRolesStr = new string[](2);
         allowedRolesStr[0] = "BOOKING_PLATFORM_ROLE";
         allowedRolesStr[1] = "BOOKING_MANAGER_ROLE";
-
-        return checkPermission(allowedRoles, allowedRolesStr);
+        checkPermission(allowedRoles, allowedRolesStr);
     }
 
     function addHolderIfNotExists(address holder) internal returns (bool wasAdded) {

@@ -1285,9 +1285,9 @@ library FixedPointMathLib {
 
         while (exponent != 0) {
             if (exponent & 1 == 1) {
-                result = mulDiv(result, base, 10**18);
+                result = mulDiv(result, base, WAD);
             }
-            base = mulDiv(base, base, 10**18);
+            base = mulDiv(base, base, WAD);
             exponent = exponent >> 1;
         }
 
