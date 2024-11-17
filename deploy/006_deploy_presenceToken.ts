@@ -17,17 +17,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error('TDFDiamond contract not found. Please deploy it first.');
   })) as TDFDiamond;
 
-  // TODO in prod this should be called from the same address as the owner
-  //  of the TDFDiamond, so maybe the TDFMultisig should be the deployer?
+  // For real deployment, PresenceToken uses different ProxyAdmin deployer/upgrader
+  // because of different EOA used for the deployment. The ProxyAdmin used for
+  // PresenceToken is under PresenceToken__DefaultProxyImplementation.json
   await deploy('PresenceToken', {
-    // gasPrice: ethers.utils.parseUnits('100', 'gwei'), // specify a higher gas price
     from: deployer,
     proxy: {
       proxyContract: 'OptimizedTransparentProxy',
-      // owner: "0x4838b106fce9647bdf1e7877bf73ce8b0bad5f97",
-      // owner: '0x4410c9De0B7523b48B6EF4190eEb439aACC5F4D3',
-      // TODO why this throws error when running void:deploy ?
-      owner: '0x62266a37cb6C4a06c10eD65D70Baa2A69C7eFcB7',
       execute: {
         init: {
           methodName: `initialize`,
