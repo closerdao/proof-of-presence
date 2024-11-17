@@ -63,8 +63,6 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     |*  # VARIABLES & CONSTANTS DEFINITIONS                     *|
     |*----------------------------------------------------------*/
 
-    // TODO is public modifier here okay?
-    // TODO is there some more desirable way to get the roles from dao?
     /**
      * @notice used for accessing user roles store in DAO + allow DAO setting a decay rate
      */
@@ -74,7 +72,6 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     |*  # VARIABLES FOR DECAY FUNCTIONALITY                     *|
     |*----------------------------------------------------------*/
 
-    // TODO what is the correct value for this rounding error?
     /**
      * @notice denominated in wei, used for preventing underflows when small rounding error happens (e.g. during burn)
      */
@@ -82,10 +79,9 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
 
     uint256 public constant DECAY_RATE_PER_DAY_DECIMALS = 9;
 
-    // TODO what is the best max decay rate value here, if any?
     uint256 public constant MAX_DECAY_RATE_PER_DAY = 4_399_711; // equals to ~80% decay per year
 
-    // TODO should we also introduce a minimal decay rate? or should we keep 0 allowed?
+    uint256 public constant PRECISION_SCALE = 1e18; // used for decimal arithmetic operation
 
     /**
      * @notice Holds decimal decay rate per day, the value is padded by DECAY_RATE_PER_DAY_DECIMALS
@@ -94,8 +90,6 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      *          for this variable, e.g. for 10% decay rate per year
      */
     uint256 public decayRatePerDay;
-
-    // TODO which of these can be kept public and which to change?
 
     /**
      * @notice mapping that holds timestamp of last decay... this value is updated either during `mint` or `burn`
@@ -120,8 +114,13 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
 
     event DaoAddressChanged(address indexed oldAddress, address indexed newAddress);
 
-    // TODO add indexed here?
     event DecayRatePerDayChanged(uint256 oldDecayRatePerDay, uint256 newDecayRatePerDay);
+
+    event MintWithDecay(address indexed account, uint256 mintedAmount, uint256 decayedMintedAmount, uint256 mintedForDaysAgo);
+
+    event BurnWithDecay(address indexed account, uint256 burnedAmount, uint256 decayedBurnedAmount, uint256 burnedForDaysAgo);
+
+    event BurnAllUserPresence(address indexed account);
 
     /*----------------------------------------------------------*|
     |*  # ERRORS DEFINITIONS                                    *|
@@ -160,22 +159,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         uint256 decayedUserBalance
     );
 
-    /*----------------------------------------------------------*|
-    |*  # MODIFIERS DEFINITIONS                                    *|
-    |*----------------------------------------------------------*/
-
-    modifier onlyDAOorOwner() {
-        bool isOwner = owner() == _msgSender();
-        bool isDao = address(daoAddress) == _msgSender();
-
-        if (!isOwner && !isDao) {
-            string[] memory allowedRoles = new string[](2);
-            allowedRoles[0] = "OWNER";
-            allowedRoles[1] = "DAO";
-            revert Unauthorized({sender: _msgSender(), allowedRoles: allowedRoles});
-        }
-        _;
-    }
+    error InvalidDaoAddress(address invalidDaoAddress);
 
     /*----------------------------------------------------------*|
     |*  # CONSTRUCTOR                                           *|
@@ -210,33 +194,30 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     |*  # SETTERS                                               *|
     |*----------------------------------------------------------*/
 
-    // TODO do we need this setter or the dao address will never change?
-    // TODO should any other role be able change this?
     /**
      * @notice This function can be only called by the owner of this contract, which is TDF Multisig
      * @param newDaoAddress updated dao address
      */
     function setDaoAddress(address newDaoAddress) public onlyOwner {
-        // TODO any validation here to make sure the real dao address is set here?
+        if (newDaoAddress == address(0) || newDaoAddress.code.length == 0) {
+            revert InvalidDaoAddress({invalidDaoAddress: newDaoAddress});
+        }
         address oldAddress = address(daoAddress);
         daoAddress = TDFDiamondPartial(newDaoAddress);
-        // TODO emit also on contract init?
         emit DaoAddressChanged(oldAddress, newDaoAddress);
     }
 
-    // TODO allow also owner to call this or only dao? also should we allow any other role to call this?
     /**
      * @notice This function can be only called by the daoAddress or the owner of this contract, which is TDF Multisig
      * @param newDecayRatePerDay updated decay rate
      */
-    function setDecayRatePerDay(uint256 newDecayRatePerDay) public onlyDAOorOwner {
+    function setDecayRatePerDay(uint256 newDecayRatePerDay) public onlyOwner {
         if (newDecayRatePerDay > MAX_DECAY_RATE_PER_DAY) {
             revert InvalidDecayRatePerDay({value: newDecayRatePerDay, maxAllowedValue: MAX_DECAY_RATE_PER_DAY});
         }
 
         uint256 oldDecayRatePerDay = decayRatePerDay;
         decayRatePerDay = newDecayRatePerDay;
-        // TODO emit also on contract init?
         emit DecayRatePerDayChanged(oldDecayRatePerDay, newDecayRatePerDay);
     }
 
@@ -271,7 +252,8 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      */
     function totalSupply() public view override returns (uint256 decayedTotalSupply) {
         decayedTotalSupply = 0;
-        for (uint256 i = 0; i < holders.length; i++) {
+        uint256 holdersLength = holders.length;
+        for (uint256 i = 0; i < holdersLength; i++) {
             decayedTotalSupply += balanceOf(holders[i]);
         }
         return decayedTotalSupply;
@@ -293,21 +275,17 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     function calculateDecayForDays(uint256 amount, uint256 daysAgo) public view returns (uint256) {
         if (daysAgo == 0) return amount;
 
-        uint256 SCALE = 10**18;
-
         // Convert decay rate to 18 decimal precision
-        uint256 decayRateScaled = (decayRatePerDay * SCALE) / (10**DECAY_RATE_PER_DAY_DECIMALS);
+        uint256 decayRateScaled = (decayRatePerDay * PRECISION_SCALE) / (10**DECAY_RATE_PER_DAY_DECIMALS);
 
         // Calculate (1 - decayRate) with 18 decimals precision
-        uint256 retentionRate = SCALE - decayRateScaled;
+        uint256 retentionRate = PRECISION_SCALE - decayRateScaled;
 
         // Calculate (1 - decayRate)^daysAgo
         uint256 totalRetentionRate = FixedPointMathLib.powWithPrecision(retentionRate, daysAgo);
 
         // Calculate final amount
-        uint256 result = FixedPointMathLib.mulDiv(amount, totalRetentionRate, SCALE);
-
-        return result;
+        return FixedPointMathLib.mulDiv(amount, totalRetentionRate, PRECISION_SCALE);
     }
 
     /**
@@ -347,21 +325,19 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      */
     function getDecayRatePerYear(uint256 decayRatePerDay_) public pure returns (uint256 decayRatePerYear) {
         // Convert daily decay rate to 18 decimal precision for calculations
-        uint256 SCALE = 10**18;
-
-        uint256 decayRateScaled = (decayRatePerDay_ * SCALE) / (10**DECAY_RATE_PER_DAY_DECIMALS);
+        uint256 decayRateScaled = (decayRatePerDay_ * PRECISION_SCALE) / (10**DECAY_RATE_PER_DAY_DECIMALS);
 
         // Calculate retention rate (1 - daily_decay_rate)
-        uint256 dailyRetentionRate = SCALE - decayRateScaled;
+        uint256 dailyRetentionRate = PRECISION_SCALE - decayRateScaled;
 
         // Calculate (1 - daily_decay_rate)^365
         uint256 yearlyRetentionRate = FixedPointMathLib.powWithPrecision(dailyRetentionRate, 365);
 
         // Calculate yearly decay rate = 1 - (1 - daily_decay_rate)^365
-        uint256 yearlyDecayRateScaled = SCALE - yearlyRetentionRate;
+        uint256 yearlyDecayRateScaled = PRECISION_SCALE - yearlyRetentionRate;
 
         // Convert back to 9 decimal precision
-        return (yearlyDecayRateScaled * (10**DECAY_RATE_PER_DAY_DECIMALS)) / SCALE;
+        return (yearlyDecayRateScaled * (10**DECAY_RATE_PER_DAY_DECIMALS)) / PRECISION_SCALE;
     }
 
     /**
@@ -382,24 +358,21 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      * @notice to get the percentage representation, divide the result by `10^(DECAY_RATE_PER_DAY_DECIMALS - 2)`
      */
     function getDecayRatePerDay(uint256 decayRatePerYear) external pure returns (uint256) {
-        uint256 PRECISION = 18;
-        uint256 SCALE = 10**PRECISION;
-
         // Calculate yearly retention rate = (1 - yearly_decay_rate)
         // Both sides scaled to 9 decimals
         uint256 yearlyRetentionRateScaled = 10**DECAY_RATE_PER_DAY_DECIMALS - decayRatePerYear;
 
         // Convert to 18 decimals for higher precision in calculations
-        uint256 yearlyRetentionRate = (yearlyRetentionRateScaled * SCALE) / (10**DECAY_RATE_PER_DAY_DECIMALS);
+        uint256 yearlyRetentionRate = (yearlyRetentionRateScaled * PRECISION_SCALE) / (10**DECAY_RATE_PER_DAY_DECIMALS);
 
         // Calculate daily retention rate = (1 - yearly_decay_rate)^(1/365)
         uint256 dailyRetentionRate = FixedPointMathLib.nthRoot(yearlyRetentionRate, 365);
 
         // Calculate daily decay rate = 1 - daily_retention_rate
-        uint256 dailyDecayRateScaled = SCALE - dailyRetentionRate;
+        uint256 dailyDecayRateScaled = PRECISION_SCALE - dailyRetentionRate;
 
         // Convert back to 9 decimal precision
-        return (dailyDecayRateScaled * (10**DECAY_RATE_PER_DAY_DECIMALS)) / SCALE;
+        return (dailyDecayRateScaled * (10**DECAY_RATE_PER_DAY_DECIMALS)) / PRECISION_SCALE;
     }
 
     /*----------------------------------------------------------*|
@@ -415,50 +388,53 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      * the lastDecayTimestamp, we do not need to hold the mapping when each token was created to be able
      * to correctly calculate the decayed balance.
      */
-    function _mint(address account, uint256 amount) internal override {
+    function _mint(address account, uint256 amount, uint256 daysAgo) internal {
         if (amount == 0) {
             revert MintWithZeroAmount();
         }
 
-        // TODO revert if the account was minted a 1 PRESENCE token less than a day ago?
-        // TODO always count with amount == 1 in the mint function?
-
         addHolderIfNotExists(account);
-        lastDecayedBalance[account] = calculateDecayedBalance(account) + amount;
+        uint256 decayedMintedAmount = calculateDecayForDays(amount, daysAgo);
+        emit MintWithDecay({
+            account: account,
+            mintedAmount: amount,
+            decayedMintedAmount: decayedMintedAmount,
+            mintedForDaysAgo: daysAgo
+        });
+        lastDecayedBalance[account] = calculateDecayedBalance(account) + decayedMintedAmount;
         lastDecayTimestamp[account] = block.timestamp;
         ERC20Upgradeable._mint(account, amount);
     }
 
-    // TODO allow also owner of this contract to call it?
-    // TODO allow dao to call this?
     /**
      * @custom:see PresenceToken._mint function docs for description of additions to mint functionality
      */
-    function mint(address account, uint256 amount) external {
-        checkMintPermission();
-        _mint(account, amount);
+    function mint(address account, uint256 amount, uint256 daysAgo) external {
+        checkBurnOrMintPermission();
+        _mint(account, amount, daysAgo);
     }
 
     struct MintData {
         address account;
         uint256 amount;
+        uint256 daysAgo;
     }
 
-    // TODO allow also owner of this contract to call it?
-    // TODO allow dao to call this?
     /**
      * @notice Batch mint function, possibly useful for saving gas when want to mint PRESENCE for all people
      *          that stayed in the accomodation during the night.
      * @custom:see PresenceToken._mint function docs for description of additions to mint functionality
      */
-    function mintBatch(MintData[] memory mintDataArray) external {
-        if (mintDataArray.length == 0) {
+    function mintBatch(MintData[] calldata mintDataArray) external {
+        uint256 mintDataArrayLength = mintDataArray.length;
+        if (mintDataArrayLength == 0) {
             revert MintDataEmpty();
         }
 
-        checkMintPermission();
-        for (uint256 i = 0; i < mintDataArray.length; i++) {
-            _mint(mintDataArray[i].account, mintDataArray[i].amount);
+        checkBurnOrMintPermission();
+        for (uint256 i = 0; i < mintDataArrayLength;) {
+            _mint(mintDataArray[i].account, mintDataArray[i].amount, mintDataArray[i].daysAgo);
+            unchecked { ++i; }
         }
     }
 
@@ -466,19 +442,12 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     |*  # BURNING                                               *|
     |*----------------------------------------------------------*/
 
+
     struct BurnData {
-        // TODO remove amount and always count with amount == 1?
-        uint256 amount;
         uint256 daysAgo;
+        uint256 amount;
     }
 
-    // TODO is it okay to let the caller of the burn() function assume to know
-    //  when was a token that he would like to burn minted?
-    //   downside of this approach is that there is no way to verify onchain
-    //   that the passed daysAgo is actually correct, since we do not hold any mapping
-    //   of when each PRESENCE token has been minted
-    // TODO also allow user itself to burn it's own tokens?
-    // TODO allow someone else to call this?
     /**
      * @notice Burn PRESENCE tokens for a user.
      * @notice This function can be only called by the owner of the contract, which will be the TDF Multisig.
@@ -492,19 +461,29 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      */
     function burn(address account, BurnData[] calldata burnDataArray)
         external
-        onlyOwner
         returns (uint256 finalBalance)
     {
-        if (burnDataArray.length == 0) {
+        checkBurnOrMintPermission();
+
+        uint256 burnDataArrayLength = burnDataArray.length;
+        if (burnDataArrayLength == 0) {
             revert BurnDataEmpty();
         }
 
-        uint256 nonDecayedAmountToBurn = 0;
-        uint256 decayedAmountToBurn = 0;
+        uint256 nonDecayedAmountToBurn;
+        uint256 decayedAmountToBurn;
 
-        for (uint256 i = 0; i < burnDataArray.length; i++) {
+        for (uint256 i = 0; i < burnDataArrayLength;) {
             nonDecayedAmountToBurn += burnDataArray[i].amount;
-            decayedAmountToBurn += calculateDecayForDays(burnDataArray[i].amount, burnDataArray[i].daysAgo);
+            uint256 decayedBurnedAmount = calculateDecayForDays(burnDataArray[i].amount, burnDataArray[i].daysAgo);
+            decayedAmountToBurn += decayedBurnedAmount;
+            emit BurnWithDecay({
+                account: account,
+                burnedAmount: burnDataArray[i].amount,
+                decayedBurnedAmount: decayedBurnedAmount,
+                burnedForDaysAgo: burnDataArray[i].daysAgo
+            });
+            unchecked { ++i; }
         }
 
         // update decayed balances and timestamp before burning
@@ -513,7 +492,6 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         lastDecayTimestamp[account] = block.timestamp;
 
         if (decayedAmountToBurn > finalBalance) {
-            // TODO is this fine to have in contracts??
             // In a certain cases there are some very small rounding arithmetic
             // differences in the calculations, so this should prevent the `burn`
             // from underflow revert, if the difference is very small (MAX_ALLOWED_ROUNDING_ERROR wei)
@@ -526,11 +504,9 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
                     decayedUserBalance: finalBalance
                 });
             }
-
             finalBalance = 0;
-            lastDecayedBalance[account] = finalBalance;
+            lastDecayedBalance[account] = 0;
         } else {
-            // TODO is this unchecked okay?
             unchecked {
                 finalBalance -= decayedAmountToBurn;
                 lastDecayedBalance[account] = finalBalance;
@@ -542,8 +518,6 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         return finalBalance;
     }
 
-    // TODO allow onlyOwner?
-    // TODO allow someone else? maybe DAO in case of some ban of a person?
     /**
      * @notice Burns all tokens for a given account. Useful e.g. in case of blacklisting a person.
      * @notice This function can be only called by the owner of the contract, which will be the TDF Multisig.
@@ -553,6 +527,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         ERC20Upgradeable._burn(account, nonDecayedBalanceOf(account));
         lastDecayedBalance[account] = 0;
         lastDecayTimestamp[account] = block.timestamp;
+        emit BurnAllUserPresence({account: account});
     }
 
     /*----------------------------------------------------------*|
@@ -600,12 +575,19 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     /**
      * @custom:throws Unauthorized if called by user without permissioned roles
      */
-    function checkPermission(bytes32[] memory allowedRoles, string[] memory allowedRolesStr) internal view {
+    function checkPermission(bytes32[] memory allowedRoles, string[] memory allowedRolesStr, bool allowOwner) internal view {
         TDFDiamondPartial daoAddress_ = daoAddress; // read from storage only once
-        for (uint256 i = 0; i < allowedRoles.length; i++) {
+
+        if (allowOwner && owner() == _msgSender()) {
+            return;
+        }
+
+        uint256 allowedRolesLength = allowedRoles.length;
+        for (uint256 i = 0; i < allowedRolesLength;) {
             if (daoAddress_.hasRole(allowedRoles[i], _msgSender())) {
                 return;
             }
+            unchecked { ++i; }
         }
 
         revert Unauthorized({sender: _msgSender(), allowedRoles: allowedRolesStr});
@@ -615,7 +597,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      * @notice only accounts with BOOKING_MANAGER_ROLE or BOOKING_PLATFORM_ROLE should be able to mint new tokens
      * @custom:throws Unauthorized if called by user without permissioned roles
      */
-    function checkMintPermission() internal view {
+    function checkBurnOrMintPermission() internal view {
         bytes32[] memory allowedRoles = new bytes32[](2);
         allowedRoles[0] = AccessControlLib.BOOKING_PLATFORM_ROLE;
         allowedRoles[1] = AccessControlLib.BOOKING_MANAGER_ROLE;
@@ -623,7 +605,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         string[] memory allowedRolesStr = new string[](2);
         allowedRolesStr[0] = "BOOKING_PLATFORM_ROLE";
         allowedRolesStr[1] = "BOOKING_MANAGER_ROLE";
-        checkPermission(allowedRoles, allowedRolesStr);
+        checkPermission(allowedRoles, allowedRolesStr, true);
     }
 
     function addHolderIfNotExists(address holder) internal returns (bool wasAdded) {

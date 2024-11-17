@@ -20,3 +20,5 @@ deployments/hardhat
 deployments/localhost
 
 /.dapp
+
+__Flattened*.sol
