@@ -14,6 +14,7 @@ library AccessControlLib {
     bytes32 constant STAKE_MANAGER_ROLE = keccak256("STAKE_MANAGER_ROLE");
     bytes32 constant VAULT_MANAGER_ROLE = keccak256("VAULT_MANAGER_ROLE");
     bytes32 constant MEMBERSHIP_MANAGER_ROLE = keccak256("MEMBERSHIP_MANAGER_ROLE");
+    bytes32 constant BOOKING_PLATFORM_ROLE = keccak256("BOOKING_PLATFORM_ROLE");
 
     struct RoleData {
         mapping(address => bool) members;
@@ -163,13 +164,14 @@ library AccessControlLib {
         store._roleMembers[role].remove(account);
     }
 
-    function getRoles() internal pure returns (string[2][5] memory roles) {
+    function getRoles() internal pure returns (string[2][7] memory roles) {
         roles[0] = ["DEFAULT_ADMIN_ROLE", string(abi.encodePacked(DEFAULT_ADMIN_ROLE))];
         roles[1] = ["MINTER_ROLE", string(abi.encodePacked(MINTER_ROLE))];
         roles[2] = ["BOOKING_MANAGER_ROLE", string(abi.encodePacked(BOOKING_MANAGER_ROLE))];
         roles[3] = ["STAKE_MANAGER_ROLE", string(abi.encodePacked(STAKE_MANAGER_ROLE))];
         roles[4] = ["VAULT_MANAGER_ROLE", string(abi.encodePacked(VAULT_MANAGER_ROLE))];
-
+        roles[5] = ["MEMBERSHIP_MANAGER_ROLE", string(abi.encodePacked(MEMBERSHIP_MANAGER_ROLE))];
+        roles[6] = ["BOOKING_PLATFORM_ROLE", string(abi.encodePacked(BOOKING_PLATFORM_ROLE))];
         return roles;
     }
 }
