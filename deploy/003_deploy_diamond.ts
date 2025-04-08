@@ -26,6 +26,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       methodName: 'init',
       args: [realTDFToken.address, TDFMultisig],
     },
+    log: true,
+    autoMine: true,
   });
   await realTDFToken.setDAOContract(contract.address);
 };

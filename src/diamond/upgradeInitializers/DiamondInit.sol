@@ -77,6 +77,7 @@ contract DiamondInit is Modifiers {
         s._roleStore.grantRole(AccessControlLib.STAKE_MANAGER_ROLE, msg.sender);
         s._roleStore.grantRole(AccessControlLib.VAULT_MANAGER_ROLE, msg.sender);
         s._roleStore.grantRole(AccessControlLib.MEMBERSHIP_MANAGER_ROLE, msg.sender);
+        s._roleStore.grantRole(AccessControlLib.BOOKING_PLATFORM_ROLE, msg.sender);
 
         s.members.add(msg.sender);
         // Set the contract as initialized

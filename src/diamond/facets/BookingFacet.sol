@@ -23,6 +23,8 @@ contract BookingFacet is Modifiers {
     // TODO: add preview Booking action
 
     function bookAccommodation(uint16[2][] calldata dates, uint256 price) external whenNotPaused {
+        // TODO max duration of booking be 1 year?
+
         BookingMapLib.BookingStatus status;
         if (_isMember(_msgSender())) {
             status = BookingMapLib.BookingStatus.Confirmed;
