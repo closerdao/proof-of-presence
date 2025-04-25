@@ -35,6 +35,7 @@ async function main() {
   await deployer.TDFDiamond.grantRole(ROLES['MINTER_ROLE'], deployer.sale.address);
   await deployer.TDFDiamond.grantRole(ROLES['DEFAULT_ADMIN_ROLE'], namedAccounts.TDFMultisig);
 
+  // TODO only call these if it has actually these roles
   // Renounce Roles
   await deployer.TDFDiamond.renounceRole(ROLES['DEFAULT_ADMIN_ROLE'], deployer.address);
   await deployer.TDFDiamond.renounceRole(ROLES['MINTER_ROLE'], deployer.address);
@@ -42,12 +43,15 @@ async function main() {
   await deployer.TDFDiamond.renounceRole(ROLES['STAKE_MANAGER_ROLE'], deployer.address);
   await deployer.TDFDiamond.renounceRole(ROLES['VAULT_MANAGER_ROLE'], deployer.address);
   await deployer.TDFDiamond.renounceRole(ROLES['MEMBERSHIP_MANAGER_ROLE'], deployer.address);
+  await deployer.TDFDiamond.renounceRole(ROLES['BOOKING_PLATFORM_ROLE'], deployer.address);
 
   // Transfer Ownership
   // Initiate 2 step transfer ownership. PLEASE NOTE: this transfer has to be accepted by the treasury
   await deployer.token.transferOwnership(namedAccounts.TDFMultisig);
   await deployer.sale.transferOwnership(namedAccounts.TDFMultisig);
   await deployer.sweatToken.transferOwnership(namedAccounts.TDFMultisig);
+
+  // TODO also transfer diamond ownership!
 }
 
 main()
