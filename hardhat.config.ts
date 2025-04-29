@@ -10,6 +10,8 @@ import 'hardhat-deploy-tenderly';
 import {task} from 'hardhat/config';
 import {addForkConfiguration} from './utils/network';
 import './hardhatExtensions';
+import '@typechain/hardhat';
+import "@nomicfoundation/hardhat-verify";
 
 // const mnemonicPath = "m/44'/52752'/0'/0"; // derivation path used by Celo
 
@@ -81,11 +83,40 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  etherscan: {
+    // TODO do we need to separately define celo key?
+    apiKey: process.env.CELOSCAN_API_KEY,
+    customChains: [
+      {
+        network: 'celo',
+        chainId: 42220,
+        urls: {
+          apiURL: 'https://api.celoscan.io/api',
+          browserURL: 'https://celoscan.io',
+        },
+      },
+      {
+        network: 'alfajores',
+        chainId: 44787,
+        urls: {
+          apiURL: 'https://api-alfajores.celoscan.io/api',
+          browserURL: 'https://alfajores.celoscan.io',
+        },
+      },
+    ],
+  },
+  sourcify: {
+    enabled: true,
+  },
   namedAccounts: namedAccounts,
   defaultNetwork: 'hardhat',
   networks: addForkConfiguration({
     hardhat: {
+      forking: {
+        url: 'https://celo-alfajores.g.alchemy.com/v2/bS8alx-x_wlTHvoWzpI6LXj2zkc1pzkr'
+      },
       initialBaseFeePerGas: 0, // to fix : https://github.com/sc-forks/solidity-coverage/issues/652, see https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
+      chainId: 44787,
     },
     alfajores: {
       url: 'https://alfajores-forno.celo-testnet.org',
