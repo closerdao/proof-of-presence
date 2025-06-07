@@ -9,6 +9,14 @@ import "../libraries/AccessControlLib.sol";
 contract AdminFacet is Modifiers {
     using AccessControlLib for AccessControlLib.RoleStore;
 
+    modifier onlyOwnerOrRole(bytes32 role) {
+        require(
+            msg.sender == LibDiamond.contractOwner() || this.hasRole(role, msg.sender), 
+            "AccessControl: must be owner or have role"
+        );
+        _;
+    }
+
     event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
@@ -79,7 +87,7 @@ contract AdminFacet is Modifiers {
      *
      * May emit a {RoleGranted} event.
      */
-    function grantRole(bytes32 role, address account) public onlyRole(getRoleAdmin(role)) {
+    function grantRole(bytes32 role, address account) public onlyOwnerOrRole(getRoleAdmin(role)) {
         s._roleStore.grantRole(role, account);
     }
 
@@ -94,11 +102,11 @@ contract AdminFacet is Modifiers {
      *
      * May emit a {RoleRevoked} event.
      */
-    function revokeRole(bytes32 role, address account) public onlyRole(getRoleAdmin(role)) {
+    function revokeRole(bytes32 role, address account) public onlyOwnerOrRole(getRoleAdmin(role)) {
         s._roleStore.revokeRole(role, account);
     }
 
-    function setRoleAdmin(bytes32 role, bytes32 adminRole) public onlyRole(getRoleAdmin(role)) {
+    function setRoleAdmin(bytes32 role, bytes32 adminRole) public onlyOwnerOrRole(getRoleAdmin(role)) {
         s._roleStore.setRoleAdmin(role, adminRole);
     }
 
