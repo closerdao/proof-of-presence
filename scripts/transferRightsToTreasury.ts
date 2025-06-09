@@ -1,5 +1,5 @@
 import {getNamedAccounts, ethers} from 'hardhat';
-import {TDFToken, TDFDiamond, DynamicSale, SweatToken} from '../typechain';
+import {TDFToken, TDFDiamond, DynamicSale, SweatToken, OwnershipFacet} from '../typechain';
 import {Contract} from 'ethers';
 
 import {ROLES} from '../utils';
@@ -21,6 +21,8 @@ async function main() {
     TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', namedAccounts.deployer),
     sale: <DynamicSale>await ethers.getContract('DynamicSale', namedAccounts.deployer),
     sweatToken: <SweatToken>await ethers.getContract('SweatToken', namedAccounts.deployer),
+    // note: same address as TDFDiamond, doing this here for typing
+    ownershipFacet: <OwnershipFacet>await ethers.getContract('TDFDiamond', namedAccounts.deployer),
   };
 
   const deployer = await setupUser(namedAccounts.deployer, contracts);
@@ -42,8 +44,11 @@ async function main() {
   await deployer.TDFDiamond.renounceRole(ROLES['STAKE_MANAGER_ROLE'], deployer.address);
   await deployer.TDFDiamond.renounceRole(ROLES['VAULT_MANAGER_ROLE'], deployer.address);
   await deployer.TDFDiamond.renounceRole(ROLES['MEMBERSHIP_MANAGER_ROLE'], deployer.address);
+  await deployer.TDFDiamond.renounceRole(ROLES['BOOKING_PLATFORM_ROLE'], deployer.address);
 
   // Transfer Ownership
+  await deployer.ownershipFacet.transferOwnership(namedAccounts.TDFMultisig);
+
   // Initiate 2 step transfer ownership. PLEASE NOTE: this transfer has to be accepted by the treasury
   await deployer.token.transferOwnership(namedAccounts.TDFMultisig);
   await deployer.sale.transferOwnership(namedAccounts.TDFMultisig);

@@ -4,13 +4,13 @@ import 'hardhat-deploy';
 import '@nomiclabs/hardhat-ethers';
 import 'hardhat-gas-reporter';
 import 'hardhat-diamond-abi';
-import '@typechain/hardhat';
 import 'solidity-coverage';
 import 'hardhat-deploy-tenderly';
-import {task} from 'hardhat/config';
 import {addForkConfiguration} from './utils/network';
 import './hardhatExtensions';
 import '@typechain/hardhat';
+import { OwnershipFacet } from './typechain';
+import {task} from 'hardhat/config';
 import "@nomicfoundation/hardhat-verify";
 
 // const mnemonicPath = "m/44'/52752'/0'/0"; // derivation path used by Celo
@@ -203,5 +203,42 @@ task('create-account', 'Prints a new private key', async (taskArgs, hre) => {
 //   const wallet = hre.ethers.Wallet(process.env.PRIVATE_KEY);
 //   console.log(`Account: `, wallet.address);
 // });
+
+// 1) make sure you have your private key set in the .env file (PRIVATE_KEY=...)
+// 2) npx hardhat transfer-ownership --network celo --new-owner 0x1234...
+task("transfer-ownership", "Transfer ownership of TDFDiamond to a new address")
+  .addParam("newOwner", "The address of the new owner")
+  .setAction(async (taskArgs: { newOwner: string }, hre) => {
+    const { newOwner } = taskArgs;
+    
+    const [connectedAccount] = await hre.ethers.getSigners();
+    console.log(`Connected account: ${connectedAccount.address}`);
+
+    const diamond = await hre.ethers.getContract<OwnershipFacet>("TDFDiamond", connectedAccount);
+    
+    const currentContractOwner = await diamond.owner();
+    console.log(`Current contract owner: ${currentContractOwner}`);
+
+    if (currentContractOwner.toLowerCase() === newOwner.toLowerCase()) {
+      console.warn("Ownership is already transferred to the new owner");
+      return;
+    } else if (currentContractOwner.toLowerCase() !== connectedAccount.address.toLowerCase()) {
+      console.error("Connected account is not the current owner. Only current owner can transfer ownership.");
+      return;
+    }
+
+    console.log(`Transferring ownership to: ${newOwner}`);
+    const tx = await diamond.transferOwnership(newOwner);
+    await tx.wait();
+
+    const newContractOwner = await diamond.owner();
+    console.log(`New contract owner: ${newContractOwner}`);
+
+    if (newContractOwner.toLowerCase() === newOwner.toLowerCase()) {
+      console.log("Ownership transfer successful!");
+    } else {
+      console.error("Ownership transfer failed!");
+    }
+  });
 
 export default config;
