@@ -1,7 +1,7 @@
 # Proof of Presence
 
 This is a collection of contracts aiming to implement tokenized timeshare access to land projects.
-You can read more about Closer in our [Documentation](https://closer.gitbook.io/closer-protocol/)
+You can read more about Closer in our [Documentation](https://closer.gitbook.io/documentation/)
 
 This contracts include:
 
