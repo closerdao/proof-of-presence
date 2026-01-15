@@ -66,6 +66,44 @@ library BookingMapLib {
         return false;
     }
 
+    /**
+     * @dev Adds a booking, replacing an existing Pending booking if one exists.
+     * @return success Whether the operation succeeded
+     * @return replaced Whether an existing Pending booking was replaced
+     * @return oldBooking The old booking that was replaced (only valid if replaced=true)
+     */
+    function addOrReplacePending(UserStore storage store, Booking memory booking) 
+        internal 
+        returns (bool success, bool replaced, Booking memory oldBooking) 
+    {
+        bytes32 key = _buildKey(booking.year, booking.dayOfYear);
+        
+        // Check if booking already exists
+        if (store.dates[booking.year].contains(key)) {
+            Booking memory existing = store.bookings[key];
+            
+            // Only allow replacing Pending bookings
+            if (existing.status != BookingStatus.Pending) {
+                return (false, false, existing);
+            }
+            
+            // Replace the pending booking - adjust balance for price difference
+            store.balance[booking.year] = store.balance[booking.year] - existing.price + booking.price;
+            store.bookings[key] = booking;
+            store.dates[booking.year].set(key, booking.timestamp);
+            return (true, true, existing);
+        }
+        
+        // New booking
+        if (store.dates[booking.year].set(key, booking.timestamp)) {
+            store.balance[booking.year] += booking.price;
+            store.bookings[key] = booking;
+            store.nights[booking.year] += uint16(1);
+            return (true, false, Booking(BookingStatus.Pending, 0, 0, 0, 0));
+        }
+        return (false, false, Booking(BookingStatus.Pending, 0, 0, 0, 0));
+    }
+
     function get(
         UserStore storage store,
         uint16 _year,
