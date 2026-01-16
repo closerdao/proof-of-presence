@@ -9,7 +9,6 @@ import 'hardhat-deploy-tenderly';
 import {addForkConfiguration} from './utils/network';
 import './hardhatExtensions';
 import '@typechain/hardhat';
-import { OwnershipFacet } from './typechain';
 import {task} from 'hardhat/config';
 import "@nomicfoundation/hardhat-verify";
 
@@ -214,7 +213,8 @@ task("transfer-ownership", "Transfer ownership of TDFDiamond to a new address")
     const [connectedAccount] = await hre.ethers.getSigners();
     console.log(`Connected account: ${connectedAccount.address}`);
 
-    const diamond = await hre.ethers.getContract<OwnershipFacet>("TDFDiamond", connectedAccount);
+    // Use the TDFDiamond contract which includes ownership functions from the diamond facets
+    const diamond = await hre.ethers.getContract("TDFDiamond", connectedAccount);
     
     const currentContractOwner = await diamond.owner();
     console.log(`Current contract owner: ${currentContractOwner}`);
