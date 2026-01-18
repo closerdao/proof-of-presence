@@ -34,7 +34,11 @@ const setup = deployments.createFixture(async () => {
 });
 
 describe('PresenceToken Contract', function () {
-  let presenceToken: PresenceToken, owner: SignerWithAddress, dao: Address, user: SignerWithAddress, user2: SignerWithAddress;
+  let presenceToken: PresenceToken,
+    owner: SignerWithAddress,
+    dao: Address,
+    user: SignerWithAddress,
+    user2: SignerWithAddress;
 
   beforeEach(async () => {
     const testData = await setup();
@@ -42,7 +46,7 @@ describe('PresenceToken Contract', function () {
     presenceToken = testData.presenceToken;
     dao = testData.daoContractAddress;
     user = testData.user;
-    user2 = testData.user2
+    user2 = testData.user2;
   });
 
   describe('Initialization', function () {
@@ -81,28 +85,28 @@ describe('PresenceToken Contract', function () {
       );
     });
 
-    it('should handle minting presence for past days ago', async function() {
+    it('should handle minting presence for past days ago', async function () {
       await presenceToken.connect(owner).mint(user.address, ONE_PRESENCE_TOKEN, 1);
       expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('0.999711383', 18));
-      await moveTimeToFuture(3600)
+      await moveTimeToFuture(3600);
       expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('0.999711383', 18));
-      await moveTimeToFuture(DAY_IN_SECONDS)
-      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('0.999422849299772689', 18))
-    })
+      await moveTimeToFuture(DAY_IN_SECONDS);
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('0.999422849299772689', 18));
+    });
 
-    it('should handle batch minting', async function() {
+    it('should handle batch minting', async function () {
       await presenceToken.connect(owner).mintBatch([
-          {account: user.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 0},
-          {account: user.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 1},
-          {account: user.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 2},
-          {account: user2.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 3},
-          {account: user.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 3},
-          {account: user2.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 2},
-        ]);
+        {account: user.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 0},
+        {account: user.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 1},
+        {account: user.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 2},
+        {account: user2.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 3},
+        {account: user.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 3},
+        {account: user2.address, amount: ONE_PRESENCE_TOKEN, daysAgo: 2},
+      ]);
 
-        expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('3.998268631175049025', 18));
-        expect(await presenceToken.balanceOf(user2.address)).to.be.equal(parseUnits('1.998557248175049025', 18));
-      })
+      expect(await presenceToken.balanceOf(user.address)).to.be.equal(parseUnits('3.998268631175049025', 18));
+      expect(await presenceToken.balanceOf(user2.address)).to.be.equal(parseUnits('1.998557248175049025', 18));
+    });
   });
 
   describe('Decay Rate Management', function () {
@@ -121,7 +125,9 @@ describe('PresenceToken Contract', function () {
 
     it('should fail to set a decay if not authorized', async function () {
       const newDecayRate = 100_000;
-      await expect(presenceToken.connect(user).setDecayRatePerDay(newDecayRate)).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(presenceToken.connect(user).setDecayRatePerDay(newDecayRate)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     it('should return correct result for getDecayRatePerYear', async function () {
@@ -313,7 +319,7 @@ describe('PresenceToken Contract', function () {
     it('should fail to burn if not owner or does not have roles', async function () {
       await presenceToken.connect(owner).mint(user.address, ONE_PRESENCE_TOKEN, 0);
 
-      const randomAddress = "0x4410C9De0B7523B48b6EF4190eeb439aaCc5f4d2"
+      const randomAddress = '0x4410C9De0B7523B48b6EF4190eeb439aaCc5f4d2';
       await ethers.provider.send('hardhat_impersonateAccount', [randomAddress]);
       const randomAddressSigner = await ethers.getSigner(randomAddress);
       await ethers.provider.send('hardhat_setBalance', [randomAddressSigner.address, '0x1BC16D674EC80000']);
@@ -432,16 +438,17 @@ describe('PresenceToken Contract', function () {
       expect(await presenceToken.balanceOf(user.address)).to.equal(0);
     });
 
-    it('should handle minting and burning with daysAgo > 0', async function() {
+    it('should handle minting and burning with daysAgo > 0', async function () {
       await presenceToken.connect(owner).mint(user.address, parseUnits('1', 18), 1);
       await presenceToken.connect(owner).burn(user.address, [{amount: ONE_PRESENCE_TOKEN, daysAgo: 1}]);
       expect(await presenceToken.balanceOf(user.address)).to.equal(0);
 
       await presenceToken.connect(owner).mint(user.address, parseUnits('1', 18), 2);
-      await expect(presenceToken.connect(owner).burn(user.address, [{amount: ONE_PRESENCE_TOKEN, daysAgo: 1}])).to.be.reverted;
-      await moveTimeToFuture(DAY_IN_SECONDS)
+      await expect(presenceToken.connect(owner).burn(user.address, [{amount: ONE_PRESENCE_TOKEN, daysAgo: 1}])).to.be
+        .reverted;
+      await moveTimeToFuture(DAY_IN_SECONDS);
       await presenceToken.connect(owner).burn(user.address, [{amount: ONE_PRESENCE_TOKEN, daysAgo: 3}]);
       expect(await presenceToken.balanceOf(user.address)).to.equal(0);
-    })
+    });
   });
 });

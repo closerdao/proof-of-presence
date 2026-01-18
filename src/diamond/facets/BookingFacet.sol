@@ -30,7 +30,22 @@ contract BookingFacet is Modifiers {
             status = BookingMapLib.BookingStatus.Confirmed;
         }
         for (uint256 i = 0; i < dates.length; i++) {
-            BookingMapLib.Booking memory value = _insertBooking(status, _msgSender(), dates[i][0], dates[i][1], price);
+            (
+                BookingMapLib.Booking memory value,
+                bool replaced,
+                BookingMapLib.Booking memory oldBooking
+            ) = _insertBooking(status, _msgSender(), dates[i][0], dates[i][1], price);
+
+            // If we replaced a Pending booking, first cancel its staking
+            if (replaced) {
+                _stakeLibBookingContext(_msgSender(), oldBooking.year).handleCancelation(
+                    s.staking[_msgSender()],
+                    oldBooking.price,
+                    oldBooking.timestamp
+                );
+            }
+
+            // Handle staking for the new booking
             _stakeLibBookingContext(_msgSender(), dates[i][0]).handleBooking(
                 s.staking[_msgSender()],
                 price,
@@ -59,7 +74,14 @@ contract BookingFacet is Modifiers {
         uint16 yearNum,
         uint16 dayOfYear,
         uint256 price
-    ) internal returns (BookingMapLib.Booking memory) {
+    )
+        internal
+        returns (
+            BookingMapLib.Booking memory,
+            bool replaced,
+            BookingMapLib.Booking memory oldBooking
+        )
+    {
         (bool successBuild, BookingMapLib.Booking memory value) = s._accommodationYears.buildBooking(
             status,
             yearNum,
@@ -68,8 +90,13 @@ contract BookingFacet is Modifiers {
         );
         require(successBuild, "BookingFacet: Unable to build Booking");
         require(value.timestamp > block.timestamp, "BookingFacet: date should be in the future");
-        require(s._accommodationBookings[account].add(value), "BookingFacet: Booking already exists");
-        return value;
+
+        (bool success, bool wasReplaced, BookingMapLib.Booking memory oldVal) = s
+            ._accommodationBookings[account]
+            .addOrReplacePending(value);
+        require(success, "BookingFacet: Confirmed or checked-in booking already exists for this date");
+
+        return (value, wasReplaced, oldVal);
     }
 
     function cancelAccommodationFor(address account, uint16[2][] calldata dates)

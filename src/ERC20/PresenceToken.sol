@@ -116,9 +116,19 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
 
     event DecayRatePerDayChanged(uint256 oldDecayRatePerDay, uint256 newDecayRatePerDay);
 
-    event MintWithDecay(address indexed account, uint256 mintedAmount, uint256 decayedMintedAmount, uint256 mintedForDaysAgo);
+    event MintWithDecay(
+        address indexed account,
+        uint256 mintedAmount,
+        uint256 decayedMintedAmount,
+        uint256 mintedForDaysAgo
+    );
 
-    event BurnWithDecay(address indexed account, uint256 burnedAmount, uint256 decayedBurnedAmount, uint256 burnedForDaysAgo);
+    event BurnWithDecay(
+        address indexed account,
+        uint256 burnedAmount,
+        uint256 decayedBurnedAmount,
+        uint256 burnedForDaysAgo
+    );
 
     event BurnAllUserPresence(address indexed account);
 
@@ -388,7 +398,11 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      * the lastDecayTimestamp, we do not need to hold the mapping when each token was created to be able
      * to correctly calculate the decayed balance.
      */
-    function _mint(address account, uint256 amount, uint256 daysAgo) internal {
+    function _mint(
+        address account,
+        uint256 amount,
+        uint256 daysAgo
+    ) internal {
         if (amount == 0) {
             revert MintWithZeroAmount();
         }
@@ -409,7 +423,11 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     /**
      * @custom:see PresenceToken._mint function docs for description of additions to mint functionality
      */
-    function mint(address account, uint256 amount, uint256 daysAgo) external {
+    function mint(
+        address account,
+        uint256 amount,
+        uint256 daysAgo
+    ) external {
         checkBurnOrMintPermission();
         _mint(account, amount, daysAgo);
     }
@@ -432,16 +450,17 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         }
 
         checkBurnOrMintPermission();
-        for (uint256 i = 0; i < mintDataArrayLength;) {
+        for (uint256 i = 0; i < mintDataArrayLength; ) {
             _mint(mintDataArray[i].account, mintDataArray[i].amount, mintDataArray[i].daysAgo);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
     /*----------------------------------------------------------*|
     |*  # BURNING                                               *|
     |*----------------------------------------------------------*/
-
 
     struct BurnData {
         uint256 daysAgo;
@@ -459,10 +478,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
      * @return finalBalance Account's decayed balance after burning. Useful for e.g. preview of the burn operation to make sure
      *          that the passed burnDataArray makes sense and leads to the desireable result.
      */
-    function burn(address account, BurnData[] calldata burnDataArray)
-        external
-        returns (uint256 finalBalance)
-    {
+    function burn(address account, BurnData[] calldata burnDataArray) external returns (uint256 finalBalance) {
         checkBurnOrMintPermission();
 
         uint256 burnDataArrayLength = burnDataArray.length;
@@ -473,7 +489,7 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         uint256 nonDecayedAmountToBurn;
         uint256 decayedAmountToBurn;
 
-        for (uint256 i = 0; i < burnDataArrayLength;) {
+        for (uint256 i = 0; i < burnDataArrayLength; ) {
             nonDecayedAmountToBurn += burnDataArray[i].amount;
             uint256 decayedBurnedAmount = calculateDecayForDays(burnDataArray[i].amount, burnDataArray[i].daysAgo);
             decayedAmountToBurn += decayedBurnedAmount;
@@ -483,7 +499,9 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
                 decayedBurnedAmount: decayedBurnedAmount,
                 burnedForDaysAgo: burnDataArray[i].daysAgo
             });
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         // update decayed balances and timestamp before burning
@@ -575,7 +593,11 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
     /**
      * @custom:throws Unauthorized if called by user without permissioned roles
      */
-    function checkPermission(bytes32[] memory allowedRoles, string[] memory allowedRolesStr, bool allowOwner) internal view {
+    function checkPermission(
+        bytes32[] memory allowedRoles,
+        string[] memory allowedRolesStr,
+        bool allowOwner
+    ) internal view {
         TDFDiamondPartial daoAddress_ = daoAddress; // read from storage only once
 
         if (allowOwner && owner() == _msgSender()) {
@@ -583,11 +605,13 @@ contract PresenceToken is ERC20Upgradeable, Ownable2StepUpgradeable {
         }
 
         uint256 allowedRolesLength = allowedRoles.length;
-        for (uint256 i = 0; i < allowedRolesLength;) {
+        for (uint256 i = 0; i < allowedRolesLength; ) {
             if (daoAddress_.hasRole(allowedRoles[i], _msgSender())) {
                 return;
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         revert Unauthorized({sender: _msgSender(), allowedRoles: allowedRolesStr});
