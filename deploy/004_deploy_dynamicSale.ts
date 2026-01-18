@@ -4,6 +4,8 @@ import {TDFDiamond} from '../typechain';
 import {ethers} from 'hardhat';
 import {ROLES} from '../utils';
 
+import {parseUnits} from 'ethers/lib/utils';
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
   const {deploy} = deployments;
@@ -13,6 +15,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const accounts = await getNamedAccounts();
   const {deployer, TDFMultisig} = accounts;
+  const isCelo = hre.network.name === 'celo';
+  const priorityFee = process.env.PRIORITY_FEE || '1';
+  const maxFee = process.env.MAX_FEE || '30';
+  const gasOverrides = isCelo
+    ? {}
+    : {
+        maxPriorityFeePerGas: parseUnits(priorityFee, 'gwei'),
+        maxFeePerGas: parseUnits(maxFee, 'gwei'),
+      };
   let eur: string;
 
   switch (hre.network.name) {
@@ -22,11 +33,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
     default: {
       const eur_contract = await deploy('FakeEURToken', {
-        //gasPrice: ethers.utils.parseUnits('100', 'gwei'), // specify a higher gas price
         from: deployer,
         args: [],
         log: true,
         autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
+        ...gasOverrides,
       });
       eur = eur_contract.address;
       break;
@@ -35,7 +46,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const sale = await deploy('DynamicSale', {
     from: deployer,
-    // gasPrice: ethers.utils.parseUnits('100', 'gwei'), // specify a higher gas price
     proxy: {
       proxyContract: 'OptimizedTransparentProxy',
       execute: {
@@ -44,11 +54,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     },
     log: true,
     autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
+    ...gasOverrides,
   });
   const diamond = (await ethers.getContract('TDFDiamond', deployer)).connect(
     await ethers.getSigner(deployer)
   ) as TDFDiamond;
-  await diamond.grantRole(ROLES['MINTER_ROLE'], sale.address);
+  await diamond.grantRole(ROLES['MINTER_ROLE'], sale.address, gasOverrides);
 };
 export default func;
 func.tags = ['DynamicSale'];

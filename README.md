@@ -54,10 +54,10 @@ yarn
 
 You should had been given `DEFAULT_ADMIN_ROLE` in the Diamond to be able to execute any of this functions
 
-**grant minting role:** _recommended only for alfajores network_
+**grant minting role:** _recommended only for celoSepolia network_
 
 ```bash
-npx hardhat diamond:grant-role [ADDRESS] --minter --network alfajores
+npx hardhat diamond:grant-role [ADDRESS] --minter --network celoSepolia
 ```
 
 You can give different roles by changing the `--minter` flag
@@ -67,11 +67,11 @@ You can give different roles by changing the `--minter` flag
 Once your `.env` `PRIVATE_KEY` has `minter` role you can just mint like this:
 
 ```bash
-npx hardhat diamond:mint --address [ADDRESS] --amount [amount] --network alfajores
+npx hardhat diamond:mint --address [ADDRESS] --amount [amount] --network celoSepolia
 
 # ex:
 #
-#     npx hardhat diamond:mint --address 0x661Ac71bbe43fe56935c1CA4d62e62ed380950A3 --amount 32 --network alfajores
+#     npx hardhat diamond:mint --address 0x661Ac71bbe43fe56935c1CA4d62e62ed380950A3 --amount 32 --network celoSepolia
 ```
 
 ## TEST
@@ -87,13 +87,13 @@ yarn test
 ### deploy
 
 ```
-npx hardhat deploy --network alfajores
+npx hardhat deploy --network celoSepolia
 ```
 
 ### Grant role
 
 ```
-npx hardhat diamond:grant-role 0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716 --network alfajores
+npx hardhat diamond:grant-role 0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716 --network celoSepolia
 ```
 
 ## SCRIPTS
@@ -128,10 +128,10 @@ This will deploy your contracts on the in-memory hardhat network and exit, leavi
 These will execute your tests using mocha. you can pass extra arguments to mocha
 <br/><br/>
 
-## Verify contracts
+## Verify contracts on Sourcify
 
 ```
-hh --network alfajores sourcify
+npx hardhat --network celoSepolia sourcify
 ```
 
 ### `yarn coverage`
