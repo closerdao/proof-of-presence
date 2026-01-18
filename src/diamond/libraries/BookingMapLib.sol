@@ -92,7 +92,7 @@ library BookingMapLib {
             }
 
             // Replace the pending booking - adjust balance for price difference
-            store.balance[booking.year] = store.balance[booking.year] - existing.price + booking.price;
+            store.balance[booking.year] = store.balance[booking.year] + booking.price - existing.price;
             store.bookings[key] = booking;
             store.dates[booking.year].set(key, booking.timestamp);
             return (true, true, existing);
