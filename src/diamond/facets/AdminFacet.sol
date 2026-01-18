@@ -11,7 +11,7 @@ contract AdminFacet is Modifiers {
 
     modifier onlyOwnerOrRole(bytes32 role) {
         require(
-            msg.sender == LibDiamond.contractOwner() || this.hasRole(role, msg.sender), 
+            msg.sender == LibDiamond.contractOwner() || this.hasRole(role, msg.sender),
             "AccessControl: must be owner or have role"
         );
         _;

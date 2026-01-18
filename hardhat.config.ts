@@ -10,7 +10,7 @@ import {addForkConfiguration} from './utils/network';
 import './hardhatExtensions';
 import '@typechain/hardhat';
 import {task} from 'hardhat/config';
-import "@nomicfoundation/hardhat-verify";
+import '@nomicfoundation/hardhat-verify';
 
 // const mnemonicPath = "m/44'/52752'/0'/0"; // derivation path used by Celo
 
@@ -112,7 +112,7 @@ const config: HardhatUserConfig = {
   networks: addForkConfiguration({
     hardhat: {
       forking: {
-        url: 'https://celo-alfajores.g.alchemy.com/v2/bS8alx-x_wlTHvoWzpI6LXj2zkc1pzkr'
+        url: 'https://celo-alfajores.g.alchemy.com/v2/bS8alx-x_wlTHvoWzpI6LXj2zkc1pzkr',
       },
       initialBaseFeePerGas: 0, // to fix : https://github.com/sc-forks/solidity-coverage/issues/652, see https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
       chainId: 44787,
@@ -205,25 +205,25 @@ task('create-account', 'Prints a new private key', async (taskArgs, hre) => {
 
 // 1) make sure you have your private key set in the .env file (PRIVATE_KEY=...)
 // 2) npx hardhat transfer-ownership --network celo --new-owner 0x1234...
-task("transfer-ownership", "Transfer ownership of TDFDiamond to a new address")
-  .addParam("newOwner", "The address of the new owner")
-  .setAction(async (taskArgs: { newOwner: string }, hre) => {
-    const { newOwner } = taskArgs;
-    
+task('transfer-ownership', 'Transfer ownership of TDFDiamond to a new address')
+  .addParam('newOwner', 'The address of the new owner')
+  .setAction(async (taskArgs: {newOwner: string}, hre) => {
+    const {newOwner} = taskArgs;
+
     const [connectedAccount] = await hre.ethers.getSigners();
     console.log(`Connected account: ${connectedAccount.address}`);
 
     // Use the TDFDiamond contract which includes ownership functions from the diamond facets
-    const diamond = await hre.ethers.getContract("TDFDiamond", connectedAccount);
-    
+    const diamond = await hre.ethers.getContract('TDFDiamond', connectedAccount);
+
     const currentContractOwner = await diamond.owner();
     console.log(`Current contract owner: ${currentContractOwner}`);
 
     if (currentContractOwner.toLowerCase() === newOwner.toLowerCase()) {
-      console.warn("Ownership is already transferred to the new owner");
+      console.warn('Ownership is already transferred to the new owner');
       return;
     } else if (currentContractOwner.toLowerCase() !== connectedAccount.address.toLowerCase()) {
-      console.error("Connected account is not the current owner. Only current owner can transfer ownership.");
+      console.error('Connected account is not the current owner. Only current owner can transfer ownership.');
       return;
     }
 
@@ -235,9 +235,9 @@ task("transfer-ownership", "Transfer ownership of TDFDiamond to a new address")
     console.log(`New contract owner: ${newContractOwner}`);
 
     if (newContractOwner.toLowerCase() === newOwner.toLowerCase()) {
-      console.log("Ownership transfer successful!");
+      console.log('Ownership transfer successful!');
     } else {
-      console.error("Ownership transfer failed!");
+      console.error('Ownership transfer failed!');
     }
   });
 
