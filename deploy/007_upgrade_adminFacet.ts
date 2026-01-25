@@ -2,6 +2,7 @@ import {ethers} from 'hardhat';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {DeployFunction} from 'hardhat-deploy/types';
 import {IDiamondCut} from '../typechain';
+import {parseUnits} from 'ethers/lib/utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log('Starting deploy 007_upgrade_adminFacet');
@@ -10,6 +11,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deploy} = deployments;
 
   const {deployer} = await getNamedAccounts();
+  const isCelo = hre.network.name === 'celo';
+  const priorityFee = process.env.PRIORITY_FEE || '1';
+  const maxFee = process.env.MAX_FEE || '30';
+  const gasOverrides = isCelo
+    ? {}
+    : {
+        maxPriorityFeePerGas: parseUnits(priorityFee, 'gwei'),
+        maxFeePerGas: parseUnits(maxFee, 'gwei'),
+      };
 
   console.log('Deployer:', deployer);
 
@@ -17,6 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     log: true,
     autoMine: true,
+    ...gasOverrides,
   });
 
   console.log('Deployed new AdminFacet:', newAdminFacet.address);
@@ -50,7 +61,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       },
     ],
     ethers.constants.AddressZero,
-    '0x'
+    '0x',
+    gasOverrides
   );
   console.log('Diamond cut result:', result);
 };

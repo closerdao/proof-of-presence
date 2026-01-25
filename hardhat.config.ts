@@ -24,7 +24,6 @@ const getAccounts = (
 
 const namedAccounts = {
   ceur: {
-    alfajores: '0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F',
     celo: '0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73',
   },
   deployer: {
@@ -39,27 +38,31 @@ const namedAccounts = {
   },
   TDFTokenBeneficiary: {
     default: 0,
-    alfajores: '0x2Ba5dCb83a95e998c57410435bb7699B8Bca929e',
+    // note: on celoSepolia microHoffman's deployer address
+    celoSepolia: '0x4410c9De0B7523b48B6EF4190eEb439aACC5F4D3',
+    // alfajores: '0x2Ba5dCb83a95e998c57410435bb7699B8Bca929e',
     localhost: 1,
     hardhat: 1,
   },
   TDFMultisig: {
     default: 0,
     hardhat: 1,
-    alfajores: '0xBD9658A4286459DD599Ab8b02bDa6167d750A288',
+    // note: on celoSepolia so far this is not our multisig, but microHoffman's deployer address!
+    celoSepolia: '0x4410c9De0B7523b48B6EF4190eEb439aACC5F4D3',
+    // alfajores: '0xBD9658A4286459DD599Ab8b02bDa6167d750A288',
     celo: '0x5E810b93c51981eccA16e030Ea1cE8D8b1DEB83b',
   },
   julienFirst: {
     default: 1,
-    alfajores: '0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716',
+    celoSepolia: '0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716',
   },
   JulienSecond: {
     default: 2,
-    alfajores: '0x346314781c4D1483bE27fAEA9d698074f7cBa1Be',
+    celoSepolia: '0x346314781c4D1483bE27fAEA9d698074f7cBa1Be',
   },
   sam: {
     default: 3,
-    alfajores: '0x630A5342b2cf4ffED9a366642482C7517b6379F1',
+    celoSepolia: '0x630A5342b2cf4ffED9a366642482C7517b6379F1',
   },
 };
 
@@ -95,11 +98,12 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        network: 'alfajores',
-        chainId: 44787,
+        network: 'celoSepolia',
+        chainId: 11142220,
         urls: {
-          apiURL: 'https://api-alfajores.celoscan.io/api',
-          browserURL: 'https://alfajores.celoscan.io',
+          // probably unused or incorrect as etherscan changed their api
+          apiURL: 'https://api-sepolia.celoscan.io/api',
+          browserURL: 'https://sepolia.celoscan.io',
         },
       },
     ],
@@ -112,15 +116,15 @@ const config: HardhatUserConfig = {
   networks: addForkConfiguration({
     hardhat: {
       forking: {
-        url: 'https://celo-alfajores.g.alchemy.com/v2/bS8alx-x_wlTHvoWzpI6LXj2zkc1pzkr',
+        url: 'https://celo-sepolia.drpc.org', // note: if won't work, switch to another one
       },
       initialBaseFeePerGas: 0, // to fix : https://github.com/sc-forks/solidity-coverage/issues/652, see https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
-      chainId: 44787,
+      chainId: 11142220,
     },
-    alfajores: {
-      url: 'https://alfajores-forno.celo-testnet.org',
+    celoSepolia: {
+      url: 'https://celo-sepolia.drpc.org', // note: if won't work, switch to another one
       accounts: getAccounts(),
-      chainId: 44787,
+      chainId: 11142220,
     },
     celo: {
       url: 'https://forno.celo.org',

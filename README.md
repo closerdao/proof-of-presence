@@ -1,5 +1,36 @@
 # Proof of Presence
 
+## DEPLOYED CONTRACTS
+
+Deployed contract addresses for Celo and Celo Sepolia networks are available in [`deployments.json`](./deployments.json).
+
+For previewing and interacting with the TDFDiamond, it's best to use [louper.dev](https://louper.dev).
+
+### Celo Mainnet
+
+| Contract | Address |
+|----------|---------|
+| TDFDiamond | [`0x475398EeE0E22cb6fe5403ffA294Fb10Ad989e17`](https://celoscan.io/address/0x475398EeE0E22cb6fe5403ffA294Fb10Ad989e17) |
+| TDFToken | [`0x10CB7F49389787A99b59B2f87dfDd3bba141559f`](https://celoscan.io/address/0x10CB7F49389787A99b59B2f87dfDd3bba141559f) |
+| PresenceToken | [`0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9`](https://celoscan.io/address/0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9) |
+| SweatToken | [`0xa2898Dd4628eD626bf841530f87c9F1ebA837c87`](https://celoscan.io/address/0xa2898Dd4628eD626bf841530f87c9F1ebA837c87) |
+| DynamicSale | [`0xEaa00a0e0D29D1F883485E8f98A0E8FfD75B23FB`](https://celoscan.io/address/0xEaa00a0e0D29D1F883485E8f98A0E8FfD75B23FB) |
+
+### Celo Sepolia Testnet
+
+| Contract | Address |
+|----------|---------|
+| TDFDiamond | [`0x5D2870B37aB72AB9Cc3F46878373EeCc1312FA6e`](https://sepolia.celoscan.io/address/0x5D2870B37aB72AB9Cc3F46878373EeCc1312FA6e) |
+| TDFToken | [`0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9`](https://sepolia.celoscan.io/address/0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9) |
+| PresenceToken | [`0xBA72D0644F465D78e5076284ea3480f4dBc006F6`](https://sepolia.celoscan.io/address/0xBA72D0644F465D78e5076284ea3480f4dBc006F6) |
+| SweatToken | [`0x913d4e87A54A89DaCB80279d263aFd6a500889b5`](https://sepolia.celoscan.io/address/0x913d4e87A54A89DaCB80279d263aFd6a500889b5) |
+| DynamicSale | [`0x076F0Ba89A33A6b268F164ddb2cC61df75Ee0168`](https://sepolia.celoscan.io/address/0x076F0Ba89A33A6b268F164ddb2cC61df75Ee0168) |
+| Crowdsale | [`0xdD5FCC4992C5C8795c557B2865B2ceE6c2CF6316`](https://sepolia.celoscan.io/address/0xdD5FCC4992C5C8795c557B2865B2ceE6c2CF6316) |
+
+For a complete list of all deployed contracts including implementations, proxies, and facets, see [`deployments.json`](./deployments.json).
+
+## Repo description
+
 This is a collection of contracts aiming to implement tokenized timeshare access to land projects.
 You can read more about Closer in our [Documentation](https://closer.gitbook.io/closer-protocol/)
 
@@ -30,8 +61,6 @@ sequenceDiagram
     SaleContract-->>User: Finish Operation
 ```
 
-For introspection of the diamond you can use [Louper](https://louper.dev/).
-
 ## BUG BOUNTY
 
 If you find critical security gaps in our smart contract code, please reach sam@closer.earth.
@@ -54,10 +83,10 @@ yarn
 
 You should had been given `DEFAULT_ADMIN_ROLE` in the Diamond to be able to execute any of this functions
 
-**grant minting role:** _recommended only for alfajores network_
+**grant minting role:** _recommended only for celoSepolia network_
 
 ```bash
-npx hardhat diamond:grant-role [ADDRESS] --minter --network alfajores
+npx hardhat diamond:grant-role [ADDRESS] --minter --network celoSepolia
 ```
 
 You can give different roles by changing the `--minter` flag
@@ -67,11 +96,11 @@ You can give different roles by changing the `--minter` flag
 Once your `.env` `PRIVATE_KEY` has `minter` role you can just mint like this:
 
 ```bash
-npx hardhat diamond:mint --address [ADDRESS] --amount [amount] --network alfajores
+npx hardhat diamond:mint --address [ADDRESS] --amount [amount] --network celoSepolia
 
 # ex:
 #
-#     npx hardhat diamond:mint --address 0x661Ac71bbe43fe56935c1CA4d62e62ed380950A3 --amount 32 --network alfajores
+#     npx hardhat diamond:mint --address 0x661Ac71bbe43fe56935c1CA4d62e62ed380950A3 --amount 32 --network celoSepolia
 ```
 
 ## TEST
@@ -87,13 +116,13 @@ yarn test
 ### deploy
 
 ```
-npx hardhat deploy --network alfajores
+npx hardhat deploy --network celoSepolia
 ```
 
 ### Grant role
 
 ```
-npx hardhat diamond:grant-role 0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716 --network alfajores
+npx hardhat diamond:grant-role 0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716 --network celoSepolia
 ```
 
 ## SCRIPTS
@@ -128,10 +157,10 @@ This will deploy your contracts on the in-memory hardhat network and exit, leavi
 These will execute your tests using mocha. you can pass extra arguments to mocha
 <br/><br/>
 
-## Verify contracts
+## Verify contracts on Sourcify
 
 ```
-hh --network alfajores sourcify
+npx hardhat --network celoSepolia sourcify
 ```
 
 ### `yarn coverage`
