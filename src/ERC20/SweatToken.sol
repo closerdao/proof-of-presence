@@ -85,6 +85,15 @@ contract SweatToken is ISweatToken, ERC20Upgradeable, Ownable2StepUpgradeable {
         setDecayRatePerDay(decayRatePerDay_);
     }
 
+    /**
+     * @notice Initializer for upgrading existing SweatToken contracts to add decay functionality.
+     * @dev This function can only be called once on contracts that were deployed with the old initialize(address) function.
+     * @param decayRatePerDay_ The decay rate per day to set
+     */
+    function initializeV2(uint256 decayRatePerDay_) public reinitializer(2) {
+        setDecayRatePerDay(decayRatePerDay_);
+    }
+
     /*----------------------------------------------------------*|
     |*  # SETTERS                                               *|
     |*----------------------------------------------------------*/
