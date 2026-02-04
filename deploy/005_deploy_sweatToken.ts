@@ -3,6 +3,8 @@ import {DeployFunction} from 'hardhat-deploy/types';
 
 import {parseUnits} from 'ethers/lib/utils';
 
+export const DEFAULT_SWEAT_TOKEN_DECAY_RATE_PER_DAY = 273_973; // 10% per year / 365 days = 0.02739726027% per day
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
   const {deploy} = deployments;
@@ -23,7 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     proxy: {
       proxyContract: 'OptimizedTransparentProxy',
-      execute: {init: {methodName: `initialize`, args: [TDFMultisig]}},
+      execute: {init: {methodName: `initialize`, args: [TDFMultisig, DEFAULT_SWEAT_TOKEN_DECAY_RATE_PER_DAY]}},
     },
     ...gasOverrides,
     log: true,
