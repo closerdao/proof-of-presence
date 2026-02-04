@@ -1,7 +1,7 @@
 import {task} from 'hardhat/config';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {ROLES} from '../utils';
-import {parseEther} from 'ethers/lib/utils';
+import {parseEther, parseUnits} from 'ethers/lib/utils';
 
 task('diamond:grant-role', 'set role to given address')
   .addPositionalParam('address', 'address to assign the role')
@@ -36,8 +36,9 @@ task('diamond:grant-role', 'set role to given address')
     }
 
     const diamond = await getDiamond(hre);
+    const gasOverrides = getGasOverrides(hre);
     console.log(`granting role ${role_name} to ${address} ...`);
-    await diamond.grantRole(role, address);
+    await diamond.grantRole(role, address, gasOverrides);
     console.log('ROLE GRANTED');
   });
 
@@ -46,7 +47,12 @@ task('diamond:mint', 'mint TDFtokens for')
   .addParam<string>('amount', 'ETH amount, ex: 1.5, 10. this function converts the decimals')
   .setAction(async ({address, amount}, hre) => {
     const diamond = await getDiamond(hre);
-    await diamond.mintCommunityTokenTo(address, parseEther(amount));
+    const gasOverrides = getGasOverrides(hre);
+    console.log(`Minting ${amount} tokens to ${address}...`);
+    const tx = await diamond.mintCommunityTokenTo(address, parseEther(amount), gasOverrides);
+    console.log(`Transaction hash: ${tx.hash}`);
+    await tx.wait();
+    console.log('Mint successful!');
   });
 
 const getDiamond = async (hre: HardhatRuntimeEnvironment) => {
@@ -56,4 +62,19 @@ const getDiamond = async (hre: HardhatRuntimeEnvironment) => {
   return (await hre.ethers.getContractAt('TDFDiamond', deployment.address)).connect(
     await hre.ethers.getSigner(deployer)
   );
+};
+
+const getGasOverrides = (hre: HardhatRuntimeEnvironment) => {
+  const isCelo = hre.network.name === 'celo';
+  const priorityFee = process.env.PRIORITY_FEE || '1';
+  const maxFee = process.env.MAX_FEE || '30';
+  
+  if (isCelo) {
+    return {};
+  } else {
+    return {
+      maxPriorityFeePerGas: parseUnits(priorityFee, 'gwei'),
+      maxFeePerGas: parseUnits(maxFee, 'gwei'),
+    };
+  }
 };
