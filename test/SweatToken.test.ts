@@ -3,7 +3,7 @@ import {deployments, getUnnamedAccounts, getNamedAccounts, ethers} from 'hardhat
 import {SweatToken} from '../typechain';
 import {setupUser, setupUsers, getMock} from './utils';
 import {parseEther, parseUnits} from 'ethers/lib/utils';
-import {timeStamp} from 'console';
+import {DEFAULT_SWEAT_TOKEN_DECAY_RATE_PER_DAY} from '../deploy/005_deploy_sweatToken';
 
 const ONE_SWEAT_TOKEN = parseUnits('1', 18);
 const DAY_IN_SECONDS = 86_400;
@@ -43,7 +43,7 @@ describe('SweatToken', function () {
       ({users} = context);
     });
     it('should have correct decay rate', async function () {
-      expect(await context.SweatToken.decayRatePerDay()).to.equal(273_973); // 10%/365
+      expect(await context.SweatToken.decayRatePerDay()).to.equal(DEFAULT_SWEAT_TOKEN_DECAY_RATE_PER_DAY);
     });
   });
 
@@ -53,14 +53,18 @@ describe('SweatToken', function () {
       ({users} = context);
     });
     it('should be able to mint', async () => {
-      await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('10')))
-        .to.emit(context.SweatToken, 'SweatMinted')
-        .withArgs(users[0].address, parseEther('10'), timeStamp);
+      await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('10'))).to.emit(
+        context.SweatToken,
+        'SweatMinted'
+      );
+      expect(await context.SweatToken.balanceOf(users[0].address)).to.equal(parseEther('10'));
     });
     it('should be able to mint high amount', async () => {
-      await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('100000')))
-        .to.emit(context.SweatToken, 'SweatMinted')
-        .withArgs(users[0].address, parseEther('100000'), timeStamp);
+      await expect(context.deployer.SweatToken.mint(users[0].address, parseEther('100000'))).to.emit(
+        context.SweatToken,
+        'SweatMinted'
+      );
+      expect(await context.SweatToken.balanceOf(users[0].address)).to.equal(parseEther('100000'));
     });
     it('should not mint when not Treasury', async () => {
       await expect(context.users[0].SweatToken.mint(users[1].address, parseEther('10'))).to.be.revertedWith(

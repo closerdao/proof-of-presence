@@ -156,11 +156,11 @@ contract SweatToken is ISweatToken, ERC20Upgradeable, Ownable2StepUpgradeable {
      * @notice Calculates decay over a number of days with high precision
      * @notice Basic formula: [initialAmount] * (1 - [percentageDecayPerDay] / 100)^[numberOfDays]
      * @param amount The initial amount (with 18 decimals)
-     * @param daysAgo Number of days to calculate decay for, when 0 it returns the `amount`
+     * @param numberOfDays Number of days to calculate decay for, when 0 it returns the `amount`
      * @return The decayed amount (with 18 decimals)
      */
-    function calculateDecayForDays(uint256 amount, uint256 daysAgo) public view returns (uint256) {
-        if (daysAgo == 0) return amount;
+    function calculateDecayForDays(uint256 amount, uint256 numberOfDays) public view returns (uint256) {
+        if (numberOfDays == 0) return amount;
 
         // Convert decay rate to 18 decimal precision
         uint256 decayRateScaled = (decayRatePerDay * PRECISION_SCALE) / (10**DECAY_RATE_PER_DAY_DECIMALS);
@@ -168,8 +168,8 @@ contract SweatToken is ISweatToken, ERC20Upgradeable, Ownable2StepUpgradeable {
         // Calculate (1 - decayRate) with 18 decimals precision
         uint256 retentionRate = PRECISION_SCALE - decayRateScaled;
 
-        // Calculate (1 - decayRate)^daysAgo
-        uint256 totalRetentionRate = FixedPointMathLib.powWithPrecision(retentionRate, daysAgo);
+        // Calculate (1 - decayRate)^numberOfDays
+        uint256 totalRetentionRate = FixedPointMathLib.powWithPrecision(retentionRate, numberOfDays);
 
         // Calculate final amount
         return FixedPointMathLib.mulDiv(amount, totalRetentionRate, PRECISION_SCALE);
@@ -182,7 +182,7 @@ contract SweatToken is ISweatToken, ERC20Upgradeable, Ownable2StepUpgradeable {
     function calculateDecayedBalance(address account) internal view returns (uint256) {
         uint256 lastUserDecayTimestamp = lastDecayTimestamp[account];
         if (lastUserDecayTimestamp == 0) {
-            // can only happen when account did not mint any tokens
+            // Account has never received tokens through minting
             return 0;
         }
 
@@ -217,7 +217,6 @@ contract SweatToken is ISweatToken, ERC20Upgradeable, Ownable2StepUpgradeable {
     |*----------------------------------------------------------*/
 
     function addHolderIfNotExists(address holder) internal returns (bool wasAdded) {
-        wasAdded = false;
         if (!isHolder[holder]) {
             wasAdded = true;
             isHolder[holder] = true;
