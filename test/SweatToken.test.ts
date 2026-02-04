@@ -112,12 +112,12 @@ describe('SweatToken', function () {
       expect(await context.SweatToken.lastDecayTimestamp(users[0].address)).to.be.equal(block.timestamp);
     });
 
-    it('should decay balance after 1 day (linear 10%/365)', async function () {
+    it('should decay balance after 1 day (compound 10%/365)', async function () {
       await context.deployer.SweatToken.mint(users[0].address, ONE_SWEAT_TOKEN);
       await moveTimeToFuture(DAY_IN_SECONDS);
 
-      // After 1 day with linear decay of 10%/365 = 0.02739726027% per day
-      // Balance should be approximately 1 * (1 - 0.0002739726027) = 0.9997260273973
+      // After 1 day with compound decay: balance = 1 * (1 - 0.0002739726027)^1
+      // Balance should be approximately 0.9997260273973
       const expectedBalance = parseUnits('0.9997260273973', 18);
       const actualBalance = await context.SweatToken.balanceOf(users[0].address);
 
@@ -130,8 +130,8 @@ describe('SweatToken', function () {
       await context.deployer.SweatToken.mint(users[0].address, ONE_SWEAT_TOKEN);
       await moveTimeToFuture(10 * DAY_IN_SECONDS);
 
-      // After 10 days: balance should decay by ~10 * 0.02739726027% = ~0.2739726027%
-      // Using compound: (1 - 0.0002739726027)^10 ≈ 0.9972602785
+      // After 10 days with compound decay: balance = initial * (1 - rate)^10
+      // Using (1 - 0.0002739726027)^10 ≈ 0.9972602785
       const actualBalance = await context.SweatToken.balanceOf(users[0].address);
 
       // Check that balance has decayed (less than original)

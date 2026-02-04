@@ -27,7 +27,7 @@ contract SweatToken is ISweatToken, ERC20Upgradeable, Ownable2StepUpgradeable {
 
     /**
      * @notice Holds decimal decay rate per day, the value is padded by DECAY_RATE_PER_DAY_DECIMALS
-     * @notice Linear decay: 10% per year / 365 days = 0.02739726027% per day
+     * @notice Compound decay: 10% per year / 365 days = 0.02739726027% per day (using exponential decay formula)
      * @notice This value is set on contract init and after that is possible to overwrite by owner
      */
     uint256 public decayRatePerDay;
@@ -153,8 +153,9 @@ contract SweatToken is ISweatToken, ERC20Upgradeable, Ownable2StepUpgradeable {
     |*----------------------------------------------------------*/
 
     /**
-     * @notice Calculates decay over a number of days with high precision
-     * @notice Basic formula: [initialAmount] * (1 - [percentageDecayPerDay] / 100)^[numberOfDays]
+     * @notice Calculates decay over a number of days with high precision using compound decay
+     * @notice Formula: [initialAmount] * (1 - [decayRatePerDay])^[numberOfDays]
+     * @notice where decayRatePerDay is expressed with DECAY_RATE_PER_DAY_DECIMALS precision
      * @param amount The initial amount (with 18 decimals)
      * @param numberOfDays Number of days to calculate decay for, when 0 it returns the `amount`
      * @return The decayed amount (with 18 decimals)
