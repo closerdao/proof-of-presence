@@ -68,7 +68,7 @@ const getGasOverrides = (hre: HardhatRuntimeEnvironment) => {
   const isCelo = hre.network.name === 'celo';
   const priorityFee = process.env.PRIORITY_FEE || '1';
   const maxFee = process.env.MAX_FEE || '30';
-  
+
   if (isCelo) {
     return {};
   } else {
