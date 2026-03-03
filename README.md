@@ -2,7 +2,7 @@
 
 ## DEPLOYED CONTRACTS
 
-Deployed contract addresses for Celo and Celo Sepolia networks are available in [`deployments.json`](./deployments.json).
+For a complete list of all deployed contract addresses (including implementations, proxies, and facets), see the `deployments/<network>/` directories.
 
 For previewing and interacting with the TDFDiamond, it's best to use [louper.dev](https://louper.dev).
 
@@ -26,8 +26,6 @@ For previewing and interacting with the TDFDiamond, it's best to use [louper.dev
 | SweatToken | [`0x913d4e87A54A89DaCB80279d263aFd6a500889b5`](https://sepolia.celoscan.io/address/0x913d4e87A54A89DaCB80279d263aFd6a500889b5) |
 | DynamicSale | [`0x076F0Ba89A33A6b268F164ddb2cC61df75Ee0168`](https://sepolia.celoscan.io/address/0x076F0Ba89A33A6b268F164ddb2cC61df75Ee0168) |
 | Crowdsale | [`0xdD5FCC4992C5C8795c557B2865B2ceE6c2CF6316`](https://sepolia.celoscan.io/address/0xdD5FCC4992C5C8795c557B2865B2ceE6c2CF6316) |
-
-For a complete list of all deployed contracts including implementations, proxies, and facets, see [`deployments.json`](./deployments.json).
 
 ## Repo description
 

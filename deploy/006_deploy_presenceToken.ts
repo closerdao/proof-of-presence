@@ -3,6 +3,8 @@ import {DeployFunction} from 'hardhat-deploy/types';
 import {ethers} from 'hardhat';
 import {TDFDiamond} from '../typechain';
 import {parseUnits} from 'ethers/lib/utils';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ProxyAdmin = require('hardhat-deploy/extendedArtifacts/ProxyAdmin.json');
 
 export const DEFAULT_PRESENCE_TOKEN_NAME = 'TDF Presence';
 export const DEFAULT_PRESENCE_TOKEN_SYMBOL = '$PRESENCE';
@@ -27,13 +29,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error('TDFDiamond contract not found. Please deploy it first.');
   })) as TDFDiamond;
 
-  // For real deployment, PresenceToken uses different ProxyAdmin deployer/upgrader
-  // because of different EOA used for the deployment. The ProxyAdmin used for
-  // PresenceToken is under PresenceToken__DefaultProxyImplementation.json
+  // Both PresenceToken and SweatToken share the same ProxyAdmin
+  // (PresenceToken__DefaultProxyAdmin), separate from the DefaultProxyAdmin
+  // used by other contracts (TDFToken, DynamicSale, etc.)
   await deploy('PresenceToken', {
     from: deployer,
     proxy: {
       proxyContract: 'OptimizedTransparentProxy',
+      viaAdminContract: {
+        name: 'PresenceToken__DefaultProxyAdmin',
+        artifact: ProxyAdmin,
+      },
       execute: {
         init: {
           methodName: `initialize`,
