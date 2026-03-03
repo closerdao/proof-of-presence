@@ -181,7 +181,10 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
         __ERC20NonTransferableDecaying_init_unchained(daoAddress_, decayRatePerDay_);
     }
 
-    function __ERC20NonTransferableDecaying_init_unchained(address daoAddress_, uint256 decayRatePerDay_) internal onlyInitializing {
+    function __ERC20NonTransferableDecaying_init_unchained(address daoAddress_, uint256 decayRatePerDay_)
+        internal
+        onlyInitializing
+    {
         setDaoAddress(daoAddress_);
         setDecayRatePerDay(decayRatePerDay_);
     }

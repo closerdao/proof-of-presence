@@ -39,11 +39,7 @@ const setup = deployments.createFixture(async () => {
 });
 
 describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () {
-  let token: PresenceToken,
-    owner: SignerWithAddress,
-    dao: Address,
-    user: SignerWithAddress,
-    user2: SignerWithAddress;
+  let token: PresenceToken, owner: SignerWithAddress, dao: Address, user: SignerWithAddress, user2: SignerWithAddress;
 
   beforeEach(async () => {
     const testData = await setup();
