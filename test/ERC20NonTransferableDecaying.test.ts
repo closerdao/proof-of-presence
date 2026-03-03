@@ -186,7 +186,7 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
       const initialDecayRatePerDay = DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY;
       const firstDecayRatePerYear = await token.getDecayRatePerYear(initialDecayRatePerDay);
       const calculatedDecayRatePerDay = await token.getDecayRatePerDay(firstDecayRatePerYear);
-      // 1 is the arithemtic error difference, however should be negligible
+      // 1 is the arithmetic error difference, however should be negligible
       expect(calculatedDecayRatePerDay).to.be.equal(initialDecayRatePerDay - 1);
     });
   });
@@ -204,7 +204,7 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
   });
 
   // TODO maybe parametrize these decay calculation tests to make sure it's run with a lot of different test data?
-  describe('Decay Calculations', async function () {
+  describe('Decay Calculations', function () {
     it('should calculate decay correctly over time', async function () {
       let passedDays = 0;
 
@@ -237,7 +237,7 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
       expect(await token.balanceOf(user.address)).to.be.equal(parseUnits('0.998846031702476150', 18));
       passedDays++;
 
-      // initidal day + 5
+      // initial day + 5
       await moveTimeToFuture(DAY_IN_SECONDS);
       // exact: 0.998557747757344277316168380135967254902977143
       // NOTE: here it seems like a contract is little bit off, as the result is different from calculation in the last digit (7 vs 6)
