@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
-import "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
+pragma solidity 0.8.28;
+import "@rocketh/diamond/solc_0_8/libraries/LibDiamond.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -135,11 +135,10 @@ contract Modifiers {
             StakeLibV2.Context({account: account, token: s.communityToken, requiredBalance: _expectedStaked(account)});
     }
 
-    function _stakeLibBookingContext(address account, uint16 year_)
-        internal
-        view
-        returns (StakeLibV2.BookingContext memory)
-    {
+    function _stakeLibBookingContext(
+        address account,
+        uint16 year_
+    ) internal view returns (StakeLibV2.BookingContext memory) {
         (, BookingMapLib.Year memory year) = s._accommodationYears.get(year_);
         return
             StakeLibV2.BookingContext({

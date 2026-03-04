@@ -3,6 +3,8 @@ artifacts/
 
 coverage*
 typechain/
+types/ethers-contracts/
+generated/
 
 .vscode/*
 !.vscode/settings.json.default

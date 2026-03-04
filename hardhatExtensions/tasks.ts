@@ -60,7 +60,7 @@ const getDiamond = async (hre: HardhatRuntimeEnvironment) => {
   if (!deployment) throw new Error('Factory Not Deployed');
   const {deployer} = await hre.getNamedAccounts();
   return (await hre.ethers.getContractAt('TDFDiamond', deployment.address)).connect(
-    await hre.ethers.getSigner(deployer)
+    await hre.ethers.getSigner(deployer),
   );
 };
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-1.0
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 import "@openzeppelin/contracts/utils/Context.sol";
 import "../libraries/BookingMapLib.sol";
 import "../libraries/AppStorage.sol";
@@ -74,14 +74,7 @@ contract BookingFacet is Modifiers {
         uint16 yearNum,
         uint16 dayOfYear,
         uint256 price
-    )
-        internal
-        returns (
-            BookingMapLib.Booking memory,
-            bool replaced,
-            BookingMapLib.Booking memory oldBooking
-        )
-    {
+    ) internal returns (BookingMapLib.Booking memory, bool replaced, BookingMapLib.Booking memory oldBooking) {
         (bool successBuild, BookingMapLib.Booking memory value) = s._accommodationYears.buildBooking(
             status,
             yearNum,
@@ -99,11 +92,10 @@ contract BookingFacet is Modifiers {
         return (value, wasReplaced, oldVal);
     }
 
-    function cancelAccommodationFor(address account, uint16[2][] calldata dates)
-        external
-        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
-        whenNotPaused
-    {
+    function cancelAccommodationFor(
+        address account,
+        uint16[2][] calldata dates
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) whenNotPaused {
         for (uint256 i = 0; i < dates.length; i++) {
             BookingMapLib.Booking memory booking = _getBooking(account, dates[i][0], dates[i][1]);
             require(
@@ -116,10 +108,10 @@ contract BookingFacet is Modifiers {
         emit CanceledBookings(account, dates);
     }
 
-    function confirmAccommodationFor(address account, uint16[2][] calldata dates)
-        external
-        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
-    {
+    function confirmAccommodationFor(
+        address account,
+        uint16[2][] calldata dates
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
         uint16 count;
         for (uint256 i = 0; i < dates.length; i++) {
             (bool found, BookingMapLib.Booking memory _booking) = s._accommodationBookings[account].get(
@@ -145,10 +137,10 @@ contract BookingFacet is Modifiers {
         }
     }
 
-    function checkinAccommodationFor(address account, uint16[2][] calldata dates)
-        external
-        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
-    {
+    function checkinAccommodationFor(
+        address account,
+        uint16[2][] calldata dates
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
         uint16 count;
         for (uint256 i = 0; i < dates.length; i++) {
             bool success = s._accommodationBookings[account].updateStatus(
@@ -195,21 +187,13 @@ contract BookingFacet is Modifiers {
         );
     }
 
-    function unlockedStakeAt(
-        address account,
-        uint16 year,
-        uint16 day
-    ) public view returns (uint256) {
+    function unlockedStakeAt(address account, uint16 year, uint16 day) public view returns (uint256) {
         (bool success, uint256 tm) = s._accommodationYears.buildTimestamp(year, day);
         require(success, "unable to build timestamp");
         return _stakeLibContext(_msgSender()).releasableAt(s.staking[account], tm);
     }
 
-    function lockedStakeAt(
-        address account,
-        uint16 year,
-        uint16 day
-    ) public view returns (uint256) {
+    function lockedStakeAt(address account, uint16 year, uint16 day) public view returns (uint256) {
         (bool success, uint256 tm) = s._accommodationYears.buildTimestamp(year, day);
         require(success, "unable to build timestamp");
         return _stakeLibContext(_msgSender()).lockedAt(s.staking[account], tm);
@@ -223,11 +207,10 @@ contract BookingFacet is Modifiers {
         return s._accommodationBookings[account].get(yearNum, dayOfYear);
     }
 
-    function getAccommodationBookings(address account, uint16 _year)
-        external
-        view
-        returns (BookingMapLib.Booking[] memory)
-    {
+    function getAccommodationBookings(
+        address account,
+        uint16 _year
+    ) external view returns (BookingMapLib.Booking[] memory) {
         return s._accommodationBookings[account].list(_year);
     }
 
@@ -273,10 +256,10 @@ contract BookingFacet is Modifiers {
         emit YearUpdated(number, leapYear, start, end, enabled);
     }
 
-    function enableAccommodationYear(uint16 number, bool enable)
-        external
-        onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE)
-    {
+    function enableAccommodationYear(
+        uint16 number,
+        bool enable
+    ) external onlyRole(AccessControlLib.BOOKING_MANAGER_ROLE) {
         (, BookingMapLib.Year memory y) = s._accommodationYears.get(number);
         y.enabled = enable;
         require(s._accommodationYears.update(y), "BookingFacet: Unable to update year");

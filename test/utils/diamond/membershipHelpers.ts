@@ -1,7 +1,7 @@
-import {expect} from '../../chai-setup';
+import {expect} from 'chai';
 
-import type {TestContext} from './index';
-import {wrapOnlyRole, wrapSuccess} from './helpers';
+import type {TestContext} from './index.js';
+import {wrapOnlyRole, wrapSuccess} from './helpers.js';
 
 export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
@@ -9,20 +9,20 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(user.TDFDiamond.addMember(address), 'addMember: should succeed').to.emit(
           TDFDiamond,
-          'MemberAdded'
+          'MemberAdded',
         );
       },
       reverted: {
         onlyRole: async () => {
           await expect(user.TDFDiamond.addMember(address), 'addMember: should revert AccessControl').to.be.revertedWith(
-            'AccessControl:'
+            /AccessControl:/,
           );
         },
         exists: async () => {
           await expect(
             user.TDFDiamond.addMember(address),
-            'addMember: should revert `already exists`'
-          ).to.be.revertedWith('MembershipFacet: member exists');
+            'addMember: should revert `already exists`',
+          ).to.be.revertedWith(/MembershipFacet: member exists/);
         },
       },
     }),
@@ -30,21 +30,21 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(user.TDFDiamond.removeMember(address), `removeMenber: should succeed ${address}`).to.emit(
           TDFDiamond,
-          'MemberRemoved'
+          'MemberRemoved',
         );
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.removeMember(address),
-            'removeMember: should revert AccessControl'
-          ).to.be.revertedWith('AccessControl:');
+            'removeMember: should revert AccessControl',
+          ).to.be.revertedWith(/AccessControl:/);
         },
         exists: async () => {
           await expect(
             user.TDFDiamond.removeMember(address),
-            'removeMember: should revert `does not exists`'
-          ).to.be.revertedWith('MembershipFacet: member does not exists');
+            'removeMember: should revert `does not exists`',
+          ).to.be.revertedWith(/MembershipFacet: member does not exists/);
         },
       },
     }),
@@ -58,7 +58,6 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const getterHelpers = async (_context: TestContext) => ({});
 export const roleTesters = async (context: TestContext) => {
   const helpers = await setupHelpers(context);

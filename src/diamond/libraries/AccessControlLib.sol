@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-1.0
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -71,11 +71,7 @@ library AccessControlLib {
      *
      *  /^AccessControl: account (0x[0-9a-f]{40}) is missing role (0x[0-9a-f]{64})$/
      */
-    function checkRole(
-        RoleStore storage store,
-        bytes32 role,
-        address account
-    ) internal view {
+    function checkRole(RoleStore storage store, bytes32 role, address account) internal view {
         if (!hasRole(store, role, account)) {
             revert(
                 string(
@@ -93,11 +89,7 @@ library AccessControlLib {
     /**
      * @dev Returns `true` if `account` has been granted `role`.
      */
-    function hasRole(
-        RoleStore storage store,
-        bytes32 role,
-        address account
-    ) internal view returns (bool) {
+    function hasRole(RoleStore storage store, bytes32 role, address account) internal view returns (bool) {
         return store._roles[role].members[account];
     }
 
@@ -116,11 +108,7 @@ library AccessControlLib {
      *
      * Emits a {RoleAdminChanged} event.
      */
-    function setRoleAdmin(
-        RoleStore storage store,
-        bytes32 role,
-        bytes32 adminRole
-    ) internal {
+    function setRoleAdmin(RoleStore storage store, bytes32 role, bytes32 adminRole) internal {
         bytes32 previousAdminRole = getRoleAdmin(store, role);
         store._roles[role].adminRole = adminRole;
         emit RoleAdminChanged(role, previousAdminRole, adminRole);
@@ -133,11 +121,7 @@ library AccessControlLib {
      *
      * May emit a {RoleGranted} event.
      */
-    function grantRole(
-        RoleStore storage store,
-        bytes32 role,
-        address account
-    ) internal {
+    function grantRole(RoleStore storage store, bytes32 role, address account) internal {
         if (!hasRole(store, role, account)) {
             store._roles[role].members[account] = true;
             emit RoleGranted(role, account, msg.sender);
@@ -152,11 +136,7 @@ library AccessControlLib {
      *
      * May emit a {RoleRevoked} event.
      */
-    function revokeRole(
-        RoleStore storage store,
-        bytes32 role,
-        address account
-    ) internal {
+    function revokeRole(RoleStore storage store, bytes32 role, address account) internal {
         if (hasRole(store, role, account)) {
             store._roles[role].members[account] = false;
             emit RoleRevoked(role, account, msg.sender);

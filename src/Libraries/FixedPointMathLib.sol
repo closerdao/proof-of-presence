@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.28;
 
 /// @notice Arithmetic library with operations for fixed-point numbers.
 /// @author Solady (https://github.com/vectorized/solady/blob/main/src/utils/FixedPointMathLib.sol)
@@ -223,12 +223,12 @@ library FixedPointMathLib {
             // `x` is now in the range `(-42, 136) * 1e18`. Convert to `(-42, 136) * 2**96`
             // for more intermediate precision and a binary basis. This base conversion
             // is a multiplication by 1e18 / 2**96 = 5**18 / 2**78.
-            x = (x << 78) / 5**18;
+            x = (x << 78) / 5 ** 18;
 
             // Reduce range of x to (-½ ln 2, ½ ln 2) * 2**96 by factoring out powers
             // of two such that exp(x) = exp(x') * 2**k, where k is an integer.
             // Solving this gives k = round(x / log(2)) and x' = x - k * log(2).
-            int256 k = ((x << 96) / 54916777467707473351141471128 + 2**95) >> 96;
+            int256 k = ((x << 96) / 54916777467707473351141471128 + 2 ** 95) >> 96;
             x = x - k * 54916777467707473351141471128;
 
             // `k` is in the range `[-61, 195]`.
@@ -471,11 +471,7 @@ library FixedPointMathLib {
     /// @dev Calculates `floor(x * y / d)` with full precision.
     /// Throws if result overflows a uint256 or when `d` is zero.
     /// Credit to Remco Bloemen under MIT license: https://2π.com/21/muldiv
-    function fullMulDiv(
-        uint256 x,
-        uint256 y,
-        uint256 d
-    ) internal pure returns (uint256 result) {
+    function fullMulDiv(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 result) {
         /// @solidity memory-safe-assembly
         assembly {
             // 512-bit multiply `[p1 p0] = x * y`.
@@ -486,11 +482,7 @@ library FixedPointMathLib {
 
             // Temporarily use `result` as `p0` to save gas.
             result := mul(x, y) // Lower 256 bits of `x * y`.
-            for {
-
-            } 1 {
-
-            } {
+            for {} 1 {} {
                 // If overflows.
                 if iszero(mul(or(iszero(x), eq(div(result, x), y)), d)) {
                     let mm := mulmod(x, y, not(0))
@@ -540,11 +532,7 @@ library FixedPointMathLib {
     /// @dev Calculates `floor(x * y / d)` with full precision.
     /// Behavior is undefined if `d` is zero or the final result cannot fit in 256 bits.
     /// Performs the full 512 bit calculation regardless.
-    function fullMulDivUnchecked(
-        uint256 x,
-        uint256 y,
-        uint256 d
-    ) internal pure returns (uint256 result) {
+    function fullMulDivUnchecked(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 result) {
         /// @solidity memory-safe-assembly
         assembly {
             result := mul(x, y)
@@ -570,11 +558,7 @@ library FixedPointMathLib {
     /// Throws if result overflows a uint256 or when `d` is zero.
     /// Credit to Uniswap-v3-core under MIT license:
     /// https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/FullMath.sol
-    function fullMulDivUp(
-        uint256 x,
-        uint256 y,
-        uint256 d
-    ) internal pure returns (uint256 result) {
+    function fullMulDivUp(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 result) {
         result = fullMulDiv(x, y, d);
         /// @solidity memory-safe-assembly
         assembly {
@@ -590,11 +574,7 @@ library FixedPointMathLib {
 
     /// @dev Returns `floor(x * y / d)`.
     /// Reverts if `x * y` overflows, or `d` is zero.
-    function mulDiv(
-        uint256 x,
-        uint256 y,
-        uint256 d
-    ) internal pure returns (uint256 z) {
+    function mulDiv(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 z) {
         /// @solidity memory-safe-assembly
         assembly {
             z := mul(x, y)
@@ -609,11 +589,7 @@ library FixedPointMathLib {
 
     /// @dev Returns `ceil(x * y / d)`.
     /// Reverts if `x * y` overflows, or `d` is zero.
-    function mulDivUp(
-        uint256 x,
-        uint256 y,
-        uint256 d
-    ) internal pure returns (uint256 z) {
+    function mulDivUp(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 z) {
         /// @solidity memory-safe-assembly
         assembly {
             z := mul(x, y)
@@ -648,11 +624,7 @@ library FixedPointMathLib {
     }
 
     /// @dev Returns `condition ? x : y`, without branching.
-    function ternary(
-        bool condition,
-        uint256 x,
-        uint256 y
-    ) internal pure returns (uint256 result) {
+    function ternary(bool condition, uint256 x, uint256 y) internal pure returns (uint256 result) {
         /// @solidity memory-safe-assembly
         assembly {
             result := xor(x, mul(xor(x, y), iszero(condition)))
@@ -661,11 +633,7 @@ library FixedPointMathLib {
 
     /// @dev Exponentiate `x` to `y` by squaring, denominated in base `b`.
     /// Reverts if the computation overflows.
-    function rpow(
-        uint256 x,
-        uint256 y,
-        uint256 b
-    ) internal pure returns (uint256 z) {
+    function rpow(uint256 x, uint256 y, uint256 b) internal pure returns (uint256 z) {
         /// @solidity memory-safe-assembly
         assembly {
             z := mul(b, iszero(y)) // `0 ** 0 = 1`. Otherwise, `0 ** n = 0`.
@@ -790,9 +758,9 @@ library FixedPointMathLib {
     /// @dev Returns the square root of `x`, denominated in `WAD`, rounded down.
     function sqrtWad(uint256 x) internal pure returns (uint256 z) {
         unchecked {
-            if (x <= type(uint256).max / 10**18) return sqrt(x * 10**18);
-            z = (1 + sqrt(x)) * 10**9;
-            z = (fullMulDivUnchecked(x, 10**18, z) + z) >> 1;
+            if (x <= type(uint256).max / 10 ** 18) return sqrt(x * 10 ** 18);
+            z = (1 + sqrt(x)) * 10 ** 9;
+            z = (fullMulDivUnchecked(x, 10 ** 18, z) + z) >> 1;
         }
         /// @solidity memory-safe-assembly
         assembly {
@@ -805,18 +773,14 @@ library FixedPointMathLib {
     /// https://github.com/vectorized/solady/blob/main/audits/xuwinnie-solady-cbrt-proof.pdf
     function cbrtWad(uint256 x) internal pure returns (uint256 z) {
         unchecked {
-            if (x <= type(uint256).max / 10**36) return cbrt(x * 10**36);
-            z = (1 + cbrt(x)) * 10**12;
-            z = (fullMulDivUnchecked(x, 10**36, z * z) + z + z) / 3;
+            if (x <= type(uint256).max / 10 ** 36) return cbrt(x * 10 ** 36);
+            z = (1 + cbrt(x)) * 10 ** 12;
+            z = (fullMulDivUnchecked(x, 10 ** 36, z * z) + z + z) / 3;
         }
         /// @solidity memory-safe-assembly
         assembly {
             let p := x
-            for {
-
-            } 1 {
-
-            } {
+            for {} 1 {} {
                 if iszero(shr(229, p)) {
                     if iszero(shr(199, p)) {
                         p := mul(p, 100000000000000000) // 10 ** 17.
@@ -844,9 +808,7 @@ library FixedPointMathLib {
                 mstore(0x00, 0xaba0f2a2) // `FactorialOverflow()`.
                 revert(0x1c, 0x04)
             }
-            for {
-
-            } x {
+            for {} x {
                 x := sub(x, 1)
             } {
                 result := mul(result, x)
@@ -1006,7 +968,7 @@ library FixedPointMathLib {
     /// @dev Convenience function for unpacking a packed number from `packSci`.
     function unpackSci(uint256 packed) internal pure returns (uint256 unpacked) {
         unchecked {
-            unpacked = (packed >> 7) * 10**(packed & 0x7f);
+            unpacked = (packed >> 7) * 10 ** (packed & 0x7f);
         }
     }
 
@@ -1080,11 +1042,7 @@ library FixedPointMathLib {
     }
 
     /// @dev Returns `x`, bounded to `minValue` and `maxValue`.
-    function clamp(
-        uint256 x,
-        uint256 minValue,
-        uint256 maxValue
-    ) internal pure returns (uint256 z) {
+    function clamp(uint256 x, uint256 minValue, uint256 maxValue) internal pure returns (uint256 z) {
         /// @solidity memory-safe-assembly
         assembly {
             z := xor(x, mul(xor(x, minValue), gt(minValue, x)))
@@ -1093,11 +1051,7 @@ library FixedPointMathLib {
     }
 
     /// @dev Returns `x`, bounded to `minValue` and `maxValue`.
-    function clamp(
-        int256 x,
-        int256 minValue,
-        int256 maxValue
-    ) internal pure returns (int256 z) {
+    function clamp(int256 x, int256 minValue, int256 maxValue) internal pure returns (int256 z) {
         /// @solidity memory-safe-assembly
         assembly {
             z := xor(x, mul(xor(x, minValue), sgt(minValue, x)))
@@ -1111,9 +1065,7 @@ library FixedPointMathLib {
         assembly {
             for {
                 z := x
-            } y {
-
-            } {
+            } y {} {
                 let t := y
                 y := mod(z, y)
                 z := t
@@ -1125,13 +1077,7 @@ library FixedPointMathLib {
     /// with `t` clamped between `begin` and `end` (inclusive).
     /// Agnostic to the order of (`a`, `b`) and (`end`, `begin`).
     /// If `begins == end`, returns `t <= begin ? a : b`.
-    function lerp(
-        uint256 a,
-        uint256 b,
-        uint256 t,
-        uint256 begin,
-        uint256 end
-    ) internal pure returns (uint256) {
+    function lerp(uint256 a, uint256 b, uint256 t, uint256 begin, uint256 end) internal pure returns (uint256) {
         if (begin > end) (t, begin, end) = (~t, ~begin, ~end);
         if (t <= begin) return a;
         if (t >= end) return b;
@@ -1145,13 +1091,7 @@ library FixedPointMathLib {
     /// with `t` clamped between `begin` and `end` (inclusive).
     /// Agnostic to the order of (`a`, `b`) and (`end`, `begin`).
     /// If `begins == end`, returns `t <= begin ? a : b`.
-    function lerp(
-        int256 a,
-        int256 b,
-        int256 t,
-        int256 begin,
-        int256 end
-    ) internal pure returns (int256) {
+    function lerp(int256 a, int256 b, int256 t, int256 begin, int256 end) internal pure returns (int256) {
         if (begin > end) (t, begin, end) = (~t, ~begin, ~end);
         if (t <= begin) return a;
         if (t >= end) return b;
@@ -1247,11 +1187,7 @@ library FixedPointMathLib {
     }
 
     /// @dev Returns `(x + y) % d`, return 0 if `d` if zero.
-    function rawAddMod(
-        uint256 x,
-        uint256 y,
-        uint256 d
-    ) internal pure returns (uint256 z) {
+    function rawAddMod(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 z) {
         /// @solidity memory-safe-assembly
         assembly {
             z := addmod(x, y, d)
@@ -1259,11 +1195,7 @@ library FixedPointMathLib {
     }
 
     /// @dev Returns `(x * y) % d`, return 0 if `d` if zero.
-    function rawMulMod(
-        uint256 x,
-        uint256 y,
-        uint256 d
-    ) internal pure returns (uint256 z) {
+    function rawMulMod(uint256 x, uint256 y, uint256 d) internal pure returns (uint256 z) {
         /// @solidity memory-safe-assembly
         assembly {
             z := mulmod(x, y, d)
@@ -1281,7 +1213,7 @@ library FixedPointMathLib {
      * @return The result (with 18 decimals)
      */
     function powWithPrecision(uint256 base, uint256 exponent) internal pure returns (uint256) {
-        uint256 result = 10**18;
+        uint256 result = 10 ** 18;
 
         while (exponent != 0) {
             if (exponent & 1 == 1) {
@@ -1301,7 +1233,7 @@ library FixedPointMathLib {
      * @return The nth root of the value (with 18 decimals)
      */
     function nthRoot(uint256 value, uint256 n) internal pure returns (uint256) {
-        uint256 SCALE = 10**18;
+        uint256 SCALE = 10 ** 18;
 
         if (value == 0) return 0;
         if (n == 0) return SCALE;

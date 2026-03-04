@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 import "../BookingMapLib.sol";
 
@@ -35,11 +35,7 @@ contract BookingMapLibMock {
         );
     }
 
-    function book(
-        address _user,
-        uint16 _year,
-        uint16 _dayYear
-    ) public {
+    function book(address _user, uint16 _year, uint16 _dayYear) public {
         bool result = _bookings[_user].add(
             BookingMapLib.Booking(BookingMapLib.BookingStatus.Confirmed, _year, _dayYear, 1 ether, block.timestamp)
         );
@@ -68,22 +64,12 @@ contract BookingMapLibMock {
         return _bookings[_user].list(_year);
     }
 
-    function remove(
-        address _user,
-        uint16 _year,
-        uint16 _dayOfYear
-    ) public {
+    function remove(address _user, uint16 _year, uint16 _dayOfYear) public {
         (bool res, ) = _bookings[_user].remove(_year, _dayOfYear);
         emit OperationResult(res);
     }
 
-    function addYear(
-        uint16 number,
-        bool leapYear,
-        uint256 start,
-        uint256 end,
-        bool enabled
-    ) public {
+    function addYear(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled) public {
         bool res = _years.add(BookingMapLib.Year(number, leapYear, start, end, enabled));
         emit OperationResult(res);
     }
@@ -105,13 +91,7 @@ contract BookingMapLibMock {
         return _years.contains(number);
     }
 
-    function updateYear(
-        uint16 number,
-        bool leapYear,
-        uint256 start,
-        uint256 end,
-        bool enabled
-    ) public {
+    function updateYear(uint16 number, bool leapYear, uint256 start, uint256 end, bool enabled) public {
         bool res = _years.update(BookingMapLib.Year(number, leapYear, start, end, enabled));
         emit OperationResult(res);
     }

@@ -1,13 +1,13 @@
-import {expect} from '../chai-setup';
-import {network} from 'hardhat';
-import {parseEther} from 'ethers/lib/utils';
-import {setDiamondUser, setupContext, userTesters} from '../utils/diamond';
+import {expect} from 'chai';
+import {parseEther} from 'ethers';
+import {networkProvider as network} from '../hardhat-compat.js';
+import {setDiamondUser, setupContext, userTesters} from '../utils/diamond/index.js';
 
 const setup = setupContext;
 
 const incYears = async (days: number) => {
-  await network.provider.send('evm_increaseTime', [days * (365 * 86400)]);
-  await network.provider.send('evm_mine');
+  await network.send('evm_increaseTime', [days * (365 * 86400)]);
+  await network.send('evm_mine');
 };
 
 describe('StakingFacet', () => {

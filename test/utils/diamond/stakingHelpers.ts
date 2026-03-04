@@ -1,6 +1,6 @@
-import {expect} from '../../chai-setup';
-import {parseEther} from 'ethers/lib/utils';
-import type {TestContext} from './index';
+import {expect} from 'chai';
+import {parseEther} from 'ethers';
+import type {TestContext} from './index.js';
 
 export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
@@ -34,8 +34,8 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         notEnoughtBalance: async () => {
           await expect(
             user.TDFDiamond.withdrawStake(parseEther(amount)),
-            `withdraw.reverted ${amount}`
-          ).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
+            `withdraw.reverted ${amount}`,
+          ).to.be.revertedWith(/NOT_ENOUGHT_UNLOCKABLE_BALANCE/);
         },
       },
     }),
@@ -47,7 +47,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       reverted: {
         notEnoughtBalance: async () => {
           await expect(user.TDFDiamond.restake(parseEther(amount)), `restake.reverted ${amount}`).to.be.revertedWith(
-            'NOT_ENOUGHT_UNLOCKABLE_BALANCE'
+            /NOT_ENOUGHT_UNLOCKABLE_BALANCE/,
           );
         },
       },
@@ -59,9 +59,8 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const getterHelpers = async (_context: TestContext) => ({});
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 export const roleTesters = async (_context: TestContext) => {
   return {
     can: {},

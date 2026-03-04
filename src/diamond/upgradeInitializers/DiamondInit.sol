@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 /******************************************************************************\
 * Author: Nick Mudge <nick@perfectabstractions.com> (https://twitter.com/mudgen)
@@ -8,12 +8,12 @@ pragma solidity 0.8.9;
 * Implementation of a diamond.
 /******************************************************************************/
 
-import {LibDiamond} from "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
+import {LibDiamond} from "@rocketh/diamond/solc_0_8/libraries/LibDiamond.sol";
 import {AppStorage, LibAppStorage, IERC20, Modifiers} from "../libraries/AppStorage.sol";
-import {IDiamondLoupe} from "hardhat-deploy/solc_0.8/diamond/interfaces/IDiamondLoupe.sol";
-import {IDiamondCut} from "hardhat-deploy/solc_0.8/diamond/interfaces/IDiamondCut.sol";
-import {IERC173} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC173.sol";
-import {IERC165} from "hardhat-deploy/solc_0.8/diamond/interfaces/IERC165.sol";
+import {IDiamondLoupe} from "@rocketh/diamond/solc_0_8/interfaces/IDiamondLoupe.sol";
+import {IDiamondCut} from "@rocketh/diamond/solc_0_8/interfaces/IDiamondCut.sol";
+import {IERC173} from "@rocketh/diamond/solc_0_8/interfaces/IERC173.sol";
+import {IERC165} from "@rocketh/diamond/solc_0_8/interfaces/IERC165.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 import "../libraries/BookingMapLib.sol";

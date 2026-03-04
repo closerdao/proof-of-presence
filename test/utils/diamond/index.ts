@@ -1,23 +1,22 @@
-import {expect} from '../../chai-setup';
-import {parseEther, formatEther} from 'ethers/lib/utils';
-import {ethers, network, deployments, getUnnamedAccounts} from 'hardhat';
+import {expect} from 'chai';
+import {parseEther, formatEther} from 'ethers';
+import {deployments, getUnnamedAccounts} from '../../hardhat-compat.js';
+import {networkProvider as network} from '../../hardhat-compat.js';
 import {DateTime} from 'luxon';
 
-import {BookingMapLib} from '../../../typechain/TDFDiamond';
+import {BookingMapLib} from '../../../types/ethers-contracts/diamond/facets/BookingFacet.js';
 
 import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
-import {setupUser, setupUsers} from '..';
+import {setupUser, setupUsers} from '../index.js';
 
-import {DatesTestData} from './types';
-import * as stakingHelpers from './stakingHelpers';
-import * as bookingHelpers from './bookingHelpers';
-import * as membershipHelpers from './membershipHelpers';
-import * as adminHelpers from './adminHelpers';
-import type {TDFToken, TDFDiamond} from '../../../typechain';
+import {DatesTestData} from './types.js';
+import * as stakingHelpers from './stakingHelpers.js';
+import * as bookingHelpers from './bookingHelpers.js';
+import * as membershipHelpers from './membershipHelpers.js';
+import * as adminHelpers from './adminHelpers.js';
+import type {TDFToken, TDFDiamond} from '../../../types/ethers-contracts/index.js';
 
-export {ROLES} from '../../../utils';
-
-const BN = ethers.BigNumber;
+export {ROLES} from '../../../utils/index.js';
 
 export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => {
   enum BookingStatus {
@@ -27,33 +26,33 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
   }
   return {
     balances: async (diamondTokenBalance: string, stakedBalance: string, userTokenBalance: string) => {
-      let current = await TDFToken.balanceOf(TDFDiamond.address);
+      let current = await TDFToken.balanceOf(await TDFDiamond.getAddress());
       expect(current, `balances diamondTokenBalance to Eq(${diamondTokenBalance}), GOT(${formatEther(current)})`).to.eq(
-        parseEther(diamondTokenBalance)
+        parseEther(diamondTokenBalance),
       );
       current = await TDFDiamond.stakedBalanceOf(user.address);
       expect(current, `balances stakedBalance to Eq(${stakedBalance}), GOT(${formatEther(current)})`).to.eq(
-        parseEther(stakedBalance)
+        parseEther(stakedBalance),
       );
       current = await TDFToken.balanceOf(user.address);
       expect(current, `balances userTokenBalance to Eq(${userTokenBalance}), GOT(${formatEther(current)})`).to.eq(
-        parseEther(userTokenBalance)
+        parseEther(userTokenBalance),
       );
     },
     stake: async (locked: string, unlocked: string) => {
       expect(await TDFDiamond.lockedStake(user.address), `stake locked to Eq(${locked})`).to.eq(parseEther(locked));
       expect(await TDFDiamond.unlockedStake(user.address), `stake unlocked to Eq(${unlocked})`).to.eq(
-        parseEther(unlocked)
+        parseEther(unlocked),
       );
     },
     stakeAt: async (year: number, day: number, locked: string, unlocked: string) => {
       expect(
         await TDFDiamond.lockedStakeAt(user.address, year, day),
-        `stakedAt locked(${locked}), year(${year}), day(${day})`
+        `stakedAt locked(${locked}), year(${year}), day(${day})`,
       ).to.eq(parseEther(locked));
       expect(
         await TDFDiamond.unlockedStakeAt(user.address, year, day),
-        `stakedAt unLocked(${unlocked}), year(${year}), day(${day})`
+        `stakedAt unLocked(${unlocked}), year(${year}), day(${day})`,
       ).to.eq(parseEther(unlocked));
     },
     deposits: async (examples: [string, number][]) => {
@@ -61,7 +60,7 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
       for (let i = 0; i < examples.length; i++) {
         expect(deposits[i].amount, `deposits Index(${i}) Amount(${examples[i][0]})`).to.eq(parseEther(examples[i][0]));
         expect(deposits[i].timestamp, `deposits Index(${i}) timestamp(${examples[i][1]})`).to.eq(
-          BN.from(examples[i][1])
+          BigInt(examples[i][1]),
         );
       }
     },
@@ -93,12 +92,10 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
               expect(booking.dayOfYear).to.eq(e.day),
               expect(
                 booking.status,
-                `expect booking status toEQ(${status}) GOT(${
-                  Object.values(BookingStatus)[parseInt(booking.status.toString())]
-                })`
+                `expect booking status toEQ(${status}) GOT(${Object.values(BookingStatus)[Number(booking.status)]})`,
               ).to.eq(st),
             ]);
-          })
+          }),
         );
       },
       toNotExist: async (dates: DatesTestData) => {
@@ -106,7 +103,7 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
           dates.data.map(async (e) => {
             const [exists] = await TDFDiamond.getAccommodationBooking(user.address, e.year, e.day);
             return Promise.all([expect(exists).to.be.false]);
-          })
+          }),
         );
       },
     },
@@ -151,8 +148,8 @@ export const collectDates = (dates: DatesTestData, indexes: number[]): DatesTest
 };
 
 export const timeTravelTo = async (time: number) => {
-  await network.provider.send('evm_setNextBlockTimestamp', [time]);
-  await network.provider.send('evm_mine');
+  await network.send('evm_setNextBlockTimestamp', [time]);
+  await network.send('evm_mine', []);
 };
 
 // TODO: no need to be a function
@@ -178,10 +175,10 @@ export const setupContext = deployments.createFixture(async (hre) => {
   const users = await getUnnamedAccounts();
   const {deployer, TDFTokenBeneficiary} = accounts;
 
-  const token: TDFToken = await ethers.getContract('TDFToken', deployer);
+  const token = (await ethers.getContract('TDFToken', deployer)) as unknown as TDFToken;
   const contracts = {
     TDFToken: token,
-    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', deployer),
+    TDFDiamond: (await ethers.getContract('TDFDiamond', deployer)) as unknown as TDFDiamond,
   };
 
   const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);
@@ -198,7 +195,7 @@ export const setupContext = deployments.createFixture(async (hre) => {
   await Promise.all(
     users.map((e) => {
       return conf.deployer.TDFToken.mint(e, parseEther('10000'));
-    })
+    }),
   );
   return conf;
 });

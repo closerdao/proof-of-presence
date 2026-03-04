@@ -1,48 +1,50 @@
-import {HardhatRuntimeEnvironment} from 'hardhat/types';
-import {DeployFunction} from 'hardhat-deploy/types';
-import {ethers} from 'hardhat';
-import {TDFToken} from '../typechain';
+import {deployScript, artifacts} from '../rocketh/deploy.js';
+import {parseUnits} from 'ethers';
 
-import {parseUnits} from 'ethers/lib/utils';
+export default deployScript(
+  async (env) => {
+    const {deployer, TDFMultisig} = env.namedAccounts;
+    const isCelo = env.network.name === 'celo';
+    const priorityFee = process.env.PRIORITY_FEE || '1';
+    const maxFee = process.env.MAX_FEE || '30';
+    const gasOverrides = isCelo
+      ? {}
+      : {
+          maxPriorityFeePerGas: parseUnits(priorityFee, 'gwei'),
+          maxFeePerGas: parseUnits(maxFee, 'gwei'),
+        };
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const {deployments, getNamedAccounts} = hre;
-  const {diamond} = deployments;
+    const TDFToken = env.get('TDFToken');
 
-  const {deployer, TDFMultisig} = await getNamedAccounts();
-  const isCelo = hre.network.name === 'celo';
-  const priorityFee = process.env.PRIORITY_FEE || '1';
-  const maxFee = process.env.MAX_FEE || '30';
-  const gasOverrides = isCelo
-    ? {}
-    : {
-        maxPriorityFeePerGas: parseUnits(priorityFee, 'gwei'),
-        maxFeePerGas: parseUnits(maxFee, 'gwei'),
-      };
+    const contract = await env.diamond(
+      'TDFDiamond',
+      {
+        account: deployer,
+        ...gasOverrides,
+      },
+      {
+        facets: [
+          {name: 'BookingFacet', artifact: artifacts.BookingFacet, args: []},
+          {name: 'StakingFacet', artifact: artifacts.StakingFacet, args: []},
+          {name: 'AdminFacet', artifact: artifacts.AdminFacet, args: []},
+          {name: 'MembershipFacet', artifact: artifacts.MembershipFacet, args: []},
+          {name: 'DiamondInit', artifact: artifacts.DiamondInit, args: []},
+        ],
+        execute: {
+          type: 'facet',
+          functionName: 'init',
+          args: [TDFToken.address, TDFMultisig],
+        },
+      },
+    );
 
-  const realTDFToken = (await ethers.getContract('TDFToken', deployer)).connect(
-    await ethers.getSigner(deployer)
-  ) as TDFToken;
-
-  const contract = await diamond.deploy('TDFDiamond', {
-    from: deployer,
-    owner: deployer,
-    facets: [
-      {name: 'BookingFacet'},
-      {name: 'StakingFacet'},
-      {name: 'AdminFacet'},
-      {name: 'MembershipFacet'},
-      {name: 'DiamondInit'},
-    ],
-    execute: {
-      methodName: 'init',
-      args: [realTDFToken.address, TDFMultisig],
-    },
-    ...gasOverrides,
-    log: true,
-    autoMine: true,
-  });
-  await realTDFToken.setDAOContract(contract.address, gasOverrides);
-};
-export default func;
-func.tags = ['Diamond'];
+    // Set DAO contract on TDF token
+    await env.executeByName('TDFToken', {
+      account: deployer,
+      functionName: 'setDAOContract',
+      args: [contract.address],
+      ...gasOverrides,
+    });
+  },
+  {tags: ['Diamond']},
+);

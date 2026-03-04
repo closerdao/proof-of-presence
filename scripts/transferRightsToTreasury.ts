@@ -5,9 +5,8 @@ import {Contract} from 'ethers';
 import {ROLES} from '../utils';
 async function setupUser<T extends {[contractName: string]: Contract}>(
   address: string,
-  contracts: T
+  contracts: T,
 ): Promise<{address: string} & T> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user: any = {address};
   for (const key of Object.keys(contracts)) {
     user[key] = contracts[key].connect(await ethers.getSigner(address));

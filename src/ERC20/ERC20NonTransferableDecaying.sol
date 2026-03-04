@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
@@ -180,10 +180,10 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
         __ERC20NonTransferableDecaying_init_unchained(daoAddress_, decayRatePerDay_);
     }
 
-    function __ERC20NonTransferableDecaying_init_unchained(address daoAddress_, uint256 decayRatePerDay_)
-        internal
-        onlyInitializing
-    {
+    function __ERC20NonTransferableDecaying_init_unchained(
+        address daoAddress_,
+        uint256 decayRatePerDay_
+    ) internal onlyInitializing {
         setDaoAddress(daoAddress_);
         setDecayRatePerDay(decayRatePerDay_);
     }
@@ -273,7 +273,7 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
         if (daysAgo == 0) return amount;
 
         // Convert decay rate to 18 decimal precision
-        uint256 decayRateScaled = (decayRatePerDay * PRECISION_SCALE) / (10**DECAY_RATE_PER_DAY_DECIMALS);
+        uint256 decayRateScaled = (decayRatePerDay * PRECISION_SCALE) / (10 ** DECAY_RATE_PER_DAY_DECIMALS);
 
         // Calculate (1 - decayRate) with 18 decimals precision
         uint256 retentionRate = PRECISION_SCALE - decayRateScaled;
@@ -321,7 +321,7 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
      */
     function getDecayRatePerYear(uint256 decayRatePerDay_) public pure returns (uint256 decayRatePerYear) {
         // Convert daily decay rate to 18 decimal precision for calculations
-        uint256 decayRateScaled = (decayRatePerDay_ * PRECISION_SCALE) / (10**DECAY_RATE_PER_DAY_DECIMALS);
+        uint256 decayRateScaled = (decayRatePerDay_ * PRECISION_SCALE) / (10 ** DECAY_RATE_PER_DAY_DECIMALS);
 
         // Calculate retention rate (1 - daily_decay_rate)
         uint256 dailyRetentionRate = PRECISION_SCALE - decayRateScaled;
@@ -333,7 +333,7 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
         uint256 yearlyDecayRateScaled = PRECISION_SCALE - yearlyRetentionRate;
 
         // Convert back to 9 decimal precision
-        return (yearlyDecayRateScaled * (10**DECAY_RATE_PER_DAY_DECIMALS)) / PRECISION_SCALE;
+        return (yearlyDecayRateScaled * (10 ** DECAY_RATE_PER_DAY_DECIMALS)) / PRECISION_SCALE;
     }
 
     /**
@@ -356,10 +356,11 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
     function getDecayRatePerDay(uint256 decayRatePerYear) external pure returns (uint256) {
         // Calculate yearly retention rate = (1 - yearly_decay_rate)
         // Both sides scaled to 9 decimals
-        uint256 yearlyRetentionRateScaled = 10**DECAY_RATE_PER_DAY_DECIMALS - decayRatePerYear;
+        uint256 yearlyRetentionRateScaled = 10 ** DECAY_RATE_PER_DAY_DECIMALS - decayRatePerYear;
 
         // Convert to 18 decimals for higher precision in calculations
-        uint256 yearlyRetentionRate = (yearlyRetentionRateScaled * PRECISION_SCALE) / (10**DECAY_RATE_PER_DAY_DECIMALS);
+        uint256 yearlyRetentionRate = (yearlyRetentionRateScaled * PRECISION_SCALE) /
+            (10 ** DECAY_RATE_PER_DAY_DECIMALS);
 
         // Calculate daily retention rate = (1 - yearly_decay_rate)^(1/365)
         uint256 dailyRetentionRate = FixedPointMathLib.nthRoot(yearlyRetentionRate, 365);
@@ -368,7 +369,7 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
         uint256 dailyDecayRateScaled = PRECISION_SCALE - dailyRetentionRate;
 
         // Convert back to 9 decimal precision
-        return (dailyDecayRateScaled * (10**DECAY_RATE_PER_DAY_DECIMALS)) / PRECISION_SCALE;
+        return (dailyDecayRateScaled * (10 ** DECAY_RATE_PER_DAY_DECIMALS)) / PRECISION_SCALE;
     }
 
     /*----------------------------------------------------------*|
@@ -384,11 +385,7 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
      * the lastDecayTimestamp, we do not need to hold the mapping when each token was created to be able
      * to correctly calculate the decayed balance.
      */
-    function _mint(
-        address account,
-        uint256 amount,
-        uint256 daysAgo
-    ) internal {
+    function _mint(address account, uint256 amount, uint256 daysAgo) internal {
         if (amount == 0) {
             revert MintWithZeroAmount();
         }
@@ -406,11 +403,7 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
         ERC20Upgradeable._mint(account, amount);
     }
 
-    function mint(
-        address account,
-        uint256 amount,
-        uint256 daysAgo
-    ) external {
+    function mint(address account, uint256 amount, uint256 daysAgo) external {
         checkBurnOrMintPermission();
         _mint(account, amount, daysAgo);
     }
@@ -532,22 +525,14 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
     |*  # DISABLE TRANSFERS + APPROVALS                         *|
     |*----------------------------------------------------------*/
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public pure virtual override returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) public pure virtual override returns (bool) {
         from;
         to;
         amount;
         revert TransferNotAllowed();
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
         // allow only minting or burning
         if (from != address(0) && to != address(0)) {
             revert TransferNotAllowed();
@@ -555,11 +540,7 @@ abstract contract ERC20NonTransferableDecaying is ERC20Upgradeable, Ownable2Step
         super._beforeTokenTransfer(from, to, amount);
     }
 
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal pure override {
+    function _approve(address owner, address spender, uint256 amount) internal pure override {
         owner;
         spender;
         amount;

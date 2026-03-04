@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: AGPL-1.0
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 abstract contract ERC20Internal {
-    function _approveFor(
-        address owner,
-        address target,
-        uint256 amount
-    ) internal virtual;
+    function _approveFor(address owner, address target, uint256 amount) internal virtual;
 
     function name() public virtual returns (string memory);
 

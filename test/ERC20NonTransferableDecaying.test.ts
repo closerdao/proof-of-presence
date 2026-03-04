@@ -1,19 +1,19 @@
-import {expect} from './chai-setup';
-import {deployments, ethers} from 'hardhat';
-import {PresenceToken, SweatToken, TDFDiamond} from '../typechain';
-import {Address} from 'hardhat-deploy/types';
-import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import {expect} from 'chai';
+import {deployments, ethers} from './hardhat-compat.js';
+import {PresenceToken, SweatToken, TDFDiamond} from '../types/ethers-contracts/index.js';
+type Address = string;
+import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/signers.js';
 import {
   DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY,
   DEFAULT_PRESENCE_TOKEN_NAME,
   DEFAULT_PRESENCE_TOKEN_SYMBOL,
-} from '../deploy/006_deploy_presenceToken';
+} from '../deploy/006_deploy_presenceToken.js';
 import {
   DEFAULT_SWEAT_TOKEN_DECAY_RATE_PER_DAY,
   DEFAULT_SWEAT_TOKEN_NAME,
   DEFAULT_SWEAT_TOKEN_SYMBOL,
-} from '../deploy/005_deploy_sweatToken';
-import {parseUnits} from 'ethers/lib/utils';
+} from '../deploy/005_deploy_sweatToken.js';
+import {getAddress, parseUnits} from 'ethers';
 
 const ONE_TOKEN = parseUnits('1', 18);
 const DAY_IN_SECONDS = 86_400;
@@ -32,14 +32,18 @@ const setup = deployments.createFixture(async () => {
   return {
     deployer,
     token: tokenContract,
-    daoContractAddress: daoContract.address,
+    daoContractAddress: await daoContract.getAddress(),
     user,
     user2,
   };
 });
 
 describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () {
-  let token: PresenceToken, owner: SignerWithAddress, dao: Address, user: SignerWithAddress, user2: SignerWithAddress;
+  let token: PresenceToken,
+    owner: HardhatEthersSigner,
+    dao: Address,
+    user: HardhatEthersSigner,
+    user2: HardhatEthersSigner;
 
   beforeEach(async () => {
     const testData = await setup();
@@ -55,37 +59,41 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
       expect(await token.name()).to.equal(DEFAULT_PRESENCE_TOKEN_NAME);
       expect(await token.symbol()).to.equal(DEFAULT_PRESENCE_TOKEN_SYMBOL);
       expect(await token.decayRatePerDay()).to.equal(DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY);
-      expect(await token.daoAddress()).to.equal(dao);
+      expect(getAddress(await token.daoAddress())).to.equal(getAddress(dao));
     });
   });
 
   describe('DAO Address Management', function () {
     it('should change DAO address by owner', async function () {
       // token.address is a valid contract address
-      await token.connect(owner).setDaoAddress(token.address);
-      expect(await token.daoAddress()).to.equal(token.address);
+      await token.connect(owner).setDaoAddress(await token.getAddress());
+      expect(getAddress(await token.daoAddress())).to.equal(getAddress(await token.getAddress()));
     });
 
     it('should emit DaoAddressChanged event', async function () {
-      const oldAddress = await token.daoAddress();
-      await expect(token.connect(owner).setDaoAddress(token.address))
+      const oldAddress = getAddress(await token.daoAddress());
+      await expect(token.connect(owner).setDaoAddress(await token.getAddress()))
         .to.emit(token, 'DaoAddressChanged')
-        .withArgs(oldAddress, token.address);
+        .withArgs(oldAddress, getAddress(await token.getAddress()));
     });
 
     it('should revert on address(0)', async function () {
-      await expect(token.connect(owner).setDaoAddress(ethers.constants.AddressZero)).to.be.revertedWith(
-        'InvalidDaoAddress'
+      await expect(token.connect(owner).setDaoAddress(ethers.ZeroAddress)).to.be.revertedWithCustomError(
+        token,
+        'InvalidDaoAddress',
       );
     });
 
     it('should revert on EOA (non-contract) address', async function () {
-      await expect(token.connect(owner).setDaoAddress(user.address)).to.be.revertedWith('InvalidDaoAddress');
+      await expect(token.connect(owner).setDaoAddress(user.address)).to.be.revertedWithCustomError(
+        token,
+        'InvalidDaoAddress',
+      );
     });
 
     it('should revert when called by non-owner', async function () {
-      await expect(token.connect(user).setDaoAddress(token.address)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+      await expect(token.connect(user).setDaoAddress(await token.getAddress())).to.be.revertedWith(
+        'Ownable: caller is not the owner',
       );
     });
   });
@@ -103,16 +111,19 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
 
       const blockNumber = await ethers.provider.getBlockNumber();
       const block = await ethers.provider.getBlock(blockNumber);
-      expect(await token.lastDecayTimestamp(user.address)).to.be.equal(block.timestamp);
+      expect(await token.lastDecayTimestamp(user.address)).to.be.equal(block!.timestamp);
 
       // checking if holders mapping + array is also correctly calculated
       expect(await token.isHolder(user.address)).to.be.true;
       expect(await token.isHolder(owner.address)).to.be.false;
-      expect(await token.holders(0)).to.be.equal(user.address);
+      expect(await token.holders(0)).to.be.equal(getAddress(user.address));
     });
 
     it('should fail to mint if not authorized', async function () {
-      await expect(token.connect(user).mint(user.address, ONE_TOKEN, 0)).to.be.revertedWith('Unauthorized');
+      await expect(token.connect(user).mint(user.address, ONE_TOKEN, 0)).to.be.revertedWithCustomError(
+        token,
+        'Unauthorized',
+      );
     });
 
     it('should handle minting for past days ago', async function () {
@@ -139,11 +150,14 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
     });
 
     it('should revert on mint with zero amount', async function () {
-      await expect(token.connect(owner).mint(user.address, 0, 0)).to.be.revertedWith('MintWithZeroAmount');
+      await expect(token.connect(owner).mint(user.address, 0, 0)).to.be.revertedWithCustomError(
+        token,
+        'MintWithZeroAmount',
+      );
     });
 
     it('should revert on empty mintBatch', async function () {
-      await expect(token.connect(owner).mintBatch([])).to.be.revertedWith('MintDataEmpty');
+      await expect(token.connect(owner).mintBatch([])).to.be.revertedWithCustomError(token, 'MintDataEmpty');
     });
   });
 
@@ -156,15 +170,16 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
 
     it('should fail to set decay rate if exceeding max limit', async function () {
       const tooHighDecayRate = 4_399_712;
-      await expect(token.connect(owner).setDecayRatePerDay(tooHighDecayRate)).to.be.revertedWith(
-        'InvalidDecayRatePerDay'
+      await expect(token.connect(owner).setDecayRatePerDay(tooHighDecayRate)).to.be.revertedWithCustomError(
+        token,
+        'InvalidDecayRatePerDay',
       );
     });
 
     it('should fail to set a decay if not authorized', async function () {
       const newDecayRate = 100_000;
       await expect(token.connect(user).setDecayRatePerDay(newDecayRate)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'Ownable: caller is not the owner',
       );
     });
 
@@ -178,7 +193,7 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
       // 0.1 == 10% decay rate per year
       // 9 == decay rate decimals precision
       expect(await token.getDecayRatePerDay(parseUnits('0.1', 9))).to.be.equal(
-        DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY
+        DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY,
       );
     });
 
@@ -193,13 +208,19 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
 
   describe('Non-Transferable Token Behavior', function () {
     it('should not allow token transfers', async function () {
-      await expect(token.connect(user).transfer(dao, 100)).to.be.revertedWith('TransferNotAllowed');
-      await expect(token.connect(user).transferFrom(user.address, dao, 100)).to.be.revertedWith('TransferNotAllowed');
+      await expect(token.connect(user).transfer(dao, 100)).to.be.revertedWithCustomError(token, 'TransferNotAllowed');
+      await expect(token.connect(user).transferFrom(user.address, dao, 100)).to.be.revertedWithCustomError(
+        token,
+        'TransferNotAllowed',
+      );
     });
 
     it('should not allow approval', async function () {
-      await expect(token.connect(user).approve(dao, 100)).to.be.revertedWith('ApproveNotAllowed');
-      await expect(token.connect(user).increaseAllowance(dao, 100)).to.be.revertedWith('ApproveNotAllowed');
+      await expect(token.connect(user).approve(dao, 100)).to.be.revertedWithCustomError(token, 'ApproveNotAllowed');
+      await expect(token.connect(user).increaseAllowance(dao, 100)).to.be.revertedWithCustomError(
+        token,
+        'ApproveNotAllowed',
+      );
     });
   });
 
@@ -340,9 +361,9 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
     it('should burn tokens successfully', async function () {
       await token.connect(owner).mint(user.address, ONE_TOKEN, 0);
 
-      await token.connect(owner).burn(user.address, [{amount: ONE_TOKEN.div(2), daysAgo: 0}]);
-      expect(await token.balanceOf(user.address)).to.equal(ONE_TOKEN.div(2));
-      expect(await token.nonDecayedBalanceOf(user.address)).to.equal(ONE_TOKEN.div(2));
+      await token.connect(owner).burn(user.address, [{amount: ONE_TOKEN / 2n, daysAgo: 0}]);
+      expect(await token.balanceOf(user.address)).to.equal(ONE_TOKEN / 2n);
+      expect(await token.nonDecayedBalanceOf(user.address)).to.equal(ONE_TOKEN / 2n);
     });
 
     it('should burn all tokens', async function () {
@@ -360,17 +381,17 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
       const randomAddressSigner = await ethers.getSigner(randomAddress);
       await ethers.provider.send('hardhat_setBalance', [randomAddressSigner.address, '0x1BC16D674EC80000']);
       await expect(
-        token.connect(randomAddressSigner).burn(user.address, [{amount: ONE_TOKEN, daysAgo: 0}])
-      ).to.be.revertedWith('Unauthorized');
+        token.connect(randomAddressSigner).burn(user.address, [{amount: ONE_TOKEN, daysAgo: 0}]),
+      ).to.be.revertedWithCustomError(token, 'Unauthorized');
       await expect(token.connect(randomAddressSigner).burnAll(user.address)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'Ownable: caller is not the owner',
       );
       await ethers.provider.send('hardhat_stopImpersonatingAccount', [randomAddressSigner.address]);
     });
 
     it('should revert on burn with empty array', async function () {
       await token.connect(owner).mint(user.address, ONE_TOKEN, 0);
-      await expect(token.connect(owner).burn(user.address, [])).to.be.revertedWith('BurnDataEmpty');
+      await expect(token.connect(owner).burn(user.address, [])).to.be.revertedWithCustomError(token, 'BurnDataEmpty');
     });
   });
 
@@ -451,15 +472,15 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
       expect(await token.balanceOf(user.address)).to.be.equal(parseUnits('0.981978862854096013', 18));
       // TODO why is there difference of 1 wei here (above one ends with 013, below one with 014)?
       expect(await token.calculateDecayForDays(parseUnits('1', 18), 63)).to.be.equal(
-        parseUnits('0.981978862854096014', 18)
+        parseUnits('0.981978862854096014', 18),
       );
 
       await expect(
-        token.connect(owner).burn(user.address, [{amount: parseUnits('1', 18), daysAgo: 62}])
-      ).to.be.revertedWith('BurnAmountExceedsDecayedBalance');
+        token.connect(owner).burn(user.address, [{amount: parseUnits('1', 18), daysAgo: 62}]),
+      ).to.be.revertedWithCustomError(token, 'BurnAmountExceedsDecayedBalance');
       await expect(
-        token.connect(owner).burn(user.address, [{amount: parseUnits('2', 18), daysAgo: 63}])
-      ).to.be.revertedWith('BurnAmountExceedsDecayedBalance');
+        token.connect(owner).burn(user.address, [{amount: parseUnits('2', 18), daysAgo: 63}]),
+      ).to.be.revertedWithCustomError(token, 'BurnAmountExceedsDecayedBalance');
       await token.connect(owner).burn(user.address, [{amount: parseUnits('1', 18), daysAgo: 63}]);
       expect(await token.nonDecayedBalanceOf(user.address)).to.be.equal(0);
       expect(await token.balanceOf(user.address)).to.be.equal(0);
@@ -485,7 +506,9 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
       expect(await token.balanceOf(user.address)).to.equal(0);
 
       await token.connect(owner).mint(user.address, parseUnits('1', 18), 2);
-      await expect(token.connect(owner).burn(user.address, [{amount: ONE_TOKEN, daysAgo: 1}])).to.be.reverted;
+      await expect(
+        token.connect(owner).burn(user.address, [{amount: ONE_TOKEN, daysAgo: 1}]),
+      ).to.be.revertedWithCustomError(token, 'BurnAmountExceedsDecayedBalance');
       await moveTimeToFuture(DAY_IN_SECONDS);
       await token.connect(owner).burn(user.address, [{amount: ONE_TOKEN, daysAgo: 3}]);
       expect(await token.balanceOf(user.address)).to.equal(0);
@@ -496,7 +519,7 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
     it('should emit MintWithDecay on mint', async function () {
       await expect(token.connect(owner).mint(user.address, ONE_TOKEN, 0))
         .to.emit(token, 'MintWithDecay')
-        .withArgs(user.address, ONE_TOKEN, ONE_TOKEN, 0);
+        .withArgs(getAddress(user.address), ONE_TOKEN, ONE_TOKEN, 0);
     });
 
     it('should emit MintWithDecay on mint with daysAgo', async function () {
@@ -504,21 +527,21 @@ describe('ERC20NonTransferableDecaying (tested via PresenceToken)', function () 
       const decayedAmount = await token.calculateDecayForDays(ONE_TOKEN, daysAgo);
       await expect(token.connect(owner).mint(user.address, ONE_TOKEN, daysAgo))
         .to.emit(token, 'MintWithDecay')
-        .withArgs(user.address, ONE_TOKEN, decayedAmount, daysAgo);
+        .withArgs(getAddress(user.address), ONE_TOKEN, decayedAmount, daysAgo);
     });
 
     it('should emit BurnWithDecay on burn', async function () {
       await token.connect(owner).mint(user.address, ONE_TOKEN, 0);
       await expect(token.connect(owner).burn(user.address, [{amount: ONE_TOKEN, daysAgo: 0}]))
         .to.emit(token, 'BurnWithDecay')
-        .withArgs(user.address, ONE_TOKEN, ONE_TOKEN, 0);
+        .withArgs(getAddress(user.address), ONE_TOKEN, ONE_TOKEN, 0);
     });
 
     it('should emit BurnAllUserTokens on burnAll', async function () {
       await token.connect(owner).mint(user.address, ONE_TOKEN, 0);
       await expect(token.connect(owner).burnAll(user.address))
         .to.emit(token, 'BurnAllUserTokens')
-        .withArgs(user.address);
+        .withArgs(getAddress(user.address));
     });
 
     it('should emit DecayRatePerDayChanged on setDecayRatePerDay', async function () {
@@ -541,6 +564,6 @@ describe('SweatToken deploy smoke test', function () {
     expect(await sweatToken.name()).to.equal(DEFAULT_SWEAT_TOKEN_NAME);
     expect(await sweatToken.symbol()).to.equal(DEFAULT_SWEAT_TOKEN_SYMBOL);
     expect(await sweatToken.decayRatePerDay()).to.equal(DEFAULT_SWEAT_TOKEN_DECAY_RATE_PER_DAY);
-    expect(await sweatToken.daoAddress()).to.equal(daoContract.address);
+    expect(getAddress(await sweatToken.daoAddress())).to.equal(getAddress(await daoContract.getAddress()));
   });
 });

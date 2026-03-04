@@ -1,6 +1,6 @@
 /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-import {expect} from '../chai-setup';
-import {setDiamondUser, setupContext, getterHelpers} from '../utils/diamond';
+import {expect} from 'chai';
+import {setDiamondUser, setupContext, getterHelpers} from '../utils/diamond/index.js';
 
 describe('AdminFacet', () => {
   it('Assigning roles', async () => {

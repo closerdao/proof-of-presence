@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-1.0
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
@@ -47,12 +47,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         _;
     }
 
-    function initialize(
-        address token_,
-        address quote_,
-        address minter_,
-        address treasury_
-    ) public initializer {
+    function initialize(address token_, address quote_, address minter_, address treasury_) public initializer {
         __DynamicSale_init(token_, quote_, minter_, treasury_);
     }
 
@@ -95,11 +90,7 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         _buyFrom(spender, to, amount);
     }
 
-    function _buyFrom(
-        address spender,
-        address to,
-        uint256 amount
-    ) internal {
+    function _buyFrom(address spender, address to, uint256 amount) internal {
         (uint256 newPrice, uint256 totalCost) = calculateTotalCost(amount); // 18 decimals
         quote.safeTransferFrom(spender, treasury, totalCost);
         currentPrice = newPrice;
@@ -155,33 +146,29 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         // /// @dev sale-function coefficients
 
         int256 c = 420;
-        int256 b = 32000461777723 * (10**54);
-        int256 a = 11680057722 * (10**36);
+        int256 b = 32000461777723 * (10 ** 54);
+        int256 a = 11680057722 * (10 ** 36);
 
         // Get current supply
         int256 supplyBeforeBuy = int256(currentSupply);
         // Calculate supply after buying
         int256 supplyAfterBuy = supplyBeforeBuy + int256(amount);
         // Calculate total induced cost
-        int256 _totalCost = c *
-            (10**54) *
-            (supplyAfterBuy - supplyBeforeBuy) +
-            a *
-            ((10**54 / supplyAfterBuy) - (10**54 / supplyBeforeBuy)) -
-            (b / 2) *
-            ((10**54 / supplyAfterBuy**2) - (10**54 / supplyBeforeBuy**2));
+        int256 _totalCost = c * (10 ** 54) * (supplyAfterBuy - supplyBeforeBuy) +
+            a * ((10 ** 54 / supplyAfterBuy) - (10 ** 54 / supplyBeforeBuy)) -
+            (b / 2) * ((10 ** 54 / supplyAfterBuy ** 2) - (10 ** 54 / supplyBeforeBuy ** 2));
 
         // Get unit price after amount has been bought
         newPrice = _calculatePrice(supplyAfterBuy);
-        totalCost = uint256((_totalCost / 10**70) * 10**16);
+        totalCost = uint256((_totalCost / 10 ** 70) * 10 ** 16);
     }
 
     function _calculatePrice(int256 _tokenSupply) private pure returns (uint256 _tokenPrice) {
         int256 c = 420;
-        int256 b = 32000461777723 * (10**54);
-        int256 a = 11680057722 * (10**36);
+        int256 b = 32000461777723 * (10 ** 54);
+        int256 a = 11680057722 * (10 ** 36);
 
-        _tokenPrice = uint256(c - (a / _tokenSupply**2) + (b / _tokenSupply**3));
+        _tokenPrice = uint256(c - (a / _tokenSupply ** 2) + (b / _tokenSupply ** 3));
     }
     // endregion:     --- Price Calculations
 }

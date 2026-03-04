@@ -17,7 +17,7 @@ async function main() {
     try {
       await ethers.provider.send('eth_chainId', []);
       found = true;
-    } catch (e) {} // TODO timeout ?
+    } catch (_e) {} // TODO timeout ?
     if (!found) {
       console.log(`retrying...`);
       await wait(1);

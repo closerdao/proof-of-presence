@@ -1,17 +1,17 @@
-import {expect} from '../../chai-setup';
-import {deployments, getUnnamedAccounts, network, ethers} from 'hardhat';
-import {StakeLibV2Mock, ERC20TestMock} from '../../../typechain';
-import {setupUser, setupUsers, getMock} from '../../utils';
-import {parseEther, formatEther} from 'ethers/lib/utils';
+import {expect} from 'chai';
+import {deployments, getUnnamedAccounts, networkProvider as network} from '../../hardhat-compat.js';
+import {StakeLibV2Mock} from '../../../types/ethers-contracts/diamond/libraries/test/StakeLIbV2Mock.sol/StakeLibV2Mock.js';
+import {ERC20TestMock} from '../../../types/ethers-contracts/ERC20/test/ERC20TestMock.js';
+import {setupUser, setupUsers, getMock} from '../../utils/index.js';
+import {parseEther, formatEther} from 'ethers';
 import {getUnixTime, addYears} from 'date-fns';
-import {ZERO_ADDRESS} from '../../utils';
-import {yearData} from '../../utils/diamond';
+import {ZERO_ADDRESS} from '../../utils/index.js';
+import {yearData} from '../../utils/diamond/index.js';
 import {DateTime} from 'luxon';
 
-const BN = ethers.BigNumber;
-
-const buildDate = (offset: number) => {
-  const initDate = Date.now();
+const buildDate = async (offset: number) => {
+  const block = await network.send('eth_getBlockByNumber', ['latest', false]);
+  const initDate = Number(BigInt(block.timestamp)) * 1000; // ms for date-fns
   return getUnixTime(addYears(initDate, offset));
 };
 
@@ -27,7 +27,7 @@ const setup = deployments.createFixture(async (hre) => {
 
   const contracts = {
     token: token,
-    stake: <StakeLibV2Mock>await getMock('StakeLibV2Mock', deployer, [token.address]),
+    stake: <StakeLibV2Mock>await getMock('StakeLibV2Mock', deployer, [await token.getAddress()]),
   };
 
   return {
@@ -51,7 +51,7 @@ const setupTest = (context: TestContext) => {
     const y = yearData()[year];
     return {
       account: user.address,
-      token: token.address,
+      token: token.target as string,
       lockingTimePeriod: 86400 * 365,
       requiredBalance: parseEther(requiredBalance),
       initYearTm: y.start,
@@ -69,7 +69,9 @@ const setupTest = (context: TestContext) => {
     },
     test: {
       balances: async (TK: string, tkU: string, u: string) => {
-        expect(await token.balanceOf(stake.address), `balances: staking Contract owns token`).to.eq(parseEther(TK));
+        expect(await token.balanceOf(await stake.getAddress()), `balances: staking Contract owns token`).to.eq(
+          parseEther(TK),
+        );
         expect(await stake.balance(), `balances: user amount staked`).to.eq(parseEther(tkU));
         expect(await token.balanceOf(user.address), 'balances: user amount of token').to.eq(parseEther(u));
       },
@@ -84,14 +86,14 @@ const setupTest = (context: TestContext) => {
             examples.map((e) => ({
               amount: e[0],
               date: new Date(e[1] * 1000).toDateString(),
-            }))
+            })),
           );
           console.log('== Deposits ==');
           console.table(
             deposits.map((e) => ({
               amount: formatEther(e.amount.toString()).toString(),
-              date: new Date(e.timestamp.toNumber() * 1000).toDateString(),
-            }))
+              date: new Date(Number(e.timestamp) * 1000).toDateString(),
+            })),
           );
 
           // TEST!!!
@@ -102,9 +104,9 @@ const setupTest = (context: TestContext) => {
             const exAmount = parseEther(examples[i][0]);
             expect(
               amount,
-              `deposits amount at(${deposits[i].timestamp}) toEq(${examples[i][0]}) but Got(${formatEther(amount)})`
+              `deposits amount at(${deposits[i].timestamp}) toEq(${examples[i][0]}) but Got(${formatEther(amount)})`,
             ).to.eq(exAmount);
-            expect(deposits[i].timestamp, 'deposits timestamp').to.eq(BN.from(examples[i][1]));
+            expect(deposits[i].timestamp, 'deposits timestamp').to.eq(BigInt(examples[i][1]));
           }
         }
       },
@@ -156,14 +158,14 @@ const setupTest = (context: TestContext) => {
         unlockable: async () => {
           await expect(
             user.stake.withdraw(parseEther(amount)),
-            `withdraw.reverted.unlockable ${amount}`
-          ).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
+            `withdraw.reverted.unlockable ${amount}`,
+          ).to.be.revertedWith(/NOT_ENOUGHT_UNLOCKABLE_BALANCE/);
         },
         noBalance: async () => {
           await expect(
             user.stake.withdraw(parseEther(amount)),
-            `withdraw.reverted.noBalance ${amount}`
-          ).to.be.revertedWith('NOT_ENOUGH_BALANCE');
+            `withdraw.reverted.noBalance ${amount}`,
+          ).to.be.revertedWith(/NOT_ENOUGH_BALANCE/);
         },
       },
     }),
@@ -178,10 +180,11 @@ const tokenManagement = ({token, user, stake}: TestContext) => {
         .withArgs(ZERO_ADDRESS, user.address, parseEther(amount));
     },
     approve: async (amount: string) => {
-      await expect(user.token.approve(stake.address, parseEther(amount)))
+      const stakeAddress = await stake.getAddress();
+      await expect(user.token.approve(stakeAddress, parseEther(amount)))
         .to.emit(token, 'Approval')
-        .withArgs(user.address, stake.address, parseEther(amount));
-      expect(await token.allowance(user.address, stake.address)).to.eq(parseEther(amount));
+        .withArgs(user.address, stakeAddress, parseEther(amount));
+      expect(await token.allowance(user.address, stakeAddress)).to.eq(parseEther(amount));
     },
   };
 };
@@ -245,7 +248,7 @@ describe('StakingLibV2Mock', () => {
           year: '2023',
         }),
         '1',
-        134
+        134,
       ).success();
       await test.deposits([['1', helpers.yearAndDayTM('2023', 134)]]);
       await handleBooking(
@@ -254,7 +257,7 @@ describe('StakingLibV2Mock', () => {
           year: '2024',
         }),
         '1',
-        20
+        20,
       ).success();
 
       await test.deposits([['1', helpers.yearAndDayTM('2024', 20)]]);
@@ -264,7 +267,7 @@ describe('StakingLibV2Mock', () => {
           year: '2025',
         }),
         '1',
-        80
+        80,
       ).success();
 
       await test.deposits([['1', helpers.yearAndDayTM('2025', 80)]]);
@@ -274,7 +277,7 @@ describe('StakingLibV2Mock', () => {
           year: '2024',
         }),
         '2',
-        30
+        30,
       ).success();
 
       await test.deposits([
@@ -287,7 +290,7 @@ describe('StakingLibV2Mock', () => {
           year: '2023',
         }),
         '1',
-        30
+        30,
       ).success();
       await test.deposits([
         ['1', helpers.yearAndDayTM('2024', 30)],
@@ -299,7 +302,7 @@ describe('StakingLibV2Mock', () => {
           year: '2023',
         }),
         '5',
-        50
+        50,
       ).success();
       await test.deposits([
         ['5', helpers.yearAndDayTM('2023', 50)],
@@ -402,7 +405,7 @@ describe('StakingLibV2Mock', () => {
             year: action.year,
           }),
           action.price,
-          action.day
+          action.day,
         ).success();
         await test.deposits(action.deposits);
       }
@@ -423,7 +426,7 @@ describe('StakingLibV2Mock', () => {
           year: '2023',
         }),
         '1',
-        134
+        134,
       ).success();
       await test.deposits([['1', helpers.yearAndDayTM('2023', 134)]]);
 
@@ -433,7 +436,7 @@ describe('StakingLibV2Mock', () => {
           year: '2023',
         }),
         '1',
-        134
+        134,
       ).success();
       await test.deposits([['1', 0]]);
     });
@@ -450,7 +453,7 @@ describe('StakingLibV2Mock', () => {
           year: '2024',
         }),
         '1',
-        300
+        300,
       ).success();
       await test.deposits([['1', helpers.yearAndDayTM('2024', 300)]]);
       await handleCancelation(
@@ -459,7 +462,7 @@ describe('StakingLibV2Mock', () => {
           year: '2024',
         }),
         '1',
-        300
+        300,
       ).success();
       await test.deposits([['1', helpers.yearAndDayTM('2023', 300)]]);
       await handleCancelation(
@@ -468,7 +471,7 @@ describe('StakingLibV2Mock', () => {
           year: '2023',
         }),
         '1',
-        300
+        300,
       ).success();
       await test.deposits([['1', helpers.yearAndDayTM('2022', 300)]]);
     });
@@ -527,7 +530,7 @@ describe('StakingLibV2Mock', () => {
               year: action.year,
             }),
             action.price,
-            action.day
+            action.day,
           ).success();
         } else {
           await handleCancelation(
@@ -536,7 +539,7 @@ describe('StakingLibV2Mock', () => {
               year: action.year,
             }),
             action.price,
-            action.day
+            action.day,
           ).success();
         }
         await test.deposits(action.deposits);
@@ -552,8 +555,8 @@ describe('StakingLibV2Mock', () => {
     expect(await token.balanceOf(user.address), 'user to have initial balance').to.eq(parseEther('10000'));
     await test.balances('0', '0', '10000');
     // await user.TDFToken.approve(deployer.address, parseEther('10'));
-    await user.token.approve(stake.address, parseEther('10'));
-    let initLockAt = buildDate(3);
+    await user.token.approve(await stake.getAddress(), parseEther('10'));
+    let initLockAt = await buildDate(3);
     ///////////////////////////////////////////////
     //                YEAR 0
     // --------------------------------------------
@@ -585,7 +588,7 @@ describe('StakingLibV2Mock', () => {
     await test.deposits([['0.5', initLockAt]]);
     await test.stake('0', '0.5');
     // ------ Can reStake to the future current staked
-    initLockAt = buildDate(6);
+    initLockAt = await buildDate(6);
     await restakeOrDepositAt('0.5', initLockAt);
     await test.balances('0.5', '0.5', '9999.5');
     await test.deposits([['0.5', initLockAt]]);
@@ -601,7 +604,7 @@ describe('StakingLibV2Mock', () => {
     // mixed restake (token transfer, restake)
     // locked 0.5
     ///////////////////////////////////////////////
-    initLockAt = buildDate(8);
+    initLockAt = await buildDate(8);
     await restakeOrDepositAt('1', initLockAt);
     await test.balances('1', '1', '9999');
     await test.stake('1', '0');
@@ -610,6 +613,6 @@ describe('StakingLibV2Mock', () => {
 });
 
 const incYears = async (years: number) => {
-  await network.provider.send('evm_increaseTime', [years * (365 * 86400)]);
-  await network.provider.send('evm_mine');
+  await network.send('evm_increaseTime', [years * (365 * 86400)]);
+  await network.send('evm_mine');
 };

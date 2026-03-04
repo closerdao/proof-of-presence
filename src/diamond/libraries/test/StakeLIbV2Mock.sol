@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/structs/DoubleEndedQueue.sol";
@@ -32,20 +32,12 @@ contract StakeLibV2Mock {
         return StakeLibV2.Context({account: account, token: token, requiredBalance: 0});
     }
 
-    function handleBooking(
-        StakeLibV2.BookingContext memory context,
-        uint256 amount,
-        uint256 timestamp
-    ) public {
+    function handleBooking(StakeLibV2.BookingContext memory context, uint256 amount, uint256 timestamp) public {
         context.handleBooking(staking, amount, timestamp);
         emit Success();
     }
 
-    function handleCancelation(
-        StakeLibV2.BookingContext memory context,
-        uint256 amount,
-        uint256 timestamp
-    ) public {
+    function handleCancelation(StakeLibV2.BookingContext memory context, uint256 amount, uint256 timestamp) public {
         context.handleCancelation(staking, amount, timestamp);
         emit Success();
     }

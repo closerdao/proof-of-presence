@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
@@ -72,14 +72,10 @@ library BookingMapLib {
      * @return replaced Whether an existing Pending booking was replaced
      * @return oldBooking The old booking that was replaced (only valid if replaced=true)
      */
-    function addOrReplacePending(UserStore storage store, Booking memory booking)
-        internal
-        returns (
-            bool success,
-            bool replaced,
-            Booking memory oldBooking
-        )
-    {
+    function addOrReplacePending(
+        UserStore storage store,
+        Booking memory booking
+    ) internal returns (bool success, bool replaced, Booking memory oldBooking) {
         bytes32 key = _buildKey(booking.year, booking.dayOfYear);
 
         // Check if booking already exists
@@ -108,11 +104,7 @@ library BookingMapLib {
         return (false, false, Booking(BookingStatus.Pending, 0, 0, 0, 0));
     }
 
-    function get(
-        UserStore storage store,
-        uint16 _year,
-        uint16 dayOfYear
-    ) internal view returns (bool, Booking memory) {
+    function get(UserStore storage store, uint16 _year, uint16 dayOfYear) internal view returns (bool, Booking memory) {
         bytes32 key = _buildKey(_year, dayOfYear);
         if (store.dates[_year].contains(key)) {
             return (true, store.bookings[key]);
@@ -137,11 +129,7 @@ library BookingMapLib {
         return bookings;
     }
 
-    function remove(
-        UserStore storage store,
-        uint16 _year,
-        uint16 _dayOfYear
-    ) internal returns (bool, Booking memory) {
+    function remove(UserStore storage store, uint16 _year, uint16 _dayOfYear) internal returns (bool, Booking memory) {
         bytes32 key = _buildKey(_year, _dayOfYear);
         if (store.dates[_year].remove(key)) {
             Booking memory booking = store.bookings[key];

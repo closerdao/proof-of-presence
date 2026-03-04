@@ -50,7 +50,7 @@ async function readAdminFacetStorage(adminFacetAddress: string, provider: ethers
 }
 
 const provider = new ethers.providers.JsonRpcProvider('https://forno.celo.org');
-const adminFacetAddress = '0x315C9dBF6f4019DD0A36c03a5EFC28854f72BA86';
+const _adminFacetAddress = '0x315C9dBF6f4019DD0A36c03a5EFC28854f72BA86';
 const diamondAddress = '0x475398EeE0E22cb6fe5403ffA294Fb10Ad989e17';
 
 readAdminFacetStorage(diamondAddress, provider)

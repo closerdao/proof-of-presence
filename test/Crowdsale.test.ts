@@ -1,10 +1,9 @@
-import {expect} from './chai-setup';
-import {deployments, getUnnamedAccounts} from 'hardhat';
-import {TDFToken} from '../typechain';
-import {setupUser, setupUsers, getMock} from './utils';
-import {parseEther} from 'ethers/lib/utils';
+import {expect} from 'chai';
+import {deployments, getUnnamedAccounts} from './hardhat-compat.js';
+import {TDFToken} from '../types/ethers-contracts/index.js';
+import {setupUser, setupUsers, getMock} from './utils/index.js';
+import {getAddress, parseEther} from 'ethers';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function deploySale(setup: Record<string, any>, price: string, minbuy: string) {
   const {TDFTokenBeneficiary, FakeEURToken, TDFToken, deployer} = setup;
   const addresses = await getUnnamedAccounts();
@@ -19,14 +18,14 @@ async function deploySale(setup: Record<string, any>, price: string, minbuy: str
 
   // Deploy sell
   const c = await getMock('Crowdsale', deployer.address, [
-    TDFToken.address,
-    FakeEURToken.address,
+    await TDFToken.getAddress(),
+    await FakeEURToken.getAddress(),
     TDFTokenBeneficiary.address,
     p,
     min,
   ]);
   const allowance = parseEther('500000');
-  await TDFTokenBeneficiary.TDFToken.approve(c.address, allowance);
+  await TDFTokenBeneficiary.TDFToken.approve(await c.getAddress(), allowance);
   return {
     saleUsers: await setupUsers(addresses, {Sale: c}),
     saleDeployer: await setupUser(deployer.address, {Sale: c}),
@@ -74,12 +73,17 @@ describe('Crowdsale', () => {
     expect(rem).to.gt(parseEther('1'));
 
     // Approve
-    await users[0].FakeEURToken.approve(Sale.address, parseEther('542.5'));
+    await users[0].FakeEURToken.approve(await Sale.getAddress(), parseEther('542.5'));
 
     // BUY -------------------------
     await expect(saleUsers[0].Sale.buy(parseEther('1.55')))
       .to.emit(Sale, 'TokensPurchased')
-      .withArgs(saleUsers[0].address, saleUsers[0].address, parseEther('1.55'), parseEther('542.5'));
+      .withArgs(
+        getAddress(saleUsers[0].address),
+        getAddress(saleUsers[0].address),
+        parseEther('1.55'),
+        parseEther('542.5'),
+      );
 
     // Check results
     expect(await TDFToken.balanceOf(users[0].address)).to.eq(parseEther('1.55'));
@@ -97,9 +101,9 @@ describe('Crowdsale', () => {
     const {TDFTokenBeneficiary, TDFToken, FakeEURToken} = config;
     const {Sale} = await deploySale(config, '350', '1');
 
-    expect(await Sale.token()).to.eq(TDFToken.address);
-    expect(await Sale.quote()).to.eq(FakeEURToken.address);
-    expect(await Sale.wallet()).to.eq(TDFTokenBeneficiary.address);
+    expect(getAddress(await Sale.token())).to.eq(getAddress(await TDFToken.getAddress()));
+    expect(getAddress(await Sale.quote())).to.eq(getAddress(await FakeEURToken.getAddress()));
+    expect(getAddress(await Sale.wallet())).to.eq(getAddress(TDFTokenBeneficiary.address));
     expect(await Sale.price()).to.eq(parseEther('350'));
   });
 
@@ -127,11 +131,11 @@ describe('Crowdsale', () => {
     await expect(user.Sale.unpause()).to.be.revertedWith('Ownable: caller is not the owner');
 
     // TransferOwnership
-    expect(await Sale.owner()).to.eq(deployer.address);
+    expect(await Sale.owner()).to.eq(getAddress(deployer.address));
     await expect(deployer.Sale.transferOwnership(user.address))
       .to.emit(Sale, 'OwnershipTransferred')
-      .withArgs(deployer.address, user.address);
-    expect(await Sale.owner()).to.eq(user.address);
+      .withArgs(getAddress(deployer.address), getAddress(user.address));
+    expect(await Sale.owner()).to.eq(getAddress(user.address));
     await expect(user.Sale.unpause()).to.emit(Sale, 'Unpaused');
   });
 
@@ -144,7 +148,7 @@ describe('Crowdsale', () => {
     const deployer = saleDeployer;
 
     // Approve
-    await users[0].FakeEURToken.approve(Sale.address, parseEther('350'));
+    await users[0].FakeEURToken.approve(await Sale.getAddress(), parseEther('350'));
 
     // Pause the contract
     await expect(deployer.Sale.pause()).to.emit(Sale, 'Paused');
@@ -159,6 +163,6 @@ describe('Crowdsale', () => {
     // BUY -------------------------
     await expect(user.Sale.buy(parseEther('1')))
       .to.emit(Sale, 'TokensPurchased')
-      .withArgs(user.address, user.address, parseEther('1'), parseEther('350'));
+      .withArgs(getAddress(user.address), getAddress(user.address), parseEther('1'), parseEther('350'));
   });
 });

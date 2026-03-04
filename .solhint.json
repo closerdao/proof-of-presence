@@ -16,7 +16,7 @@
     ],
     "compiler-version": [
       "error",
-      "^0.8.9"
+      "^0.8.28"
     ],
     "const-name-snakecase": "off",
     "func-name-mixedcase": "off",
@@ -28,6 +28,8 @@
       }
     ],
     "not-rely-on-time": "off",
+    "no-global-import": "off",
+    "gas-custom-errors": "off",
     "reason-string": [
       "warn",
       {

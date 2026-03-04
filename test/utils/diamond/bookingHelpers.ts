@@ -1,14 +1,14 @@
-import * as _ from 'lodash';
-import {expect} from '../../chai-setup';
-import {BookingMapLib} from '../../../typechain/BookingFacet';
-import type {TestContext} from './index';
+import _ from 'lodash';
+import {expect} from 'chai';
+import {BookingMapLib} from '../../../types/ethers-contracts/diamond/facets/BookingFacet.js';
+import type {TestContext} from './index.js';
 
-import {buildDates} from './index';
+import {buildDates} from './index.js';
 
-import {DatesTestData, DateMetadata, DateInputs} from './types';
-import {wrapOnlyRole, wrapSuccess} from './helpers';
+import {DatesTestData, DateMetadata, DateInputs} from './types.js';
+import {wrapOnlyRole, wrapSuccess} from './helpers.js';
 import {addDays} from 'date-fns';
-import {parseEther} from 'ethers/lib/utils';
+import {parseEther} from 'ethers';
 
 export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
   return {
@@ -18,21 +18,21 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         success: async () => {
           await expect(user.TDFDiamond.bookAccommodation(dates, p), `send.book.success: ${dates}`).to.emit(
             TDFDiamond,
-            'NewBookings'
+            'NewBookings',
           );
         },
         reverted: {
           paused: async () => {
             await expect(
               user.TDFDiamond.bookAccommodation(dates, p),
-              `book.reverted.paused: ${dates}`
-            ).to.be.revertedWith('Pausable: paused');
+              `book.reverted.paused: ${dates}`,
+            ).to.be.revertedWith(/Pausable: paused/);
           },
           onlyMember: async () => {
             await expect(
               user.TDFDiamond.bookAccommodation(dates, p),
-              `book.reverted.onlyMember: ${dates}`
-            ).to.be.revertedWith('Membership:');
+              `book.reverted.onlyMember: ${dates}`,
+            ).to.be.revertedWith(/Membership:/);
           },
         },
       };
@@ -41,27 +41,27 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(user.TDFDiamond.cancelAccommodation(dates), `cancel.success ${dates}`).to.emit(
           TDFDiamond,
-          'CanceledBookings'
+          'CanceledBookings',
         );
       },
       reverted: {
         nonExisting: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodation(dates),
-            `cancel.reverted.noneExisting ${dates}`
-          ).to.be.revertedWith('NonExisting');
+            `cancel.reverted.noneExisting ${dates}`,
+          ).to.be.revertedWith(/NonExisting/);
         },
         inThepast: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodation(dates),
-            `cancel.reverted.inThepast ${dates}`
-          ).to.be.revertedWith('Can not cancel past booking');
+            `cancel.reverted.inThepast ${dates}`,
+          ).to.be.revertedWith(/Can not cancel past booking/);
         },
         paused: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodation(dates),
-            `cancel.reverted.paused ${dates}`
-          ).to.be.revertedWith('Pausable: paused');
+            `cancel.reverted.paused ${dates}`,
+          ).to.be.revertedWith(/Pausable: paused/);
         },
       },
     }),
@@ -69,39 +69,39 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.cancelAccommodationFor(account, dates),
-          `cancelAccommodationFor.success ${dates}`
+          `cancelAccommodationFor.success ${dates}`,
         ).to.emit(TDFDiamond, 'CanceledBookings');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodationFor(account, dates),
-            `cancelAccommodationFor.reverted.onlyRole ${dates}`
-          ).to.be.revertedWith('AccessControl:');
+            `cancelAccommodationFor.reverted.onlyRole ${dates}`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
         nonExisting: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodationFor(account, dates),
-            `cancelAccommodationFor.reverted.NonExisting ${dates}`
-          ).to.be.revertedWith('NonExisting');
+            `cancelAccommodationFor.reverted.NonExisting ${dates}`,
+          ).to.be.revertedWith(/NonExisting/);
         },
         inThepast: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodationFor(account, dates),
-            `cancelAccommodationFor.reverted.inThepast ${dates}`
-          ).to.be.revertedWith('Can not cancel past booking');
+            `cancelAccommodationFor.reverted.inThepast ${dates}`,
+          ).to.be.revertedWith(/Can not cancel past booking/);
         },
         paused: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodationFor(account, dates),
-            `cancelAccommodationFor.reverted.paused ${dates}`
-          ).to.be.revertedWith('Pausable: paused');
+            `cancelAccommodationFor.reverted.paused ${dates}`,
+          ).to.be.revertedWith(/Pausable: paused/);
         },
         nonPending: async () => {
           await expect(
             user.TDFDiamond.cancelAccommodationFor(account, dates),
-            `cancelAccommodationFor.reverted.paused ${dates}`
-          ).to.be.revertedWith('NotPending');
+            `cancelAccommodationFor.reverted.paused ${dates}`,
+          ).to.be.revertedWith(/NotPending/);
         },
       },
     }),
@@ -109,27 +109,27 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.confirmAccommodationFor(account, dates),
-          `confirmAccommodationFor.success ${dates}`
+          `confirmAccommodationFor.success ${dates}`,
         ).to.emit(TDFDiamond, 'BookingConfirmed');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.confirmAccommodationFor(account, dates),
-            `confirmAccommodationFor.reverted.onlyRole ${dates}`
-          ).to.be.revertedWith('AccessControl:');
+            `confirmAccommodationFor.reverted.onlyRole ${dates}`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
         nonExisting: async () => {
           await expect(
             user.TDFDiamond.confirmAccommodationFor(account, dates),
-            `confirmAccommodationFor.reverted.NonExisting ${dates}`
-          ).to.be.revertedWith('NonExisting');
+            `confirmAccommodationFor.reverted.NonExisting ${dates}`,
+          ).to.be.revertedWith(/NonExisting/);
         },
         nonPending: async () => {
           await expect(
             user.TDFDiamond.confirmAccommodationFor(account, dates),
-            `confirmAccommodationFor.reverted.paused ${dates}`
-          ).to.be.revertedWith('NotPending');
+            `confirmAccommodationFor.reverted.paused ${dates}`,
+          ).to.be.revertedWith(/NotPending/);
         },
       },
     }),
@@ -137,15 +137,15 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.checkinAccommodationFor(account, dates),
-          `checkinAccommodationFor.success ${dates}`
+          `checkinAccommodationFor.success ${dates}`,
         ).to.emit(TDFDiamond, 'BookingCheckedIn');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.checkinAccommodationFor(account, dates),
-            `checkinAccommodationFor.reverted.onlyRole ${dates}`
-          ).to.be.revertedWith('AccessControl:');
+            `checkinAccommodationFor.reverted.onlyRole ${dates}`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
       },
     }),
@@ -153,21 +153,21 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-          `addYear.success ${year}`
+          `addYear.success ${year}`,
         ).to.emit(TDFDiamond, 'YearAdded');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-            `addYear.reverted.onlyOwner ${year}`
-          ).to.be.revertedWith('AccessControl:');
+            `addYear.reverted.onlyOwner ${year}`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
         alreadyExists: async () => {
           await expect(
             user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-            `addYear.reverted.alreadyExists ${year}`
-          ).to.be.revertedWith('Unable to add year');
+            `addYear.reverted.alreadyExists ${year}`,
+          ).to.be.revertedWith(/Unable to add year/);
         },
       },
     }),
@@ -175,21 +175,21 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(user.TDFDiamond.removeAccommodationYear(year), `removeYear.success: ${year}`).to.emit(
           TDFDiamond,
-          'YearRemoved'
+          'YearRemoved',
         );
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.removeAccommodationYear(year),
-            `removeYear.reverted.onlyOwner ${year}`
-          ).to.be.revertedWith('AccessControl:');
+            `removeYear.reverted.onlyOwner ${year}`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
         doesNotExists: async () => {
           await expect(
             user.TDFDiamond.removeAccommodationYear(year),
-            `removeYear.reverted.doesNotExists ${year}`
-          ).to.be.revertedWith('Unable to remove Year');
+            `removeYear.reverted.doesNotExists ${year}`,
+          ).to.be.revertedWith(/Unable to remove Year/);
         },
       },
     }),
@@ -197,21 +197,21 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.enableAccommodationYear(year, enable),
-          `enableYear.success: y ${year}, e ${enable}`
+          `enableYear.success: y ${year}, e ${enable}`,
         ).to.emit(TDFDiamond, 'YearUpdated');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.enableAccommodationYear(year, enable),
-            `enableYear.reverted.onlyOwner: y ${year}, e ${enable}`
-          ).to.be.revertedWith('AccessControl:');
+            `enableYear.reverted.onlyOwner: y ${year}, e ${enable}`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
         doesNotExists: async () => {
           await expect(
             user.TDFDiamond.enableAccommodationYear(year, enable),
-            `enableYear.reverted.doesNotExists: y ${year}, e ${enable}`
-          ).to.be.revertedWith('Unable to update year');
+            `enableYear.reverted.doesNotExists: y ${year}, e ${enable}`,
+          ).to.be.revertedWith(/Unable to update year/);
         },
       },
     }),
@@ -219,21 +219,21 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-          `enableYear.updateYear.success: y ${year}`
+          `enableYear.updateYear.success: y ${year}`,
         ).to.emit(TDFDiamond, 'YearUpdated');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-            `updateYear.reverted.onlyOwner: y ${year}`
-          ).to.be.revertedWith('AccessControl:');
+            `updateYear.reverted.onlyOwner: y ${year}`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
         doesNotExists: async () => {
           await expect(
             user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
-            `updateYear.reverted.doesNotExists: y ${year}`
-          ).to.be.revertedWith('Unable to update Year');
+            `updateYear.reverted.doesNotExists: y ${year}`,
+          ).to.be.revertedWith(/Unable to update Year/);
         },
       },
     }),
@@ -256,12 +256,14 @@ export const getterHelpers = async ({TDFDiamond}: TestContext) => {
           const list = await val();
           const found = _.find(list, (e) => e[0] == year);
 
-          expect(found, `checkedInNightsByYearFor.toInclude: Year not found in ${JSON.stringify(list)}`).to.not.be
-            .undefined;
+          expect(
+            found,
+            `checkedInNightsByYearFor.toInclude: Year not found in ${JSON.stringify(list, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`,
+          ).to.not.be.undefined;
           if (found) {
             expect(
               found[1],
-              `checkedInNightsByYearFor.toInclude: expected year ${year} to have '${nights}' nights, got ${found[1]}`
+              `checkedInNightsByYearFor.toInclude: expected year ${year} to have '${nights}' nights, got ${found[1]}`,
             ).to.eq(nights);
           }
         },
@@ -285,7 +287,7 @@ export const getterHelpers = async ({TDFDiamond}: TestContext) => {
               datum.map(async (e) => {
                 const found = bookings.find((val) => val.year == e.year && val.dayOfYear == e.day);
                 return Promise.all([expect(found, `bookings to include: ${e.year}-${e.day}`).not.be.undefined]);
-              })
+              }),
             );
           };
           await Promise.all(
@@ -295,7 +297,7 @@ export const getterHelpers = async ({TDFDiamond}: TestContext) => {
                 expect(yList.length, 'getAccommodationBookings have length').to.eq(bookings.length),
                 listTest(bookings, yList),
               ]);
-            })
+            }),
           );
         },
       };

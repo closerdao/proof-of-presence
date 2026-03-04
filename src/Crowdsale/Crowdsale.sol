@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-1.0
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -224,7 +224,7 @@ contract Crowdsale is Context, ReentrancyGuard, Ownable, Pausable {
      * @return Number of tokens that can be purchased with the specified _weiAmount
      */
     function _getCost(uint256 weiAmount) internal view returns (uint256) {
-        return (price / 10**2).mul(weiAmount / 10**16);
+        return (price / 10 ** 2).mul(weiAmount / 10 ** 16);
     }
 
     /**

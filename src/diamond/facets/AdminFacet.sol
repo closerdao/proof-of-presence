@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
-import {LibDiamond} from "hardhat-deploy/solc_0.8/diamond/libraries/LibDiamond.sol";
+import {LibDiamond} from "@rocketh/diamond/solc_0_8/libraries/LibDiamond.sol";
 import {Modifiers} from "../libraries/AppStorage.sol";
 import {ITDFToken} from "../../Interfaces/ITDFToken.sol";
 import "../libraries/AccessControlLib.sol";
@@ -142,11 +142,7 @@ contract AdminFacet is Modifiers {
         ITDFToken(address(s.communityToken)).mint(account, amount);
     }
 
-    function isTokenTransferPermitted(
-        address from,
-        address to,
-        uint256
-    ) external view returns (bool) {
+    function isTokenTransferPermitted(address from, address to, uint256) external view returns (bool) {
         // minting
         if (from == address(0)) return true;
         // transferring from the Treasury

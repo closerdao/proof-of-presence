@@ -1,8 +1,8 @@
-import {expect} from '../../chai-setup';
+import {expect} from 'chai';
 
-import type {TestContext} from './index';
-import {wrapOnlyRole, wrapSuccess} from './helpers';
-import {ROLES} from '../../../utils';
+import type {TestContext} from './index.js';
+import {wrapOnlyRole, wrapSuccess} from './helpers.js';
+import {ROLES} from '../../../utils/index.js';
 
 type RoleKeys = keyof typeof ROLES;
 
@@ -17,7 +17,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       reverted: {
         onlyRole: async () => {
           await expect(user.TDFDiamond.pause(), 'pause: should revert AccessControl').to.be.revertedWith(
-            'AccessControl:'
+            /AccessControl:/,
           );
         },
         whenNotPaused: async () => {
@@ -34,7 +34,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       reverted: {
         onlyRole: async () => {
           await expect(user.TDFDiamond.unpause(), 'unpause: should revert AccessControl').to.be.revertedWith(
-            'AccessControl:'
+            /AccessControl:/,
           );
         },
         whenPaused: async () => {
@@ -47,7 +47,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.grantRole(ROLES[role], address),
-          `grantRole.success: role(${role}) address(${address})`
+          `grantRole.success: role(${role}) address(${address})`,
         )
           .to.emit(TDFDiamond, 'RoleGranted')
           .withArgs(ROLES[role], address, user.address);
@@ -56,8 +56,8 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.grantRole(ROLES[role], address),
-            `grantRole.reverted.onlyRole: role(${role}) address(${address})`
-          ).to.be.revertedWith('AccessControl:');
+            `grantRole.reverted.onlyRole: role(${role}) address(${address})`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
       },
     }),
@@ -65,7 +65,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.revokeRole(ROLES[role], address),
-          `revokeRole.success: role(${role}) address(${address})`
+          `revokeRole.success: role(${role}) address(${address})`,
         )
           .to.emit(TDFDiamond, 'RoleRevoked')
           .withArgs(ROLES[role], address, user.address);
@@ -74,8 +74,8 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.revokeRole(ROLES[role], address),
-            `revokeRole.reverted.onlyRole: role(${role}) address(${address})`
-          ).to.be.revertedWith('AccessControl:');
+            `revokeRole.reverted.onlyRole: role(${role}) address(${address})`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
       },
     }),
@@ -83,7 +83,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.renounceRole(ROLES[role], address),
-          `renounceRole.success: role(${role}) address(${address})`
+          `renounceRole.success: role(${role}) address(${address})`,
         )
           .to.emit(TDFDiamond, 'RoleRevoked')
           .withArgs(ROLES[role], address, user.address);
@@ -92,8 +92,8 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         notSelf: async () => {
           await expect(
             user.TDFDiamond.renounceRole(ROLES[role], address),
-            `renounceRole.reverted.notSelf: role(${role}) address(${address})`
-          ).to.be.revertedWith('AccessControl:');
+            `renounceRole.reverted.notSelf: role(${role}) address(${address})`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
       },
     }),
@@ -101,15 +101,15 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
       success: async () => {
         await expect(
           user.TDFDiamond.setRoleAdmin(ROLES[role], ROLES[adminRole]),
-          `setRoleAdmin.success: role(${role}) adminRole(${adminRole})`
+          `setRoleAdmin.success: role(${role}) adminRole(${adminRole})`,
         ).to.emit(TDFDiamond, 'RoleAdminChanged');
       },
       reverted: {
         onlyRole: async () => {
           await expect(
             user.TDFDiamond.setRoleAdmin(ROLES[role], ROLES[adminRole]),
-            `setRoleAdmin.reverted.onlyRole: role(${role}) adminRole(${adminRole})`
-          ).to.be.revertedWith('AccessControl:');
+            `setRoleAdmin.reverted.onlyRole: role(${role}) adminRole(${adminRole})`,
+          ).to.be.revertedWith(/AccessControl:/);
         },
       },
     }),
@@ -123,7 +123,7 @@ export const getterHelpers = async ({TDFDiamond}: TestContext) => {
       return {
         toEq: async (expected: boolean) => {
           expect(await value(), `hasRole.toEq role(${role}), address(${address}) expected => ${expected}`).to.eq(
-            expected
+            expected,
           );
         },
       };

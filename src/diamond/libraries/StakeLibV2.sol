@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/structs/DoubleEndedQueue.sol";
@@ -78,11 +78,7 @@ library StakeLibV2 {
         store.moveFrontRanged(toMove, context.endYearTm, timestamp - ONE_YEAR);
     }
 
-    function remove(
-        Context memory context,
-        OrderedStakeLib.Store storage store,
-        uint256 requested
-    ) internal {
+    function remove(Context memory context, OrderedStakeLib.Store storage store, uint256 requested) internal {
         _remove(context, store, requested);
     }
 
@@ -121,11 +117,7 @@ library StakeLibV2 {
         return amount;
     }
 
-    function _remove(
-        Context memory context,
-        OrderedStakeLib.Store storage store,
-        uint256 requested
-    ) internal {
+    function _remove(Context memory context, OrderedStakeLib.Store storage store, uint256 requested) internal {
         store.takeUntil(requested, _currentReleaseTimestamp(context));
         context.token.safeTransfer(context.account, requested);
         emit WithdrawnTokens(context.account, requested);
@@ -185,11 +177,7 @@ library StakeLibV2 {
     }
 
     // function buildContext(address account, IERC20 token, uint256 lockingTimePeriod) returns
-    function add(
-        Context memory context,
-        OrderedStakeLib.Store storage store,
-        uint256 amount
-    ) internal {
+    function add(Context memory context, OrderedStakeLib.Store storage store, uint256 amount) internal {
         _addAt(context, store, amount, block.timestamp);
         emit DepositedTokens(context.account, amount);
     }
