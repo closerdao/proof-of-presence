@@ -1,11 +1,9 @@
-import {expect} from '../../chai-setup';
-import {deployments, getUnnamedAccounts, ethers} from 'hardhat';
-import {BookingMapLibMock} from '../../../typechain';
-import {setupUser, setupUsers, getMock} from '../../utils';
-import {parseEther} from 'ethers/lib/utils';
+import {expect} from 'chai';
+import {deployments, getUnnamedAccounts} from '../../hardhat-compat.js';
+import {BookingMapLibMock} from '../../../types/ethers-contracts/diamond/libraries/test/bookingMapLibMock.sol/BookingMapLibMock.js';
+import {setupUser, setupUsers, getMock} from '../../utils/index.js';
+import {parseEther} from 'ethers';
 import {fromUnixTime, getDayOfYear} from 'date-fns';
-
-const BN = ethers.BigNumber;
 
 const yearData = () => {
   return {
@@ -123,7 +121,7 @@ describe('BookingMapLib', () => {
       const date = new Date(year, month - 1, day);
       const dayOY = getDayOfYear(date);
       const res = await BookingContract.buildTimestamp(year, dayOY);
-      const d = fromUnixTime(res.toNumber());
+      const d = fromUnixTime(Number(res));
       expect(d.getUTCDate()).to.eq(day);
       expect(d.getUTCMonth() + 1).to.eq(month);
       expect(d.getUTCFullYear()).to.eq(year);
@@ -172,22 +170,22 @@ describe('BookingMapLib', () => {
       .withArgs(true);
     let [, booking] = await BookingContract.getBooking(user.address, 2023, 13);
 
-    expect(booking.status).to.eq(BN.from(1));
+    expect(booking.status).to.eq(BigInt(1));
 
-    await expect(user.BookingContract.updateBookingStatus(user.address, 2023, 13, BN.from(2)))
+    await expect(user.BookingContract.updateBookingStatus(user.address, 2023, 13, BigInt(2)))
       .to.emit(BookingContract, 'OperationResult')
       .withArgs(true);
 
     [, booking] = await BookingContract.getBooking(user.address, 2023, 13);
 
-    expect(booking.status).to.eq(BN.from(2));
-    await expect(user.BookingContract.updateBookingStatus(user.address, 2023, 13, BN.from(0)))
+    expect(booking.status).to.eq(BigInt(2));
+    await expect(user.BookingContract.updateBookingStatus(user.address, 2023, 13, BigInt(0)))
       .to.emit(BookingContract, 'OperationResult')
       .withArgs(true);
 
     [, booking] = await BookingContract.getBooking(user.address, 2023, 13);
 
-    expect(booking.status).to.eq(BN.from(0));
+    expect(booking.status).to.eq(BigInt(0));
   });
 
   it('buildBooking', async () => {
@@ -205,10 +203,10 @@ describe('BookingMapLib', () => {
     expect(result.dayOfYear).to.eq(366);
     expect(result.price).to.eq(parseEther('2'));
     await expect(BookingContract.buildBooking(3000, 366, parseEther('2'))).to.be.revertedWith(
-      'Unable to build Booking'
+      'Unable to build Booking',
     );
     await expect(BookingContract.buildBooking(2021, 366, parseEther('2'))).to.be.revertedWith(
-      'Unable to build Booking'
+      'Unable to build Booking',
     );
 
     // After disabling year. build timestamp should fail
@@ -222,7 +220,7 @@ describe('BookingMapLib', () => {
     expect(data.enabled).to.be.false;
 
     await expect(BookingContract.buildBooking(2024, 366, parseEther('2'))).to.be.revertedWith(
-      'Unable to build Booking'
+      'Unable to build Booking',
     );
     await expect(BookingContract.buildBooking(2024, 10, parseEther('2'))).to.be.revertedWith('Unable to build Booking');
   });

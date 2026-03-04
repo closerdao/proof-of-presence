@@ -1,12 +1,12 @@
-import {soliditySha3} from 'web3-utils';
+import {keccak256, toUtf8Bytes} from 'ethers';
 
 export function ERC165(functionSignatures: string[] = []) {
   const INTERFACE_ID_LENGTH = 4;
 
   const interfaceIdBuffer = functionSignatures
-    .map((signature) => soliditySha3(signature) as string) // keccak256
+    .map((signature) => keccak256(toUtf8Bytes(signature)))
     .map(
-      (h) => Buffer.from(h.substring(2), 'hex').slice(0, 4) // bytes4()
+      (h) => Buffer.from(h.substring(2), 'hex').slice(0, 4), // bytes4()
     )
     .reduce((memo, bytes) => {
       for (let i = 0; i < INTERFACE_ID_LENGTH; i++) {
@@ -19,5 +19,5 @@ export function ERC165(functionSignatures: string[] = []) {
 }
 
 export function ERC1820(interfaceName: string) {
-  return soliditySha3(interfaceName); // keccak256
+  return keccak256(toUtf8Bytes(interfaceName));
 }

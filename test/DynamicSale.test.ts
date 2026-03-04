@@ -1,8 +1,8 @@
-import {expect} from './chai-setup';
-import {deployments, ethers, getUnnamedAccounts, getNamedAccounts} from 'hardhat';
-import {TDFToken, TDFDiamond, DynamicSale, FakeEURToken} from '../typechain';
-import {setupUser, setupUsers} from './utils';
-import {formatEther, parseEther} from 'ethers/lib/utils';
+import {expect} from 'chai';
+import {deployments, ethers, getUnnamedAccounts, getNamedAccounts} from './hardhat-compat.js';
+import {TDFToken, TDFDiamond, DynamicSale, FakeEURToken} from '../types/ethers-contracts/index.js';
+import {setupUser, setupUsers} from './utils/index.js';
+import {formatEther, parseEther} from 'ethers';
 
 const setup = deployments.createFixture(async () => {
   await deployments.fixture();
@@ -32,7 +32,7 @@ const setSigner = (user: User, context: Context) => ({
       await expect(user.DynamicSale.buy(parseEther(amount))).to.emit(context.DynamicSale, 'SuccessBuy');
     },
     fail: async () => {
-      await expect(user.DynamicSale.buy(parseEther(amount))).to.be.reverted;
+      await expect(user.DynamicSale.buy(parseEther(amount))).to.be.revert(ethers);
     },
   }),
   calculateTotalCost: (amount: string) => ({
@@ -40,11 +40,11 @@ const setSigner = (user: User, context: Context) => ({
       const resultObj = await context.DynamicSale.calculateTotalCost(parseEther(amount));
       expect(
         resultObj.totalCost,
-        `calculateTotalCost: for(${amount}) toEq(${expectedTotalCost}) Got(${formatEther(resultObj.totalCost)})`
+        `calculateTotalCost: for(${amount}) toEq(${expectedTotalCost}) Got(${formatEther(resultObj.totalCost)})`,
       ).to.eq(parseEther(expectedTotalCost));
       expect(
         resultObj.newPrice,
-        `calculateTotalCost: for(${amount}) toEq(${expectedNewPrice}) Got(${resultObj.newPrice})`
+        `calculateTotalCost: for(${amount}) toEq(${expectedNewPrice}) Got(${resultObj.newPrice})`,
       ).to.eq(expectedNewPrice);
     },
     fail: async (revertMsg: string) => {
@@ -64,7 +64,7 @@ const setSigner = (user: User, context: Context) => ({
       await user.FakeEURToken.faucet(parseEther(amount));
     },
     approve: async (amount: string) => {
-      await user.FakeEURToken.approve(context.DynamicSale.address, parseEther(amount));
+      await user.FakeEURToken.approve(await context.DynamicSale.getAddress(), parseEther(amount));
     },
     mintTDF: async (amount: number) => {
       for (let i = 0; i < amount; i += 100) {

@@ -1,44 +1,39 @@
-import {HardhatRuntimeEnvironment} from 'hardhat/types';
-import {DeployFunction} from 'hardhat-deploy/types';
-import {parseEther, parseUnits} from 'ethers/lib/utils';
+import {deployScript, artifacts} from '../rocketh/deploy.js';
+import {parseEther, parseUnits} from 'ethers';
 
 // TODO: This deployment is only being used for testing.
-// deploy as a nock in tests instead of here
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (hre.network.name === 'celo') {
-    return;
-  }
-  const {deployments, getNamedAccounts} = hre;
-  const {deploy} = deployments;
+// deploy as a mock in tests instead of here
+export default deployScript(
+  async (env) => {
+    if (env.network.name === 'celo') {
+      return;
+    }
+    const {deployer, TDFMultisig} = env.namedAccounts;
+    const isCelo = env.network.name === 'celo';
+    const priorityFee = process.env.PRIORITY_FEE || '1';
+    const maxFee = process.env.MAX_FEE || '30';
+    const gasOverrides = isCelo
+      ? {}
+      : {
+          maxPriorityFeePerGas: parseUnits(priorityFee, 'gwei'),
+          maxFeePerGas: parseUnits(maxFee, 'gwei'),
+        };
 
-  const TDFToken = await deployments.get('TDFToken');
+    const eur = await env.deploy('FakeEURToken', {
+      account: deployer,
+      artifact: artifacts.FakeEURToken,
+      args: [],
+      ...gasOverrides,
+    });
 
-  const {deployer, TDFMultisig} = await getNamedAccounts();
-  const isCelo = hre.network.name === 'celo';
-  const priorityFee = process.env.PRIORITY_FEE || '1';
-  const maxFee = process.env.MAX_FEE || '30';
-  const gasOverrides = isCelo
-    ? {}
-    : {
-        maxPriorityFeePerGas: parseUnits(priorityFee, 'gwei'),
-        maxFeePerGas: parseUnits(maxFee, 'gwei'),
-      };
+    const TDFToken = env.get('TDFToken');
 
-  const eur = await deploy('FakeEURToken', {
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
-    ...gasOverrides,
-  });
-
-  await deploy('Crowdsale', {
-    from: deployer,
-    args: [TDFToken.address, eur.address, TDFMultisig, parseEther('150'), parseEther('0.5')],
-    log: true,
-    autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
-    ...gasOverrides,
-  });
-};
-export default func;
-func.tags = ['Crowdsale'];
+    await env.deploy('Crowdsale', {
+      account: deployer,
+      artifact: artifacts.Crowdsale,
+      args: [TDFToken.address, eur.address, TDFMultisig, parseEther('150'), parseEther('0.5')],
+      ...gasOverrides,
+    });
+  },
+  {tags: ['Crowdsale']},
+);

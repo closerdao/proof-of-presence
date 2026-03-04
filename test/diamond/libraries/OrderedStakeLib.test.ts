@@ -1,10 +1,8 @@
-import {expect} from '../../chai-setup';
-import {deployments, getUnnamedAccounts, ethers} from 'hardhat';
-import {OrderedStakeLibMock} from '../../../typechain';
-import {setupUser, setupUsers, getMock} from '../../utils';
-import {formatEther, parseEther} from 'ethers/lib/utils';
-
-const BN = ethers.BigNumber;
+import {expect} from 'chai';
+import {deployments, getUnnamedAccounts} from '../../hardhat-compat.js';
+import {OrderedStakeLibMock} from '../../../types/ethers-contracts/diamond/libraries/test/OrderedStakeLibMock.js';
+import {setupUser, setupUsers, getMock} from '../../utils/index.js';
+import {formatEther, parseEther} from 'ethers';
 
 const setup = deployments.createFixture(async (hre) => {
   const {deployments, getNamedAccounts} = hre;
@@ -43,7 +41,7 @@ describe('OrderedStakeLibMock', () => {
     },
 
     _popFront: async (amount: string, tm: number) => {
-      await expect(user.map._popFront()).to.emit(map, 'PopFront').withArgs(parseEther(amount), BN.from(tm));
+      await expect(user.map._popFront()).to.emit(map, 'PopFront').withArgs(parseEther(amount), BigInt(tm));
     },
     takeMaxUntil: (tm: number) => ({
       success: {
@@ -51,7 +49,7 @@ describe('OrderedStakeLibMock', () => {
           const prev = await map.balance();
           await expect(user.map.takeMaxUntil(tm)).to.emit(map, 'Released');
           const after = await map.balance();
-          expect(prev.sub(after), `takeMaxUntil toTake=${amount}`).to.eq(parseEther(amount));
+          expect(prev - after, `takeMaxUntil toTake=${amount}`).to.eq(parseEther(amount));
         },
       },
     }),
@@ -60,20 +58,20 @@ describe('OrderedStakeLibMock', () => {
         const prev = await map.balance();
         await expect(user.map.takeAt(parseEther(amount), tm)).to.emit(map, 'Released');
         const after = await map.balance();
-        expect(prev.sub(after), `takeAt toTake=${amount} at(${tm})`).to.eq(parseEther(amount));
+        expect(prev - after, `takeAt toTake=${amount} at(${tm})`).to.eq(parseEther(amount));
       },
       reverted: {
         notFound: async () => {
           await expect(
             user.map.takeAt(parseEther(amount), tm),
-            `takeAt reverted notFound amount(${amount}) at(${tm})`
-          ).to.be.revertedWith('NotFound');
+            `takeAt reverted notFound amount(${amount}) at(${tm})`,
+          ).to.be.revertedWith(/NotFound/);
         },
         notEnough: async () => {
           await expect(
             user.map.takeAt(parseEther(amount), tm),
-            `takeAt notEnough amount(${amount}) at(${tm})`
-          ).to.be.revertedWith('InsufficientDeposit');
+            `takeAt notEnough amount(${amount}) at(${tm})`,
+          ).to.be.revertedWith(/InsufficientDeposit/);
         },
       },
     }),
@@ -85,13 +83,13 @@ describe('OrderedStakeLibMock', () => {
       },
       reverted: {
         empty: async () => {
-          await expect(user.map.moveFront(parseEther(amount), from, to)).to.be.revertedWith('Empty');
+          await expect(user.map.moveFront(parseEther(amount), from, to)).to.be.revertedWith(/Empty/);
         },
         outOfBounds: async () => {
-          await expect(user.map.moveFront(parseEther(amount), from, to)).to.be.revertedWith('OutOfBounds');
+          await expect(user.map.moveFront(parseEther(amount), from, to)).to.be.revertedWith(/OutOfBounds/);
         },
         wrongRange: async () => {
-          await expect(user.map.moveFront(parseEther(amount), from, to)).to.be.revertedWith('WrongRange');
+          await expect(user.map.moveFront(parseEther(amount), from, to)).to.be.revertedWith(/WrongRange/);
         },
       },
     }),
@@ -103,13 +101,13 @@ describe('OrderedStakeLibMock', () => {
       },
       reverted: {
         empty: async () => {
-          await expect(user.map.moveBack(parseEther(amount), from, to)).to.be.revertedWith('Empty');
+          await expect(user.map.moveBack(parseEther(amount), from, to)).to.be.revertedWith(/Empty/);
         },
         outOfBounds: async () => {
-          await expect(user.map.moveBack(parseEther(amount), from, to)).to.be.revertedWith('OutOfBounds');
+          await expect(user.map.moveBack(parseEther(amount), from, to)).to.be.revertedWith(/OutOfBounds/);
         },
         wrongRange: async () => {
-          await expect(user.map.moveBack(parseEther(amount), from, to)).to.be.revertedWith('WrongRange');
+          await expect(user.map.moveBack(parseEther(amount), from, to)).to.be.revertedWith(/WrongRange/);
         },
       },
     }),
@@ -123,8 +121,8 @@ describe('OrderedStakeLibMock', () => {
         empty: async () => {
           await expect(
             user.map.moveFrontRanged(parseEther(amount), from, to),
-            `moveFrontRanged.reverted.notEnoughBalance amount=${amount}, from=${from}, to=${to}`
-          ).to.be.revertedWith('Empty');
+            `moveFrontRanged.reverted.notEnoughBalance amount=${amount}, from=${from}, to=${to}`,
+          ).to.be.revertedWith(/Empty/);
         },
       },
     }),
@@ -138,8 +136,8 @@ describe('OrderedStakeLibMock', () => {
         empty: async () => {
           await expect(
             user.map.moveBackRanged(parseEther(amount), from, to),
-            `moveBackRanged.reverted.notEnoughBalance amount=${amount}, from=${from}, to=${to}`
-          ).to.be.revertedWith('Empty');
+            `moveBackRanged.reverted.notEnoughBalance amount=${amount}, from=${from}, to=${to}`,
+          ).to.be.revertedWith(/Empty/);
         },
       },
     }),
@@ -147,7 +145,7 @@ describe('OrderedStakeLibMock', () => {
       success: async () => {
         await expect(
           user.map.takeUntil(parseEther(amount), untilTm),
-          `takeUntil.success amount=${amount}, untilTm=${untilTm}`
+          `takeUntil.success amount=${amount}, untilTm=${untilTm}`,
         )
           .to.emit(map, 'Released')
           .withArgs(parseEther(amount), untilTm);
@@ -156,14 +154,14 @@ describe('OrderedStakeLibMock', () => {
         notEnoughBalance: async () => {
           await expect(
             user.map.takeUntil(parseEther(amount), untilTm),
-            `takeUntil.reverted.notEnoughBalance amount=${amount}, untilTm=${untilTm}`
-          ).to.be.revertedWith('NOT_ENOUGH_BALANCE');
+            `takeUntil.reverted.notEnoughBalance amount=${amount}, untilTm=${untilTm}`,
+          ).to.be.revertedWith(/NOT_ENOUGH_BALANCE/);
         },
         notEnoughUnlockable: async () => {
           await expect(
             user.map.takeUntil(parseEther(amount), untilTm),
-            `takeUntil.reverted.notEnoughUnlockable amount=${amount}, untilTm=${untilTm}`
-          ).to.be.revertedWith('NOT_ENOUGHT_UNLOCKABLE_BALANCE');
+            `takeUntil.reverted.notEnoughUnlockable amount=${amount}, untilTm=${untilTm}`,
+          ).to.be.revertedWith(/NOT_ENOUGHT_UNLOCKABLE_BALANCE/);
         },
       },
     }),
@@ -197,9 +195,9 @@ describe('OrderedStakeLibMock', () => {
           const exAmount = parseEther(examples[i][0]);
           expect(
             amount,
-            `deposits amount at(${deposits[i].timestamp}) toEq(${examples[i][0]}) but Got(${formatEther(amount)})`
+            `deposits amount at(${deposits[i].timestamp}) toEq(${examples[i][0]}) but Got(${formatEther(amount)})`,
           ).to.eq(exAmount);
-          expect(deposits[i].timestamp, 'deposits timestamp').to.eq(BN.from(examples[i][1]));
+          expect(deposits[i].timestamp, 'deposits timestamp').to.eq(BigInt(examples[i][1]));
         }
       },
     },

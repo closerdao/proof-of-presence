@@ -1,92 +1,46 @@
 import 'dotenv/config';
-import {HardhatUserConfig} from 'hardhat/types';
-import 'hardhat-deploy';
-import '@nomiclabs/hardhat-ethers';
-import 'hardhat-gas-reporter';
-import 'hardhat-diamond-abi';
-import 'solidity-coverage';
-import 'hardhat-deploy-tenderly';
-import {addForkConfiguration} from './utils/network';
-import './hardhatExtensions';
-import '@typechain/hardhat';
-import {task} from 'hardhat/config';
-import '@nomicfoundation/hardhat-verify';
+import type {HardhatUserConfig} from 'hardhat/config';
 
-// const mnemonicPath = "m/44'/52752'/0'/0"; // derivation path used by Celo
+import HardhatMocha from '@nomicfoundation/hardhat-mocha';
+import HardhatEthers from '@nomicfoundation/hardhat-ethers';
+import HardhatEthersChaiMatchers from '@nomicfoundation/hardhat-ethers-chai-matchers';
+import HardhatNetworkHelpers from '@nomicfoundation/hardhat-network-helpers';
+import HardhatVerify from '@nomicfoundation/hardhat-verify';
+import HardhatTypechain from '@nomicfoundation/hardhat-typechain';
+import HardhatDeploy from 'hardhat-deploy';
 
-// This is the mnemonic used by celo-devchain
 const DEVCHAIN_MNEMONIC = 'myth like bonus scare over problem client lizard pioneer submit female collect';
 const getAccounts = (
-  def: [string] | {mnemonic: string} | undefined = undefined
+  def: [string] | {mnemonic: string} | undefined = undefined,
 ): [string] | {mnemonic: string} | undefined => {
   return process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : def;
 };
 
-const namedAccounts = {
-  ceur: {
-    celo: '0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73',
-  },
-  deployer: {
-    default: 0,
-    localhost: 0,
-    hardhat: 0,
-  },
-  user: {
-    default: 1,
-    localhost: 1,
-    hardhat: 1,
-  },
-  TDFTokenBeneficiary: {
-    default: 0,
-    // note: on celoSepolia microHoffman's deployer address
-    celoSepolia: '0x4410c9De0B7523b48B6EF4190eEb439aACC5F4D3',
-    // alfajores: '0x2Ba5dCb83a95e998c57410435bb7699B8Bca929e',
-    localhost: 1,
-    hardhat: 1,
-  },
-  TDFMultisig: {
-    default: 0,
-    hardhat: 1,
-    // note: on celoSepolia so far this is not our multisig, but microHoffman's deployer address!
-    celoSepolia: '0x4410c9De0B7523b48B6EF4190eEb439aACC5F4D3',
-    // alfajores: '0xBD9658A4286459DD599Ab8b02bDa6167d750A288',
-    celo: '0x5E810b93c51981eccA16e030Ea1cE8D8b1DEB83b',
-  },
-  julienFirst: {
-    default: 1,
-    celoSepolia: '0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716',
-  },
-  JulienSecond: {
-    default: 2,
-    celoSepolia: '0x346314781c4D1483bE27fAEA9d698074f7cBa1Be',
-  },
-  sam: {
-    default: 3,
-    celoSepolia: '0x630A5342b2cf4ffED9a366642482C7517b6379F1',
-  },
-};
-
 const config: HardhatUserConfig = {
-  diamondAbi: {
-    // (required) The name of your Diamond ABI
-    name: 'TDFDiamond',
-    include: ['src/diamond/facets/'],
-  },
+  plugins: [
+    HardhatMocha,
+    HardhatEthers,
+    HardhatEthersChaiMatchers,
+    HardhatNetworkHelpers,
+    HardhatVerify,
+    HardhatTypechain,
+    HardhatDeploy,
+  ],
   solidity: {
-    compilers: [
-      {
-        version: '0.8.9',
+    profiles: {
+      default: {
+        version: '0.8.28',
         settings: {
+          evmVersion: 'paris',
           optimizer: {
             enabled: true,
             runs: 2000,
           },
         },
       },
-    ],
+    },
   },
   etherscan: {
-    // TODO do we need to separately define celo key?
     apiKey: process.env.CELOSCAN_API_KEY,
     customChains: [
       {
@@ -101,7 +55,6 @@ const config: HardhatUserConfig = {
         network: 'celoSepolia',
         chainId: 11142220,
         urls: {
-          // probably unused or incorrect as etherscan changed their api
           apiURL: 'https://api-sepolia.celoscan.io/api',
           browserURL: 'https://sepolia.celoscan.io',
         },
@@ -111,138 +64,38 @@ const config: HardhatUserConfig = {
   sourcify: {
     enabled: true,
   },
-  namedAccounts: namedAccounts,
-  defaultNetwork: 'hardhat',
-  networks: addForkConfiguration({
-    hardhat: {
-      forking: {
-        url: 'https://celo-sepolia.drpc.org', // note: if won't work, switch to another one
-      },
-      initialBaseFeePerGas: 0, // to fix : https://github.com/sc-forks/solidity-coverage/issues/652, see https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
-      chainId: 11142220,
+  networks: {
+    default: {
+      type: 'edr-simulated',
+      chainType: 'l1',
+      initialBaseFeePerGas: 0,
     },
     celoSepolia: {
-      url: 'https://celo-sepolia.drpc.org', // note: if won't work, switch to another one
+      type: 'http',
+      url: 'https://celo-sepolia.drpc.org',
       accounts: getAccounts(),
       chainId: 11142220,
     },
     celo: {
+      type: 'http',
       url: 'https://forno.celo.org',
       accounts: getAccounts(),
       chainId: 42220,
     },
     localhost: {
+      type: 'http',
       url: 'http://127.0.0.1:8545',
       accounts: {
         mnemonic: DEVCHAIN_MNEMONIC,
-        // path: mnemonicPath,
       },
     },
-  }),
+  },
   paths: {
-    sources: 'src',
-  },
-  gasReporter: {
-    currency: 'USD',
-    // gasPrice: 100,
-    enabled: process.env.REPORT_GAS ? true : false,
-    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
-    maxMethodDiff: 10,
-  },
-  typechain: {
-    outDir: 'typechain',
-    target: 'ethers-v5',
-    alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
-    externalArtifacts: ['externalArtifacts/*.json'], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
+    sources: ['src'],
   },
   mocha: {
     timeout: 0,
   },
-  external: process.env.HARDHAT_FORK
-    ? {
-        deployments: {
-          // process.env.HARDHAT_FORK will specify the network that the fork is made from.
-          // these lines allow it to fetch the deployments from the network being forked from both for node and deploy task
-          hardhat: ['deployments/' + process.env.HARDHAT_FORK],
-          localhost: ['deployments/' + process.env.HARDHAT_FORK],
-        },
-      }
-    : undefined,
-
-  tenderly: {
-    project: 'template-ethereum-contracts',
-    username: process.env.TENDERLY_USERNAME as string,
-  },
 };
-
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
-
-// task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
-//   const accounts = await hre.ethers.getSigners();
-
-//   for (const account of accounts) {
-//     console.log(account.address);
-//   }
-// });
-
-// task('devchain-keys', 'Prints the private keys associated with the devchain', async (taskArgs, hre) => {
-//   const accounts = await hre.ethers.getSigners();
-//   const hdNode = hre.ethers.utils.HDNode.fromMnemonic(DEVCHAIN_MNEMONIC);
-//   for (let i = 0; i < accounts.length; i++) {
-//     const account = hdNode.derivePath(`m/44'/60'/0'/0/${i}`);
-//     console.log(`Account ${i}\nAddress: ${account.address}\nKey: ${account.privateKey}`);
-//   }
-// });
-
-task('create-account', 'Prints a new private key', async (taskArgs, hre) => {
-  const wallet = hre.ethers.Wallet.createRandom();
-  console.log(`PRIVATE_KEY="` + wallet.privateKey + `"`);
-  console.log();
-  console.log(`Your account address: `, wallet.address);
-});
-
-// task('print-account', 'Prints the address of the account', async () => {
-//   const wallet = hre.ethers.Wallet(process.env.PRIVATE_KEY);
-//   console.log(`Account: `, wallet.address);
-// });
-
-// 1) make sure you have your private key set in the .env file (PRIVATE_KEY=...)
-// 2) npx hardhat transfer-ownership --network celo --new-owner 0x1234...
-task('transfer-ownership', 'Transfer ownership of TDFDiamond to a new address')
-  .addParam('newOwner', 'The address of the new owner')
-  .setAction(async (taskArgs: {newOwner: string}, hre) => {
-    const {newOwner} = taskArgs;
-
-    const [connectedAccount] = await hre.ethers.getSigners();
-    console.log(`Connected account: ${connectedAccount.address}`);
-
-    // Use the TDFDiamond contract which includes ownership functions from the diamond facets
-    const diamond = await hre.ethers.getContract('TDFDiamond', connectedAccount);
-
-    const currentContractOwner = await diamond.owner();
-    console.log(`Current contract owner: ${currentContractOwner}`);
-
-    if (currentContractOwner.toLowerCase() === newOwner.toLowerCase()) {
-      console.warn('Ownership is already transferred to the new owner');
-      return;
-    } else if (currentContractOwner.toLowerCase() !== connectedAccount.address.toLowerCase()) {
-      console.error('Connected account is not the current owner. Only current owner can transfer ownership.');
-      return;
-    }
-
-    console.log(`Transferring ownership to: ${newOwner}`);
-    const tx = await diamond.transferOwnership(newOwner);
-    await tx.wait();
-
-    const newContractOwner = await diamond.owner();
-    console.log(`New contract owner: ${newContractOwner}`);
-
-    if (newContractOwner.toLowerCase() === newOwner.toLowerCase()) {
-      console.log('Ownership transfer successful!');
-    } else {
-      console.error('Ownership transfer failed!');
-    }
-  });
 
 export default config;

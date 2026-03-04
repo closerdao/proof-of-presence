@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import {expect} from '../chai-setup';
-import {setDiamondUser, setupContext, getterHelpers, roleTesters, yearData} from '../utils/diamond';
+import {expect} from 'chai';
+import {setDiamondUser, setupContext, getterHelpers, roleTesters, yearData} from '../utils/diamond/index.js';
 
 describe('AccessControl Roles', () => {
   it('All methods are accessible by some role', async () => {

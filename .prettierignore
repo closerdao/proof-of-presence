@@ -6,6 +6,8 @@ coverage/
 node_modules/
 package.json
 typechain/
+types/
+generated/
 dapp_test/test.sol
 _lib/
 .dappp

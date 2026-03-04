@@ -1,4 +1,4 @@
-import {expect} from '../chai-setup';
+import {expect} from 'chai';
 import {addDays} from 'date-fns';
 import {DateTime} from 'luxon';
 import {
@@ -12,8 +12,8 @@ import {
   getterHelpers,
   userTesters,
   newBuildDates,
-} from '../utils/diamond';
-import * as _ from 'lodash';
+} from '../utils/diamond/index.js';
+import _ from 'lodash';
 
 const setup = setupContext;
 
@@ -28,7 +28,7 @@ const setupTestYears = () => {
     list.past.push(
       DateTime.now()
         .plus({year: i * -1})
-        .startOf('year')
+        .startOf('year'),
     );
   }
   return list;

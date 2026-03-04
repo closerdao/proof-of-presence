@@ -1,13 +1,11 @@
-import {Contract} from 'ethers';
-import {ethers, network, getNamedAccounts, deployments} from 'hardhat';
-import {parseUnits} from 'ethers/lib/utils';
-const BN = ethers.BigNumber;
+import {Contract, parseUnits, formatUnits} from 'ethers';
+import {ethers, getNamedAccounts, deployments, networkProvider as network} from '../hardhat-compat.js';
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
-export const MAX_UINT256 = BN.from('2').pow(BN.from('256')).sub(BN.from('1'));
-export const MAX_INT256 = BN.from('2').pow(BN.from('255')).sub(BN.from('1'));
-export const MIN_INT256 = BN.from('2').pow(BN.from('255')).mul(BN.from('-1'));
+export const MAX_UINT256 = 2n ** 256n - 1n;
+export const MAX_INT256 = 2n ** 255n - 1n;
+export const MIN_INT256 = -(2n ** 255n);
 
 const erc20ABI =
   '[{"inputs":[{"internalType":"uint256","name":"chainId_","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"src","type":"address"},{"indexed":true,"internalType":"address","name":"guy","type":"address"},{"indexed":false,"internalType":"uint256","name":"wad","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":true,"inputs":[{"indexed":true,"internalType":"bytes4","name":"sig","type":"bytes4"},{"indexed":true,"internalType":"address","name":"usr","type":"address"},{"indexed":true,"internalType":"bytes32","name":"arg1","type":"bytes32"},{"indexed":true,"internalType":"bytes32","name":"arg2","type":"bytes32"},{"indexed":false,"internalType":"bytes","name":"data","type":"bytes"}],"name":"LogNote","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"src","type":"address"},{"indexed":true,"internalType":"address","name":"dst","type":"address"},{"indexed":false,"internalType":"uint256","name":"wad","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"usr","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"usr","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"burn","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"guy","type":"address"}],"name":"deny","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"usr","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"mint","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"src","type":"address"},{"internalType":"address","name":"dst","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"move","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"holder","type":"address"},{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"expiry","type":"uint256"},{"internalType":"bool","name":"allowed","type":"bool"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"usr","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"pull","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"usr","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"push","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"guy","type":"address"}],"name":"rely","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"dst","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"src","type":"address"},{"internalType":"address","name":"dst","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"version","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"wards","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]';
@@ -16,7 +14,7 @@ const wethABI =
 
 export async function setupUsers<T extends {[contractName: string]: Contract}>(
   addresses: string[],
-  contracts: T
+  contracts: T,
 ): Promise<({address: string} & T)[]> {
   const users: ({address: string} & T)[] = [];
   for (const address of addresses) {
@@ -27,9 +25,8 @@ export async function setupUsers<T extends {[contractName: string]: Contract}>(
 
 export async function setupUser<T extends {[contractName: string]: Contract}>(
   address: string,
-  contracts: T
+  contracts: T,
 ): Promise<{address: string} & T> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user: any = {address};
   for (const key of Object.keys(contracts)) {
     user[key] = contracts[key].connect(await ethers.getSigner(address));
@@ -69,11 +66,13 @@ export async function getInactiveContract(name: string, args?: []): Promise<Cont
   const {deployer} = accounts;
 
   switch (name) {
-    // Example:
     case 'TDFSale': {
       const {weth, TDFTokenBeneficiary} = accounts;
       const TDFToken = await ethers.getContract('TDFToken');
-      await deployments.deploy('TDFSale', {from: deployer, args: [TDFToken.address, weth, TDFTokenBeneficiary, 1, 1]});
+      await deployments.deploy('TDFSale', {
+        from: deployer,
+        args: [await TDFToken.getAddress(), weth, TDFTokenBeneficiary, 1, 1],
+      });
       return ethers.getContract('TDFSale', deployer);
     }
     default: {
@@ -82,7 +81,6 @@ export async function getInactiveContract(name: string, args?: []): Promise<Cont
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
   await deployments.deploy(name, {from: deployer, args: args});
   return ethers.getContract(name, deployer);
@@ -128,17 +126,17 @@ export async function topUpFunds(name: string, to: string, amount?: string) {
 }
 
 export const getBigNumber = (amount: number, decimals = 18) => {
-  return ethers.utils.parseUnits(amount.toString(), decimals);
+  return parseUnits(amount.toString(), decimals);
 };
 
 export const getErc20Balance = async (contract: Contract, address: string, name: string, decimals: number) => {
   const [balance] = await Promise.all([contract.balanceOf(address)]);
 
-  console.log(name, ethers.utils.formatUnits(balance, decimals));
+  console.log(name, formatUnits(balance, decimals));
 };
 
 const fundErc20 = async (contract: Contract, sender: string, recipient: string, amount: string, decimals: number) => {
-  const FUND_AMOUNT = ethers.utils.parseUnits(amount, decimals);
+  const FUND_AMOUNT = parseUnits(amount, decimals);
 
   // fund erc20 token to the contract
   const MrWhale = await ethers.getSigner(sender);
@@ -152,7 +150,7 @@ const impersonateFundErc20 = async (
   sender: string,
   recipient: string,
   amount: string,
-  decimals = 18
+  decimals = 18,
 ) => {
   await network.provider.request({
     method: 'hardhat_impersonateAccount',

@@ -1,18 +1,21 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "module": "commonjs",
+    "target": "es2022",
+    "module": "node16",
     "strict": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "forceConsistentCasingInFileNames": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "resolveJsonModule": true
   },
   "include": [
     "hardhat.config.ts",
     "./scripts",
     "./deploy",
     "./test",
-    "typechain/**/*"
+    "./rocketh",
+    "typechain/**/*",
+    "types/**/*"
   ]
 }

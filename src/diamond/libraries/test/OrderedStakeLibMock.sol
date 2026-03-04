@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 import "../OrderedStakeLib.sol";
 
@@ -33,20 +33,12 @@ contract OrderedStakeLibMock {
         return store.balance();
     }
 
-    function moveFront(
-        uint256 amount,
-        uint256 from,
-        uint256 to
-    ) public {
+    function moveFront(uint256 amount, uint256 from, uint256 to) public {
         store.moveFront(amount, from, to);
         emit Moved(amount, from, to);
     }
 
-    function moveBack(
-        uint256 amount,
-        uint256 from,
-        uint256 to
-    ) public {
+    function moveBack(uint256 amount, uint256 from, uint256 to) public {
         store.moveBack(amount, from, to);
         emit Moved(amount, from, to);
     }
@@ -78,20 +70,12 @@ contract OrderedStakeLibMock {
         return store.balanceFrom(untilTm);
     }
 
-    function moveFrontRanged(
-        uint256 amount,
-        uint256 initScanTm,
-        uint256 to
-    ) public {
+    function moveFrontRanged(uint256 amount, uint256 initScanTm, uint256 to) public {
         store.moveFrontRanged(amount, initScanTm, to);
         emit Moved(amount, initScanTm, to);
     }
 
-    function moveBackRanged(
-        uint256 amount,
-        uint256 initScanTm,
-        uint256 to
-    ) public {
+    function moveBackRanged(uint256 amount, uint256 initScanTm, uint256 to) public {
         store.moveBackRanged(amount, initScanTm, to);
         emit Moved(amount, initScanTm, to);
     }

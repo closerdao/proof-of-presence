@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.28;
 
 import "../../Libraries/CustomDoubleEndedQueue.sol";
 
@@ -46,19 +46,11 @@ library OrderedStakeLib {
         return (false, Deposit(0, 0));
     }
 
-    function push(
-        Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
+    function push(Store storage store, uint256 amount, uint256 timestamp) internal {
         _pushBackOrdered(store, amount, timestamp);
     }
 
-    function pushFront(
-        OrderedStakeLib.Store storage store,
-        uint256 amount,
-        uint256 tm
-    ) internal {
+    function pushFront(OrderedStakeLib.Store storage store, uint256 amount, uint256 tm) internal {
         _pushFrontOrdered(store, amount, tm);
     }
 
@@ -84,22 +76,14 @@ library OrderedStakeLib {
         return store._queue.empty();
     }
 
-    function tryTakeUntil(
-        Store storage store,
-        uint256 requested,
-        uint256 untilTm
-    ) internal returns (bool) {
+    function tryTakeUntil(Store storage store, uint256 requested, uint256 untilTm) internal returns (bool) {
         if (requested >= balanceUntil(store, untilTm)) return false;
         takeUntil(store, requested, untilTm);
         return true;
     }
 
     // TAKE from specific timestamp
-    function takeAt(
-        Store storage store,
-        uint256 amount,
-        uint256 tm
-    ) internal {
+    function takeAt(Store storage store, uint256 amount, uint256 tm) internal {
         Deposit memory _back = _popBack(store);
         if (_back.timestamp == tm) {
             if (_back.amount < amount) revert("OrderedStakeLib: InsufficientDeposit");
@@ -115,11 +99,7 @@ library OrderedStakeLib {
         }
     }
 
-    function balanceFromTo(
-        Store storage store,
-        uint256 from,
-        uint256 to
-    ) internal view returns (uint256 amount) {
+    function balanceFromTo(Store storage store, uint256 from, uint256 to) internal view returns (uint256 amount) {
         for (uint256 i; i < length(store); i++) {
             Deposit memory deposit = at(store, i);
             if (deposit.timestamp >= from && deposit.timestamp <= to) {
@@ -128,23 +108,13 @@ library OrderedStakeLib {
         }
     }
 
-    function moveFrontRanged(
-        Store storage store,
-        uint256 amount,
-        uint256 initScanTm,
-        uint256 to
-    ) internal {
+    function moveFrontRanged(Store storage store, uint256 amount, uint256 initScanTm, uint256 to) internal {
         if (to >= initScanTm) return;
         // require(initScanTm > to)
         _moveBackToFrontRanged(store, amount, initScanTm, to);
     }
 
-    function _moveBackToFrontRanged(
-        Store storage store,
-        uint256 amount,
-        uint256 initScanTm,
-        uint256 to
-    ) internal {
+    function _moveBackToFrontRanged(Store storage store, uint256 amount, uint256 initScanTm, uint256 to) internal {
         Deposit memory _back = back(store);
         if (_back.timestamp <= initScanTm) {
             _moveFront(store, amount, _back.timestamp, to);
@@ -155,23 +125,13 @@ library OrderedStakeLib {
         }
     }
 
-    function moveBackRanged(
-        Store storage store,
-        uint256 amount,
-        uint256 initScanTm,
-        uint256 to
-    ) internal {
+    function moveBackRanged(Store storage store, uint256 amount, uint256 initScanTm, uint256 to) internal {
         if (to <= initScanTm) return;
         require(initScanTm < to);
         _moveFrontToBackRanged(store, amount, initScanTm, to);
     }
 
-    function _moveFrontToBackRanged(
-        Store storage store,
-        uint256 amount,
-        uint256 initScanTm,
-        uint256 to
-    ) internal {
+    function _moveFrontToBackRanged(Store storage store, uint256 amount, uint256 initScanTm, uint256 to) internal {
         Deposit memory _front = front(store);
         if (_front.timestamp >= initScanTm) {
             _moveBack(store, amount, _front.timestamp, to);
@@ -183,11 +143,7 @@ library OrderedStakeLib {
     }
 
     // FRONT to BACK
-    function takeUntil(
-        Store storage store,
-        uint256 requested,
-        uint256 untilTm
-    ) internal {
+    function takeUntil(Store storage store, uint256 requested, uint256 untilTm) internal {
         require(requested > uint256(0), "OrderedStakeLib: Nothing Requested");
         require(store._balance >= requested, "OrderedStakeLib: NOT_ENOUGH_BALANCE");
 
@@ -220,24 +176,14 @@ library OrderedStakeLib {
 
     // We have know the real key to use this method
     // TODO: rename _moveBackToFront
-    function moveFront(
-        Store storage store,
-        uint256 amount,
-        uint256 from,
-        uint256 to
-    ) internal {
+    function moveFront(Store storage store, uint256 amount, uint256 from, uint256 to) internal {
         if (from == to) return;
         require(from > to, "OrderedStakeLib: WrongRange");
         if (store._queue.empty()) revert("OrderedStakeLib: Empty");
         _moveFront(store, amount, from, to);
     }
 
-    function moveBack(
-        Store storage store,
-        uint256 amount,
-        uint256 from,
-        uint256 to
-    ) internal {
+    function moveBack(Store storage store, uint256 amount, uint256 from, uint256 to) internal {
         if (from == to) return;
         require(from < to, "OrderedStakeLib: WrongRange");
         if (store._queue.empty()) revert("OrderedStakeLib: Empty");
@@ -275,12 +221,7 @@ library OrderedStakeLib {
     // ===================================
 
     // We have to be sure that we know the key to execute this function
-    function _moveFront(
-        Store storage store,
-        uint256 amount,
-        uint256 from,
-        uint256 to
-    ) internal {
+    function _moveFront(Store storage store, uint256 amount, uint256 from, uint256 to) internal {
         if (amount == uint256(0)) return;
         Deposit memory _back = _popBack(store);
         if (_back.timestamp == from) {
@@ -304,12 +245,7 @@ library OrderedStakeLib {
         }
     }
 
-    function _moveBack(
-        Store storage store,
-        uint256 amount,
-        uint256 from,
-        uint256 to
-    ) internal {
+    function _moveBack(Store storage store, uint256 amount, uint256 from, uint256 to) internal {
         Deposit memory _front = _popFront(store);
         if (_front.timestamp == from) {
             if (_front.amount == amount) {
@@ -331,11 +267,7 @@ library OrderedStakeLib {
         }
     }
 
-    function _pushBackOrdered(
-        Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
+    function _pushBackOrdered(Store storage store, uint256 amount, uint256 timestamp) internal {
         if (store._queue.empty()) {
             _pushBack(store, amount, timestamp);
         } else {
@@ -352,11 +284,7 @@ library OrderedStakeLib {
         }
     }
 
-    function _pushFrontOrdered(
-        Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
+    function _pushFrontOrdered(Store storage store, uint256 amount, uint256 timestamp) internal {
         if (store._queue.empty()) {
             _pushFront(store, amount, timestamp);
         } else {
@@ -382,11 +310,7 @@ library OrderedStakeLib {
         deposit.amount = val;
     }
 
-    function _pushFront(
-        Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
+    function _pushFront(Store storage store, uint256 amount, uint256 timestamp) internal {
         bytes32 key = bytes32(timestamp);
         store._queue.pushFront(key);
         store._amounts[key] = amount;
@@ -402,11 +326,7 @@ library OrderedStakeLib {
     }
 
     // PRIVATE do not use use _pushBackOrdered instead
-    function _pushBack(
-        Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
+    function _pushBack(Store storage store, uint256 amount, uint256 timestamp) internal {
         bytes32 key = bytes32(timestamp);
         require(store._amounts[key] == uint256(0), "OrderedStakeLib: CAN NOT OVERRIDE TIMESTAMPS");
         store._queue.pushBack(key);
@@ -414,11 +334,7 @@ library OrderedStakeLib {
         store._balance += amount;
     }
 
-    function _addBalanceTo(
-        Store storage store,
-        uint256 amount,
-        uint256 timestamp
-    ) internal {
+    function _addBalanceTo(Store storage store, uint256 amount, uint256 timestamp) internal {
         bytes32 key = bytes32(timestamp);
         require(store._amounts[key] != uint256(0), "OrderedStakeLib: Trying to update empty");
         store._amounts[key] += amount;

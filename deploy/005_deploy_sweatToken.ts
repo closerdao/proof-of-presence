@@ -1,48 +1,40 @@
-import {HardhatRuntimeEnvironment} from 'hardhat/types';
-import {DeployFunction} from 'hardhat-deploy/types';
-import {ethers} from 'hardhat';
-import {TDFDiamond} from '../typechain';
-import {parseUnits} from 'ethers/lib/utils';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const ProxyAdmin = require('hardhat-deploy/extendedArtifacts/ProxyAdmin.json');
+import {deployScript, artifacts} from '../rocketh/deploy.js';
+import {parseUnits} from 'ethers';
 
 export const DEFAULT_SWEAT_TOKEN_NAME = 'TDF Sweat';
 export const DEFAULT_SWEAT_TOKEN_SYMBOL = '$SWEAT';
 export const DEFAULT_SWEAT_TOKEN_DECAY_RATE_PER_DAY = 288_617; // ~10% per year
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const {deployments, getNamedAccounts} = hre;
-  const {deploy} = deployments;
+export default deployScript(
+  async (env) => {
+    const {deployer} = env.namedAccounts;
+    const isCelo = env.network.name === 'celo';
+    const priorityFee = process.env.PRIORITY_FEE || '1';
+    const maxFee = process.env.MAX_FEE || '30';
+    const gasOverrides = isCelo
+      ? {}
+      : {
+          maxPriorityFeePerGas: parseUnits(priorityFee, 'gwei'),
+          maxFeePerGas: parseUnits(maxFee, 'gwei'),
+        };
 
-  const {deployer} = await getNamedAccounts();
-  const isCelo = hre.network.name === 'celo';
-  const priorityFee = process.env.PRIORITY_FEE || '1';
-  const maxFee = process.env.MAX_FEE || '30';
-  const gasOverrides = isCelo
-    ? {}
-    : {
-        maxPriorityFeePerGas: parseUnits(priorityFee, 'gwei'),
-        maxFeePerGas: parseUnits(maxFee, 'gwei'),
-      };
+    const daoContract = env.get('TDFDiamond');
+    if (!daoContract) {
+      throw new Error('TDFDiamond contract not found. Please deploy it first.');
+    }
 
-  const daoContract = (await ethers.getContract('TDFDiamond', deployer).catch(() => {
-    throw new Error('TDFDiamond contract not found. Please deploy it first.');
-  })) as TDFDiamond;
-
-  // Both PresenceToken and SweatToken share the same ProxyAdmin
-  // (PresenceToken__DefaultProxyAdmin), separate from the DefaultProxyAdmin
-  // used by other contracts (TDFToken, DynamicSale, etc.)
-  await deploy('SweatToken', {
-    from: deployer,
-    proxy: {
-      proxyContract: 'OptimizedTransparentProxy',
-      viaAdminContract: {
-        name: 'PresenceToken__DefaultProxyAdmin',
-        artifact: ProxyAdmin,
+    await env.deployViaProxy(
+      'SweatToken',
+      {
+        account: deployer,
+        artifact: artifacts.SweatToken,
+        args: [],
+        ...gasOverrides,
       },
-      execute: {
-        init: {
-          methodName: `initialize`,
+      {
+        proxyContract: 'SharedAdminOptimizedTransparentProxy',
+        execute: {
+          methodName: 'initialize',
           args: [
             DEFAULT_SWEAT_TOKEN_NAME,
             DEFAULT_SWEAT_TOKEN_SYMBOL,
@@ -51,12 +43,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           ],
         },
       },
-    },
-    log: true,
-    autoMine: true,
-    ...gasOverrides,
-  });
-};
-export default func;
-func.tags = ['SweatToken'];
-func.dependencies = ['PresenceToken'];
+    );
+  },
+  {tags: ['SweatToken'], dependencies: ['PresenceToken']},
+);
