@@ -1,24 +1,23 @@
-import {getNamedAccounts, ethers} from 'hardhat';
-import {TDFToken, Crowdsale, FakeEURToken} from '../typechain';
-import {Contract} from 'ethers';
-import {parseEther} from 'ethers/lib/utils';
+import {getNamedAccounts, ethers} from './hardhat3-compat.js';
+import {parseEther} from 'ethers';
+import type {ContractMap, ConnectedContractMap, RuntimeContract} from '../utils/runtimeContract.js';
 
-async function setupUser<T extends {[contractName: string]: Contract}>(
+async function setupUser<T extends ContractMap>(
   address: string,
   contracts: T,
-): Promise<{address: string} & T> {
+): Promise<{address: string} & ConnectedContractMap<T>> {
   const user: any = {address};
   for (const key of Object.keys(contracts)) {
     user[key] = contracts[key].connect(await ethers.getSigner(address));
   }
-  return user as {address: string} & T;
+  return user as {address: string} & ConnectedContractMap<T>;
 }
 async function main() {
   const {TDFMultisig, TDFTokenBeneficiary, julienFirst, JulienSecond, sam, deployer} = await getNamedAccounts();
   const contracts = {
-    token: <TDFToken>await ethers.getContract('TDFToken', deployer),
-    fakeEur: <FakeEURToken>await ethers.getContract('FakeEURToken', deployer),
-    crowdsale: <Crowdsale>await ethers.getContract('Crowdsale', deployer),
+    token: (await ethers.getContract('TDFToken', deployer)) as RuntimeContract,
+    fakeEur: (await ethers.getContract('FakeEURToken', deployer)) as RuntimeContract,
+    crowdsale: (await ethers.getContract('Crowdsale', deployer)) as RuntimeContract,
   };
 
   const beneficiary = await setupUser(TDFTokenBeneficiary, contracts);
@@ -31,7 +30,7 @@ async function main() {
   await admin.fakeEur.transfer(julienFirst, parseEther('10000'));
   await admin.fakeEur.transfer(JulienSecond, parseEther('10000'));
   await admin.fakeEur.transfer(sam, parseEther('10000'));
-  await multisig.token.approve(contracts.crowdsale.address, parseEther('10000'));
+  await multisig.token.approve(await contracts.crowdsale.getAddress(), parseEther('10000'));
 }
 
 main()

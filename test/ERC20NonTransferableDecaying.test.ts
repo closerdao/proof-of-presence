@@ -1,8 +1,11 @@
 import {expect} from 'chai';
 import {deployments, ethers} from './hardhat-compat.js';
-import {PresenceToken, SweatToken, TDFDiamond} from '../types/ethers-contracts/index.js';
+import type {RuntimeContract} from '../utils/runtimeContract.js';
 type Address = string;
-import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/signers.js';
+type PresenceToken = RuntimeContract;
+type SweatToken = RuntimeContract;
+type TDFDiamond = RuntimeContract;
+import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
 import {
   DEFAULT_PRESENCE_TOKEN_DECAY_RATE_PER_DAY,
   DEFAULT_PRESENCE_TOKEN_NAME,

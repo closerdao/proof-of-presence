@@ -4,17 +4,15 @@ import {deployments, getUnnamedAccounts} from '../../hardhat-compat.js';
 import {networkProvider as network} from '../../hardhat-compat.js';
 import {DateTime} from 'luxon';
 
-import {BookingMapLib} from '../../../types/ethers-contracts/diamond/facets/BookingFacet.js';
-
 import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
 import {setupUser, setupUsers} from '../index.js';
 
-import {DatesTestData} from './types.js';
+import {BookingMapLib, DatesTestData} from './types.js';
 import * as stakingHelpers from './stakingHelpers.js';
 import * as bookingHelpers from './bookingHelpers.js';
 import * as membershipHelpers from './membershipHelpers.js';
 import * as adminHelpers from './adminHelpers.js';
-import type {TDFToken, TDFDiamond} from '../../../types/ethers-contracts/index.js';
+import type {RuntimeContract} from '../../../utils/runtimeContract.js';
 
 export {ROLES} from '../../../utils/index.js';
 
@@ -175,10 +173,10 @@ export const setupContext = deployments.createFixture(async (hre) => {
   const users = await getUnnamedAccounts();
   const {deployer, TDFTokenBeneficiary} = accounts;
 
-  const token = (await ethers.getContract('TDFToken', deployer)) as unknown as TDFToken;
+  const token = (await ethers.getContract('TDFToken', deployer)) as RuntimeContract;
   const contracts = {
     TDFToken: token,
-    TDFDiamond: (await ethers.getContract('TDFDiamond', deployer)) as unknown as TDFDiamond,
+    TDFDiamond: (await ethers.getContract('TDFDiamond', deployer)) as RuntimeContract,
   };
 
   const tokenBeneficiary = await setupUser(TDFTokenBeneficiary, contracts);

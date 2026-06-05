@@ -4,7 +4,7 @@ import {parseUnits} from 'ethers';
 export default deployScript(
   async (env) => {
     const {deployer, TDFMultisig} = env.namedAccounts;
-    const isCelo = env.network.name === 'celo';
+    const isCelo = env.name === 'celo';
     const priorityFee = process.env.PRIORITY_FEE || '1';
     const maxFee = process.env.MAX_FEE || '30';
     const gasOverrides = isCelo

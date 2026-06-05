@@ -1,8 +1,8 @@
 import {expect} from 'chai';
 import {deployments, getUnnamedAccounts} from './hardhat-compat.js';
-import {TDFToken} from '../types/ethers-contracts/index.js';
 import {setupUser, setupUsers, getMock} from './utils/index.js';
 import {getAddress, parseEther} from 'ethers';
+import type {RuntimeContract} from '../utils/runtimeContract.js';
 
 async function deploySale(setup: Record<string, any>, price: string, minbuy: string) {
   const {TDFTokenBeneficiary, FakeEURToken, TDFToken, deployer} = setup;
@@ -41,7 +41,7 @@ const setup = deployments.createFixture(async (hre) => {
   const users = await getUnnamedAccounts();
   const {deployer, TDFTokenBeneficiary} = accounts;
 
-  const token: TDFToken = await ethers.getContract('TDFToken', deployer);
+  const token = (await ethers.getContract('TDFToken', deployer)) as RuntimeContract;
   const eur = await getMock('FakeEURToken', deployer, []);
   const contracts = {
     TDFToken: token,

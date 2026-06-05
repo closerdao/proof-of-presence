@@ -1,17 +1,17 @@
 import {expect} from 'chai';
 import {deployments, ethers, getUnnamedAccounts, getNamedAccounts} from './hardhat-compat.js';
-import {TDFToken, TDFDiamond, DynamicSale, FakeEURToken} from '../types/ethers-contracts/index.js';
 import {setupUser, setupUsers} from './utils/index.js';
 import {formatEther, parseEther} from 'ethers';
+import type {RuntimeContract} from '../utils/runtimeContract.js';
 
 const setup = deployments.createFixture(async () => {
   await deployments.fixture();
   const {deployer} = await getNamedAccounts();
   const contracts = {
-    FakeEURToken: <FakeEURToken>await ethers.getContract('FakeEURToken'),
-    TDFToken: <TDFToken>await ethers.getContract('TDFToken'),
-    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond'),
-    DynamicSale: <DynamicSale>await ethers.getContract('DynamicSale'),
+    FakeEURToken: (await ethers.getContract('FakeEURToken')) as RuntimeContract,
+    TDFToken: (await ethers.getContract('TDFToken')) as RuntimeContract,
+    TDFDiamond: (await ethers.getContract('TDFDiamond')) as RuntimeContract,
+    DynamicSale: (await ethers.getContract('DynamicSale')) as RuntimeContract,
   };
   const users = await setupUsers(await getUnnamedAccounts(), contracts);
   return {

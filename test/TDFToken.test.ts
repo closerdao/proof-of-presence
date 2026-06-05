@@ -1,17 +1,17 @@
 import {expect} from 'chai';
 import {ethers, deployments, getUnnamedAccounts, getNamedAccounts} from './hardhat-compat.js';
-import {DAOAllowTransfersMock, TDFToken, TDFDiamond} from '../types/ethers-contracts/index.js';
 import {setupUser, setupUsers, getMock} from './utils/index.js';
 import {MAX_UINT256, ZERO_ADDRESS} from '../utils/index.js';
 import {getAddress, parseEther} from 'ethers';
+import type {RuntimeContract} from '../utils/runtimeContract.js';
 
 const setup = deployments.createFixture(async () => {
   await deployments.fixture();
   const {TDFMultisig, deployer} = await getNamedAccounts();
   const contracts = {
-    TDFToken: <TDFToken>await ethers.getContract('TDFToken'),
-    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond'),
-    DAOMock: <DAOAllowTransfersMock>await getMock('DAOAllowTransfersMock', deployer, []),
+    TDFToken: (await ethers.getContract('TDFToken')) as RuntimeContract,
+    TDFDiamond: (await ethers.getContract('TDFDiamond')) as RuntimeContract,
+    DAOMock: (await getMock('DAOAllowTransfersMock', deployer, [])) as RuntimeContract,
   };
   const users = await setupUsers(await getUnnamedAccounts(), contracts);
   return {

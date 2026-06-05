@@ -1,9 +1,9 @@
 import {expect} from 'chai';
 import {deployments, getUnnamedAccounts} from '../../hardhat-compat.js';
-import {BookingMapLibMock} from '../../../types/ethers-contracts/diamond/libraries/test/bookingMapLibMock.sol/BookingMapLibMock.js';
 import {setupUser, setupUsers, getMock} from '../../utils/index.js';
 import {parseEther} from 'ethers';
 import {fromUnixTime, getDayOfYear} from 'date-fns';
+import type {RuntimeContract} from '../../../utils/runtimeContract.js';
 
 const yearData = () => {
   return {
@@ -21,7 +21,7 @@ const setup = deployments.createFixture(async (hre) => {
   const {deployer} = accounts;
 
   const contracts = {
-    BookingContract: <BookingMapLibMock>await getMock('BookingMapLibMock', deployer, []),
+    BookingContract: (await getMock('BookingMapLibMock', deployer, [])) as RuntimeContract,
   };
 
   return {

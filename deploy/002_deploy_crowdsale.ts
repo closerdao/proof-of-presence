@@ -5,11 +5,11 @@ import {parseEther, parseUnits} from 'ethers';
 // deploy as a mock in tests instead of here
 export default deployScript(
   async (env) => {
-    if (env.network.name === 'celo') {
+    if (env.name === 'celo') {
       return;
     }
     const {deployer, TDFMultisig} = env.namedAccounts;
-    const isCelo = env.network.name === 'celo';
+    const isCelo = env.name === 'celo';
     const priorityFee = process.env.PRIORITY_FEE || '1';
     const maxFee = process.env.MAX_FEE || '30';
     const gasOverrides = isCelo

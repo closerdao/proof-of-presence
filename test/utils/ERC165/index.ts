@@ -1,4 +1,4 @@
-import * as makeInterfaceId from './makeInterfaceId';
+import * as makeInterfaceId from './makeInterfaceId.js';
 import {BytesLike} from 'ethers';
 import {Contract} from 'ethers';
 type ContractInterfaces = {

@@ -6,7 +6,7 @@ export default deployScript(
   async (env) => {
     const accounts = env.namedAccounts;
     const {deployer, TDFMultisig} = accounts;
-    const isCelo = env.network.name === 'celo';
+    const isCelo = env.name === 'celo';
     const priorityFee = process.env.PRIORITY_FEE || '1';
     const maxFee = process.env.MAX_FEE || '30';
     const gasOverrides = isCelo
@@ -20,7 +20,7 @@ export default deployScript(
     const TDFDiamond = env.get('TDFDiamond');
 
     let eur: string;
-    switch (env.network.name) {
+    switch (env.name) {
       case 'celo': {
         eur = accounts.ceur;
         break;

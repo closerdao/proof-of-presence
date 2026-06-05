@@ -1,27 +1,27 @@
-import {getNamedAccounts, ethers} from 'hardhat';
-import {TDFToken, TDFDiamond, DynamicSale, SweatToken, OwnershipFacet} from '../typechain';
-import {Contract} from 'ethers';
+import {getNamedAccounts, ethers} from './hardhat3-compat.js';
+import type {ContractMap, ConnectedContractMap, RuntimeContract} from '../utils/runtimeContract.js';
 
-import {ROLES} from '../utils';
-async function setupUser<T extends {[contractName: string]: Contract}>(
+import {ROLES} from '../utils/index.js';
+
+async function setupUser<T extends ContractMap>(
   address: string,
   contracts: T,
-): Promise<{address: string} & T> {
+): Promise<{address: string} & ConnectedContractMap<T>> {
   const user: any = {address};
   for (const key of Object.keys(contracts)) {
     user[key] = contracts[key].connect(await ethers.getSigner(address));
   }
-  return user as {address: string} & T;
+  return user as {address: string} & ConnectedContractMap<T>;
 }
 async function main() {
   const namedAccounts = await getNamedAccounts();
   const contracts = {
-    token: <TDFToken>await ethers.getContract('TDFToken', namedAccounts.deployer),
-    TDFDiamond: <TDFDiamond>await ethers.getContract('TDFDiamond', namedAccounts.deployer),
-    sale: <DynamicSale>await ethers.getContract('DynamicSale', namedAccounts.deployer),
-    sweatToken: <SweatToken>await ethers.getContract('SweatToken', namedAccounts.deployer),
+    token: (await ethers.getContract('TDFToken', namedAccounts.deployer)) as RuntimeContract,
+    TDFDiamond: (await ethers.getContract('TDFDiamond', namedAccounts.deployer)) as RuntimeContract,
+    sale: (await ethers.getContract('DynamicSale', namedAccounts.deployer)) as RuntimeContract,
+    sweatToken: (await ethers.getContract('SweatToken', namedAccounts.deployer)) as RuntimeContract,
     // note: same address as TDFDiamond, doing this here for typing
-    ownershipFacet: <OwnershipFacet>await ethers.getContract('TDFDiamond', namedAccounts.deployer),
+    ownershipFacet: (await ethers.getContract('TDFDiamond', namedAccounts.deployer)) as RuntimeContract,
   };
 
   const deployer = await setupUser(namedAccounts.deployer, contracts);
@@ -30,10 +30,10 @@ async function main() {
   await deployer.sale.pause();
 
   // set DAO contract
-  await deployer.token.setDAOContract(deployer.TDFDiamond.address);
+  await deployer.token.setDAOContract(await deployer.TDFDiamond.getAddress());
 
   // Grant Roles
-  await deployer.TDFDiamond.grantRole(ROLES['MINTER_ROLE'], deployer.sale.address);
+  await deployer.TDFDiamond.grantRole(ROLES['MINTER_ROLE'], await deployer.sale.getAddress());
   await deployer.TDFDiamond.grantRole(ROLES['DEFAULT_ADMIN_ROLE'], namedAccounts.TDFMultisig);
 
   // Renounce Roles

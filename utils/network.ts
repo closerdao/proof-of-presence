@@ -1,5 +1,14 @@
 import 'dotenv/config';
-import {HDAccountsUserConfig, HttpNetworkUserConfig, NetworksUserConfig} from 'hardhat/types';
+import type {
+  EdrNetworkHDAccountsUserConfig,
+  EdrNetworkUserConfig,
+  HardhatUserConfig,
+  HttpNetworkHDAccountsUserConfig,
+  HttpNetworkUserConfig,
+  SensitiveString,
+} from 'hardhat/types/config';
+
+type NetworksUserConfig = NonNullable<HardhatUserConfig['networks']>;
 export function node_url(networkName: string): string {
   if (networkName) {
     const uri = process.env['ETH_NODE_URI_' + networkName.toUpperCase()];
@@ -56,8 +65,8 @@ export function addForkConfiguration(networks: NetworksUserConfig): NetworksUser
   }
 
   const currentNetworkName = process.env.HARDHAT_FORK;
-  let forkURL: string | undefined = currentNetworkName && node_url(currentNetworkName);
-  let hardhatAccounts: HDAccountsUserConfig | undefined;
+  let forkURL: SensitiveString | undefined = currentNetworkName && node_url(currentNetworkName);
+  let hardhatAccounts: EdrNetworkHDAccountsUserConfig | undefined;
   if (currentNetworkName && currentNetworkName !== 'hardhat') {
     const currentNetwork = networks[currentNetworkName] as HttpNetworkUserConfig;
     if (currentNetwork) {
@@ -67,7 +76,7 @@ export function addForkConfiguration(networks: NetworksUserConfig): NetworksUser
         typeof currentNetwork.accounts === 'object' &&
         'mnemonic' in currentNetwork.accounts
       ) {
-        hardhatAccounts = currentNetwork.accounts;
+        hardhatAccounts = currentNetwork.accounts as HttpNetworkHDAccountsUserConfig;
       }
     }
   }
@@ -75,7 +84,9 @@ export function addForkConfiguration(networks: NetworksUserConfig): NetworksUser
   const newNetworks = {
     ...networks,
     hardhat: {
-      ...networks.hardhat,
+      type: 'edr-simulated',
+      chainType: 'l1',
+      ...(networks.hardhat?.type === 'edr-simulated' ? networks.hardhat : {}),
       ...{
         accounts: hardhatAccounts,
         forking: forkURL
@@ -91,7 +102,7 @@ export function addForkConfiguration(networks: NetworksUserConfig): NetworksUser
             }
           : undefined,
       },
-    },
+    } satisfies EdrNetworkUserConfig,
   };
   return newNetworks;
 }

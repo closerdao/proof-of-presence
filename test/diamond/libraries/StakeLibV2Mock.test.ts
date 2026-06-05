@@ -1,13 +1,12 @@
 import {expect} from 'chai';
 import {deployments, getUnnamedAccounts, networkProvider as network} from '../../hardhat-compat.js';
-import {StakeLibV2Mock} from '../../../types/ethers-contracts/diamond/libraries/test/StakeLIbV2Mock.sol/StakeLibV2Mock.js';
-import {ERC20TestMock} from '../../../types/ethers-contracts/ERC20/test/ERC20TestMock.js';
 import {setupUser, setupUsers, getMock} from '../../utils/index.js';
 import {parseEther, formatEther} from 'ethers';
 import {getUnixTime, addYears} from 'date-fns';
 import {ZERO_ADDRESS} from '../../utils/index.js';
 import {yearData} from '../../utils/diamond/index.js';
 import {DateTime} from 'luxon';
+import type {RuntimeContract} from '../../../utils/runtimeContract.js';
 
 const buildDate = async (offset: number) => {
   const block = await network.send('eth_getBlockByNumber', ['latest', false]);
@@ -23,11 +22,11 @@ const setup = deployments.createFixture(async (hre) => {
   const users = await getUnnamedAccounts();
   const {deployer} = accounts;
 
-  const token = <ERC20TestMock>await getMock('ERC20TestMock', deployer, []);
+  const token = (await getMock('ERC20TestMock', deployer, [])) as RuntimeContract;
 
   const contracts = {
     token: token,
-    stake: <StakeLibV2Mock>await getMock('StakeLibV2Mock', deployer, [await token.getAddress()]),
+    stake: (await getMock('StakeLibV2Mock', deployer, [await token.getAddress()])) as RuntimeContract,
   };
 
   return {
@@ -90,7 +89,7 @@ const setupTest = (context: TestContext) => {
           );
           console.log('== Deposits ==');
           console.table(
-            deposits.map((e) => ({
+            deposits.map((e: {amount: bigint; timestamp: bigint}) => ({
               amount: formatEther(e.amount.toString()).toString(),
               date: new Date(Number(e.timestamp) * 1000).toDateString(),
             })),
