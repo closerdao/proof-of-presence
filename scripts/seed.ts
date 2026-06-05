@@ -1,4 +1,4 @@
-import {getUnnamedAccounts, ethers} from 'hardhat';
+import {getUnnamedAccounts, ethers} from './hardhat3-compat.js';
 
 const messages = ['Hello', '你好', 'سلام', 'здравствуйте', 'Habari', 'Bonjour', 'नमस्ते'];
 

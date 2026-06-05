@@ -8,7 +8,7 @@ export const DEFAULT_SWEAT_TOKEN_DECAY_RATE_PER_DAY = 288_617; // ~10% per year
 export default deployScript(
   async (env) => {
     const {deployer} = env.namedAccounts;
-    const isCelo = env.network.name === 'celo';
+    const isCelo = env.name === 'celo';
     const priorityFee = process.env.PRIORITY_FEE || '1';
     const maxFee = process.env.MAX_FEE || '30';
     const gasOverrides = isCelo

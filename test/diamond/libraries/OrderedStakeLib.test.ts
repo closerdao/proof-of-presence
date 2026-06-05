@@ -1,8 +1,8 @@
 import {expect} from 'chai';
 import {deployments, getUnnamedAccounts} from '../../hardhat-compat.js';
-import {OrderedStakeLibMock} from '../../../types/ethers-contracts/diamond/libraries/test/OrderedStakeLibMock.js';
 import {setupUser, setupUsers, getMock} from '../../utils/index.js';
 import {formatEther, parseEther} from 'ethers';
+import type {RuntimeContract} from '../../../utils/runtimeContract.js';
 
 const setup = deployments.createFixture(async (hre) => {
   const {deployments, getNamedAccounts} = hre;
@@ -13,7 +13,7 @@ const setup = deployments.createFixture(async (hre) => {
   const {deployer} = accounts;
 
   const contracts = {
-    map: <OrderedStakeLibMock>await getMock('OrderedStakeLibMock', deployer, []),
+    map: (await getMock('OrderedStakeLibMock', deployer, [])) as RuntimeContract,
   };
 
   return {
@@ -187,7 +187,11 @@ describe('OrderedStakeLibMock', () => {
       deposits: async (examples: [string, number][], debug = false) => {
         const deposits = await map.deposits();
         if (debug) {
-          console.log(deposits.map((e) => `amount: ${formatEther(e.amount)}, tm: ${e.timestamp}`));
+          console.log(
+            deposits.map(
+              (e: {amount: bigint; timestamp: bigint}) => `amount: ${formatEther(e.amount)}, tm: ${e.timestamp}`,
+            ),
+          );
         }
         for (let i = 0; i < examples.length; i++) {
           expect(deposits[i], `deposit should exits amount=${examples[i][0]} tm=${examples[i][1]}`).to.not.be.undefined;

@@ -1,5 +1,6 @@
-import {Contract, parseUnits, formatUnits} from 'ethers';
+import {parseUnits, formatUnits} from 'ethers';
 import {ethers, getNamedAccounts, deployments, networkProvider as network} from '../hardhat-compat.js';
+import type {ConnectedContractMap, ContractMap, RuntimeContract} from '../../utils/runtimeContract.js';
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -12,48 +13,48 @@ const erc20ABI =
 const wethABI =
   '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"guy","type":"address"},{"name":"wad","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"src","type":"address"},{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"wad","type":"uint256"}],"name":"withdraw","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"deposit","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"},{"name":"","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"payable":true,"stateMutability":"payable","type":"fallback"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":true,"name":"guy","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":true,"name":"dst","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"dst","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Deposit","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Withdrawal","type":"event"}]';
 
-export async function setupUsers<T extends {[contractName: string]: Contract}>(
+export async function setupUsers<T extends ContractMap>(
   addresses: string[],
   contracts: T,
-): Promise<({address: string} & T)[]> {
-  const users: ({address: string} & T)[] = [];
+): Promise<({address: string} & ConnectedContractMap<T>)[]> {
+  const users: ({address: string} & ConnectedContractMap<T>)[] = [];
   for (const address of addresses) {
     users.push(await setupUser(address, contracts));
   }
   return users;
 }
 
-export async function setupUser<T extends {[contractName: string]: Contract}>(
+export async function setupUser<T extends ContractMap>(
   address: string,
   contracts: T,
-): Promise<{address: string} & T> {
+): Promise<{address: string} & ConnectedContractMap<T>> {
   const user: any = {address};
   for (const key of Object.keys(contracts)) {
     user[key] = contracts[key].connect(await ethers.getSigner(address));
   }
-  return user as {address: string} & T;
+  return user as {address: string} & ConnectedContractMap<T>;
 }
 
-export async function getActiveContract(name: string): Promise<Contract> {
+export async function getActiveContract(name: string): Promise<RuntimeContract> {
   const accounts = await getNamedAccounts();
   switch (name) {
     case 'dai': {
-      return new ethers.Contract(accounts.dai, erc20ABI) as Contract;
+      return new ethers.Contract(accounts.dai, erc20ABI) as RuntimeContract;
     }
     case 'weth': {
-      return new ethers.Contract(accounts.weth, wethABI) as Contract;
+      return new ethers.Contract(accounts.weth, wethABI) as RuntimeContract;
     }
     case 'wrapped': {
-      return new ethers.Contract(accounts.wrapped, wethABI) as Contract;
+      return new ethers.Contract(accounts.wrapped, wethABI) as RuntimeContract;
     }
     case 'usdc': {
-      return new ethers.Contract(accounts.usdc, erc20ABI) as Contract;
+      return new ethers.Contract(accounts.usdc, erc20ABI) as RuntimeContract;
     }
     case 'usdt': {
-      return new ethers.Contract(accounts.usdt, erc20ABI) as Contract;
+      return new ethers.Contract(accounts.usdt, erc20ABI) as RuntimeContract;
     }
     case 'wmatic': {
-      return new ethers.Contract(accounts.wmatic, erc20ABI) as Contract;
+      return new ethers.Contract(accounts.wmatic, erc20ABI) as RuntimeContract;
     }
     default: {
       throw 'Contact not listed';
@@ -61,7 +62,7 @@ export async function getActiveContract(name: string): Promise<Contract> {
   }
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function getInactiveContract(name: string, args?: []): Promise<Contract> {
+export async function getInactiveContract(name: string, args?: []): Promise<RuntimeContract> {
   const accounts = await getNamedAccounts();
   const {deployer} = accounts;
 
@@ -73,7 +74,7 @@ export async function getInactiveContract(name: string, args?: []): Promise<Cont
         from: deployer,
         args: [await TDFToken.getAddress(), weth, TDFTokenBeneficiary, 1, 1],
       });
-      return ethers.getContract('TDFSale', deployer);
+      return (await ethers.getContract('TDFSale', deployer)) as RuntimeContract;
     }
     default: {
       throw 'Contact not listed';
@@ -81,9 +82,9 @@ export async function getInactiveContract(name: string, args?: []): Promise<Cont
   }
 }
 
-export async function getMock(name: string, deployer: string, args: Array<any>): Promise<Contract> {
+export async function getMock(name: string, deployer: string, args: Array<any>): Promise<RuntimeContract> {
   await deployments.deploy(name, {from: deployer, args: args});
-  return ethers.getContract(name, deployer);
+  return (await ethers.getContract(name, deployer)) as RuntimeContract;
 }
 
 export async function topUpFunds(name: string, to: string, amount?: string) {
@@ -129,13 +130,19 @@ export const getBigNumber = (amount: number, decimals = 18) => {
   return parseUnits(amount.toString(), decimals);
 };
 
-export const getErc20Balance = async (contract: Contract, address: string, name: string, decimals: number) => {
+export const getErc20Balance = async (contract: RuntimeContract, address: string, name: string, decimals: number) => {
   const [balance] = await Promise.all([contract.balanceOf(address)]);
 
   console.log(name, formatUnits(balance, decimals));
 };
 
-const fundErc20 = async (contract: Contract, sender: string, recipient: string, amount: string, decimals: number) => {
+const fundErc20 = async (
+  contract: RuntimeContract,
+  sender: string,
+  recipient: string,
+  amount: string,
+  decimals: number,
+) => {
   const FUND_AMOUNT = parseUnits(amount, decimals);
 
   // fund erc20 token to the contract
@@ -146,13 +153,13 @@ const fundErc20 = async (contract: Contract, sender: string, recipient: string, 
 };
 
 const impersonateFundErc20 = async (
-  contract: Contract,
+  contract: RuntimeContract,
   sender: string,
   recipient: string,
   amount: string,
   decimals = 18,
 ) => {
-  await network.provider.request({
+  await network.request({
     method: 'hardhat_impersonateAccount',
     params: [sender],
   });
@@ -160,7 +167,7 @@ const impersonateFundErc20 = async (
   // fund baseToken to the contract
   await fundErc20(contract, sender, recipient, amount, decimals);
 
-  await network.provider.request({
+  await network.request({
     method: 'hardhat_stopImpersonatingAccount',
     params: [sender],
   });

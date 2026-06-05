@@ -65,7 +65,7 @@
     "format": "prettier --check \"**/*.{ts,js,sol}\"",
     "format:fix": "prettier --write \"**/*.{ts,js,sol}\"",
     "compile": "hardhat compile && tsx scripts/merge-diamond-abi.ts",
-    "void:deploy": "hardhat deploy --report-gas",
+    "void:deploy": "hardhat --network default deploy",
     "test": "hardhat test",
     "coverage": "hardhat test --coverage",
     "dev:node": "hardhat node --hostname 0.0.0.0",

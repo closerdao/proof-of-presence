@@ -1,11 +1,10 @@
 import _ from 'lodash';
 import {expect} from 'chai';
-import {BookingMapLib} from '../../../types/ethers-contracts/diamond/facets/BookingFacet.js';
 import type {TestContext} from './index.js';
 
 import {buildDates} from './index.js';
 
-import {DatesTestData, DateMetadata, DateInputs} from './types.js';
+import {BookingMapLib, DatesTestData, DateMetadata, DateInputs} from './types.js';
 import {wrapOnlyRole, wrapSuccess} from './helpers.js';
 import {addDays} from 'date-fns';
 import {parseEther} from 'ethers';

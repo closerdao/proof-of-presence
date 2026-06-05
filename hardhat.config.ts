@@ -40,29 +40,14 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  etherscan: {
-    apiKey: process.env.CELOSCAN_API_KEY,
-    customChains: [
-      {
-        network: 'celo',
-        chainId: 42220,
-        urls: {
-          apiURL: 'https://api.celoscan.io/api',
-          browserURL: 'https://celoscan.io',
-        },
-      },
-      {
-        network: 'celoSepolia',
-        chainId: 11142220,
-        urls: {
-          apiURL: 'https://api-sepolia.celoscan.io/api',
-          browserURL: 'https://sepolia.celoscan.io',
-        },
-      },
-    ],
-  },
-  sourcify: {
-    enabled: true,
+  verify: {
+    etherscan: {
+      apiKey: process.env.CELOSCAN_API_KEY || '',
+      enabled: true,
+    },
+    sourcify: {
+      enabled: true,
+    },
   },
   networks: {
     default: {
@@ -93,8 +78,10 @@ const config: HardhatUserConfig = {
   paths: {
     sources: ['src'],
   },
-  mocha: {
-    timeout: 0,
+  test: {
+    mocha: {
+      timeout: 0,
+    },
   },
 };
 

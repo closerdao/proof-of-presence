@@ -6,7 +6,7 @@ export default deployScript(
     console.log('Starting deploy 007_upgrade_adminFacet');
 
     const {deployer} = env.namedAccounts;
-    const isCelo = env.network.name === 'celo';
+    const isCelo = env.name === 'celo';
     const priorityFee = process.env.PRIORITY_FEE || '1';
     const maxFee = process.env.MAX_FEE || '30';
     const gasOverrides = isCelo

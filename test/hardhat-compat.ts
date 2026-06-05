@@ -5,7 +5,7 @@
  * This minimizes changes across the existing test suite.
  */
 import {network} from 'hardhat';
-import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/signers.js';
+import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
 import {getAddress} from 'ethers';
 import {loadAndExecuteDeploymentsFromFiles} from '../rocketh/environment.js';
 
@@ -14,7 +14,7 @@ const connection = await network.connect();
 const hreEthers = connection.ethers;
 const hreNetworkHelpers = connection.networkHelpers;
 const hreProvider = connection.provider;
-const hreNetwork = connection.network;
+const hreNetwork = {name: connection.networkName, config: connection.networkConfig};
 
 type RockethEnv = Awaited<ReturnType<typeof loadAndExecuteDeploymentsFromFiles>>;
 
@@ -74,6 +74,23 @@ export const ethers = Object.assign(Object.create(hreEthers), {
   },
 });
 
+type FixtureHre = {
+  deployments: DeploymentsCompat;
+  ethers: typeof ethers;
+  getNamedAccounts: typeof getNamedAccounts;
+  getUnnamedAccounts: typeof getUnnamedAccounts;
+};
+
+interface DeploymentsCompat {
+  fixture(): Promise<void>;
+  get(name: string): Promise<{address: string; abi: any}>;
+  deploy(
+    name: string,
+    opts: {from: string; args?: unknown[]; log?: boolean; autoMine?: boolean; [k: string]: unknown},
+  ): Promise<{address: string; abi: any}>;
+  createFixture<T>(fn: (hre: FixtureHre) => Promise<T>): () => Promise<T>;
+}
+
 // ----- getNamedAccounts / getUnnamedAccounts compat -----
 export async function getNamedAccounts(): Promise<Record<string, string>> {
   const env = await ensureEnv();
@@ -90,7 +107,7 @@ export async function getUnnamedAccounts(): Promise<string[]> {
 }
 
 // ----- deployments compat -----
-export const deployments = {
+export const deployments: DeploymentsCompat = {
   async fixture() {
     cachedEnv = null;
     await ensureEnv();
@@ -117,14 +134,7 @@ export const deployments = {
     return {address, abi};
   },
 
-  createFixture<T>(
-    fn: (hre: {
-      deployments: typeof deployments;
-      ethers: typeof ethers;
-      getNamedAccounts: typeof getNamedAccounts;
-      getUnnamedAccounts: typeof getUnnamedAccounts;
-    }) => Promise<T>,
-  ) {
+  createFixture<T>(fn: (hre: FixtureHre) => Promise<T>) {
     // Use HH3 loadFixture for snapshot caching
     const fixtureFn = async () => {
       cachedEnv = null;

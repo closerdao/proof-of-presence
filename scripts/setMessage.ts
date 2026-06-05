@@ -1,5 +1,4 @@
-import {deployments, getUnnamedAccounts} from 'hardhat';
-const {execute} = deployments;
+import {ethers, getUnnamedAccounts} from './hardhat3-compat.js';
 // example script
 
 const args = process.argv.slice(2);
@@ -9,7 +8,8 @@ const message = args[1];
 async function main() {
   const accountAddress = isNaN(parseInt(account)) ? account : (await getUnnamedAccounts())[parseInt(account)];
 
-  await execute('GreetingsRegistry', {from: accountAddress, log: true}, 'setMessage', message || 'hello');
+  const greetingsRegistry = await ethers.getContract('GreetingsRegistry', accountAddress);
+  await greetingsRegistry.setMessage(message || 'hello');
 }
 
 main()
