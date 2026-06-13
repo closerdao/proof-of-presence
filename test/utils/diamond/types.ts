@@ -10,22 +10,20 @@ export interface DatesTestData {
   inputs: DateInputs;
 }
 
-export namespace BookingMapLib {
-  export interface BookingStructOutput {
-    status: bigint;
-    year: number | bigint;
-    dayOfYear: number | bigint;
-    price: bigint;
-    timestamp: bigint;
-  }
+export interface BookingStructOutput {
+  status: bigint;
+  year: number | bigint;
+  dayOfYear: number | bigint;
+  price: bigint;
+  timestamp: bigint;
+}
 
-  export type BookingStruct = BookingStructOutput;
+export type BookingStruct = BookingStructOutput;
 
-  export interface YearStruct {
-    number: number;
-    leapYear: boolean;
-    start: number;
-    end: number;
-    enabled: boolean;
-  }
+export interface YearStruct {
+  number: number;
+  leapYear: boolean;
+  start: number;
+  end: number;
+  enabled: boolean;
 }
