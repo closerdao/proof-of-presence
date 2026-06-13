@@ -7,7 +7,7 @@ import {DateTime} from 'luxon';
 import {addDays, getUnixTime, getDayOfYear} from 'date-fns';
 import {setupUser, setupUsers} from '../index.js';
 
-import {BookingMapLib, DatesTestData} from './types.js';
+import type {BookingStructOutput, DatesTestData} from './types.js';
 import * as stakingHelpers from './stakingHelpers.js';
 import * as bookingHelpers from './bookingHelpers.js';
 import * as membershipHelpers from './membershipHelpers.js';
@@ -64,7 +64,7 @@ export const userTesters = async ({TDFToken, TDFDiamond, user}: TestContext) => 
     },
     bookings: {
       toExists: async (dates: DatesTestData, price: string, status: string = BookingStatus.Confirmed) => {
-        const list: BookingMapLib.BookingStructOutput[] = [];
+        const list: BookingStructOutput[] = [];
         let st: number;
         switch (status) {
           case BookingStatus.Pending:

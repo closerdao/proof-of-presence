@@ -173,14 +173,14 @@ These will produce a coverage report in the `coverage/` folder
 These will produce a gas report for function used in the tests
 <br/><br/>
 
-### `yarn dev`
+### `yarn dev:node`
 
-These will run a local hardhat network on `localhost:8545` and deploy your contracts on it. Plus it will watch for any changes and redeploy them.
+This will run a local Hardhat network on `localhost:8545`.
 <br/><br/>
 
-### `yarn local:dev`
+### `yarn deploy localhost`
 
-This assumes a local node it running on `localhost:8545`. It will deploy your contracts on it. Plus it will watch for any changes and redeploy them.
+This assumes a local node is running on `localhost:8545` and deploys your contracts to it.
 <br/><br/>
 
 ### `yarn execute <network> <file.ts> [args...]`

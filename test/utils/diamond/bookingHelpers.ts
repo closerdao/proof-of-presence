@@ -4,7 +4,7 @@ import type {TestContext} from './index.js';
 
 import {buildDates} from './index.js';
 
-import {BookingMapLib, DatesTestData, DateMetadata, DateInputs} from './types.js';
+import type {BookingStruct, DatesTestData, DateMetadata, DateInputs, YearStruct} from './types.js';
 import {wrapOnlyRole, wrapSuccess} from './helpers.js';
 import {addDays} from 'date-fns';
 import {parseEther} from 'ethers';
@@ -148,7 +148,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         },
       },
     }),
-    addAccommodationYear: (year: BookingMapLib.YearStruct) => ({
+    addAccommodationYear: (year: YearStruct) => ({
       success: async () => {
         await expect(
           user.TDFDiamond.addAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
@@ -214,7 +214,7 @@ export const setupHelpers = async ({TDFDiamond, user}: TestContext) => {
         },
       },
     }),
-    updateAccommodationYear: (year: BookingMapLib.YearStruct) => ({
+    updateAccommodationYear: (year: YearStruct) => ({
       success: async () => {
         await expect(
           user.TDFDiamond.updateAccommodationYear(year.number, year.leapYear, year.start, year.end, year.enabled),
@@ -281,7 +281,7 @@ export const getterHelpers = async ({TDFDiamond}: TestContext) => {
         },
         exactMatch: async (dates: DatesTestData) => {
           const years = _.groupBy(dates.data, (e) => e.year);
-          const listTest = async (bookings: BookingMapLib.BookingStruct[], datum: DateMetadata[]) => {
+          const listTest = async (bookings: BookingStruct[], datum: DateMetadata[]) => {
             return Promise.all(
               datum.map(async (e) => {
                 const found = bookings.find((val) => val.year == e.year && val.dayOfYear == e.day);

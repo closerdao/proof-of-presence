@@ -69,8 +69,6 @@
     "test": "hardhat test",
     "coverage": "hardhat test --coverage",
     "dev:node": "hardhat node --hostname 0.0.0.0",
-    "dev": "hardhat node --hostname 0.0.0.0 --watch",
-    "local:dev": "hardhat --network localhost deploy --watch",
     "execute": "node ./_scripts.cjs run",
     "deploy": "node ./_scripts.cjs deploy",
     "verify": "node ./_scripts.cjs verify",
