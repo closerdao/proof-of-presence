@@ -1,7 +1,17 @@
-name: nodejs-tests
+name: contracts
 
 on:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Additional security suite to run
+        required: true
+        default: standard
+        type: choice
+        options:
+          - standard
+          - deep
+          - preaudit
   push:
     branches:
       - main
@@ -9,55 +19,173 @@ on:
     branches:
       - main
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+concurrency:
+  group: contracts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality and V2 tests
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain
+        uses: jdx/mise-action@v3
         with:
-          fetch-depth: 1
+          version: 2026.6.14
+          install: true
+          cache: true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v4
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Installing dependencies
-        run: yarn install --frozen-lockfile
+      - name: Install JavaScript dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
 
       - name: Type checking
         run: yarn typecheck
 
-      # TODO include pre-commit hooks to make sure formatting and linting is done on local before running CI where this can make the full pipeline fail?
       - name: Formatting
         run: yarn format
 
       - name: Linting
         run: yarn lint
 
-      - name: Running tests
-        run: yarn test
+      - name: V2 tests
+        run: yarn test:v2
 
-      - name: Validating UUPS upgrades and storage layouts
+      - name: Validate UUPS upgrades and storage layouts
         run: yarn validate:upgrades
 
-      - name: Running deep V2 fuzz and invariant tests
-        if: github.event_name == 'workflow_dispatch'
+  security:
+    name: Static security gates
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain
+        uses: jdx/mise-action@v3
+        with:
+          version: 2026.6.14
+          install: true
+          cache: true
+
+      - name: Install JavaScript dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Slither medium/high gate
+        run: yarn analyze:slither
+
+      - name: ERC conformance checks
+        run: yarn analyze:standards
+
+      - name: Dependency vulnerability regression gate
+        run: yarn security:dependencies
+
+      - name: ABI, storage fingerprint, and code-size gate
+        run: yarn security:artifacts
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: security-reports/
+          if-no-files-found: warn
+
+  deep:
+    name: Deep fuzz, invariant, scale, and coverage
+    if: github.event_name == 'workflow_dispatch' && (inputs.suite == 'deep' || inputs.suite == 'preaudit')
+    needs: security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain
+        uses: jdx/mise-action@v3
+        with:
+          version: 2026.6.14
+          install: true
+          cache: true
+
+      - name: Install JavaScript dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Deep V2 fuzz and invariant tests
         run: yarn test:v2:deep
 
-      - name: Running V2 ten-year scale tests
-        if: github.event_name == 'workflow_dispatch'
+      - name: Ten-year scale tests
         run: yarn test:v2:scale
+
+      - name: Coverage regression gate
+        run: yarn security:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-coverage
+          path: coverage/
+          if-no-files-found: warn
+
+  preaudit:
+    name: Independent pre-audit analyzers
+    if: github.event_name == 'workflow_dispatch' && inputs.suite == 'preaudit'
+    needs: deep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain
+        uses: jdx/mise-action@v3
+        with:
+          version: 2026.6.14
+          install: true
+          cache: true
+
+      - name: Install JavaScript dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Prepare report directories
+        run: mkdir -p security-reports/wake security-reports/aderyn security-reports/gambit
+
+      - name: Wake independent detector pass
+        run: >-
+          uvx --from eth-wake==4.22.1 wake detect all
+          src/village/access
+          src/village/libraries
+          src/village/proxy
+          src/village/stays
+          src/village/tokens
+          src/profiles/tdf-v2
+          --min-impact medium
+          --min-confidence high
+          2>&1 | tee security-reports/wake/report.txt
+
+      - name: Aderyn independent detector pass
+        run: >-
+          npx --yes @cyfrin/aderyn@0.6.8 .
+          --path-excludes src/legacy,src/village/test
+          --output security-reports/aderyn/report.md
+
+      - name: Targeted Solidity SMTChecker pass
+        run: yarn analyze:smt
+
+      - name: Install Gambit mutation generator
+        run: cargo install --git https://github.com/Certora/gambit --tag v1.0.6 --locked
+
+      - name: Generate deterministic targeted mutants
+        run: gambit mutate --json security/gambit.json
+
+      - name: Summarize generated mutants
+        run: gambit summary --mutation-directory security-reports/gambit > security-reports/gambit/summary.txt
+
+      - name: Upload pre-audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preaudit-reports
+          path: security-reports/
+          if-no-files-found: warn

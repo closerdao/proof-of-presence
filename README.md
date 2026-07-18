@@ -75,8 +75,16 @@ For smaller issues you can create tickets in our open source code repositories a
 ## INSTALL
 
 ```bash
-yarn
+mise install
+mise run setup
 ```
+
+The repository uses Mise and `mise.lock` for Node.js, Solidity, Z3, and external security CLIs. Yarn remains the
+JavaScript package manager. If you do not want local Git hooks, run `yarn install --frozen-lockfile` after `mise install`
+instead of the setup task.
+
+The active V2 security gates, manual deep/pre-audit suites, baselines, and suppression policy are documented in
+[`security/README.md`](./security/README.md).
 
 ## SETUP
 
@@ -148,6 +156,13 @@ As a standard lifecycle npm script, it is executed automatically upon install. I
 ### `yarn lint`, `yarn lint:fix`, `yarn format` and `yarn format:fix`
 
 These will lint and format check your code. the `:fix` version will modifiy the files to match the requirement specified in `.eslintrc` and `.prettierrc.`
+<br/><br/>
+
+### Security checks
+
+`mise run security:static` runs the blocking Slither, ERC conformance, dependency, and artifact gates. `mise run
+security:deep` runs the higher-budget fuzz/invariant, scale, and coverage checks. The independent Wake, Aderyn,
+SMTChecker, and Gambit pre-audit suite is available through the GitHub Actions manual workflow.
 <br/><br/>
 
 ### `yarn compile`

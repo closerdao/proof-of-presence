@@ -1,15 +1,6 @@
 {
   "extends": "solhint:recommended",
-  "plugins": [
-    "prettier"
-  ],
   "rules": {
-    "prettier/prettier": [
-      "error",
-      {
-        "endOfLine": "auto"
-      }
-    ],
     "code-complexity": [
       "error",
       7
@@ -30,6 +21,12 @@
     "not-rely-on-time": "off",
     "no-global-import": "off",
     "gas-custom-errors": "off",
+    "gas-calldata-parameters": "off",
+    "gas-increment-by-one": "off",
+    "gas-indexed-events": "off",
+    "gas-small-strings": "off",
+    "gas-strict-inequalities": "off",
+    "no-empty-blocks": "off",
     "reason-string": [
       "warn",
       {

@@ -38,7 +38,7 @@ library DecayMath {
         if (n == 0) return scale;
         if (n == 1) return value;
 
-        uint256 low;
+        uint256 low = 0;
         uint256 high = scale;
 
         // Retain V1's bounded binary search. For decay retention values both
@@ -48,6 +48,8 @@ library DecayMath {
             uint256 mid = (low + high) / 2;
             uint256 midToN = powWithPrecision(mid, n, scale);
 
+            // Exact equality is the binary search's successful termination condition.
+            // slither-disable-next-line incorrect-equality
             if (midToN == value) return mid;
             if (midToN < value) {
                 low = mid;

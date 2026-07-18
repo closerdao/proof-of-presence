@@ -253,6 +253,8 @@ abstract contract ERC20NonTransferableDecaying is
     /// @param daysAgo Number of daily compounding periods.
     /// @return Remaining amount after decay.
     function calculateDecayForDays(uint256 amount, uint256 daysAgo) public view returns (uint256) {
+        // Zero days is the identity case for the public decay calculation.
+        // slither-disable-next-line incorrect-equality
         if (daysAgo == 0) return amount;
 
         uint256 decayRateScaled = (decayRatePerDay() * PRECISION_SCALE) / (10 ** DECAY_RATE_PER_DAY_DECIMALS);
@@ -332,8 +334,8 @@ abstract contract ERC20NonTransferableDecaying is
         uint256 burnDataArrayLength = burnDataArray.length;
         if (burnDataArrayLength == 0) revert BurnDataEmpty();
 
-        uint256 nonDecayedAmountToBurn;
-        uint256 decayedAmountToBurn;
+        uint256 nonDecayedAmountToBurn = 0;
+        uint256 decayedAmountToBurn = 0;
 
         for (uint256 i = 0; i < burnDataArrayLength; ) {
             nonDecayedAmountToBurn += burnDataArray[i].amount;
@@ -441,12 +443,18 @@ abstract contract ERC20NonTransferableDecaying is
         checkpointBalance = $.decayCheckpointBalance[account];
         if (checkpointTimestamp == 0 || checkpointBalance == 0) return checkpointBalance;
 
+        // Whole-day truncation is intentional; retain the partial interval in the checkpoint.
+        // slither-disable-next-line divide-before-multiply
         uint256 completeDays = (block.timestamp - checkpointTimestamp) / 1 days;
+        // Zero complete days is the intended boundary check, not an authorization condition.
+        // slither-disable-next-line incorrect-equality
         if (completeDays == 0) return checkpointBalance;
 
         checkpointBalance = calculateDecayForDays(checkpointBalance, completeDays);
         $.decayCheckpointBalance[account] = checkpointBalance;
         $.decayCheckpointTimestamp[account] = checkpointTimestamp + completeDays * 1 days;
+        // An exactly exhausted balance intentionally clears the account's decay schedule.
+        // slither-disable-next-line incorrect-equality
         if (checkpointBalance == 0) $.decayCheckpointTimestamp[account] = 0;
     }
 
@@ -458,6 +466,8 @@ abstract contract ERC20NonTransferableDecaying is
         uint256 checkpointBalance
     ) internal {
         $.decayCheckpointBalance[account] = checkpointBalance;
+        // Zero represents the absence of a running decay schedule.
+        // slither-disable-next-line incorrect-equality
         if (checkpointBalance == 0) {
             $.decayCheckpointTimestamp[account] = 0;
         } else if ($.decayCheckpointTimestamp[account] == 0) {

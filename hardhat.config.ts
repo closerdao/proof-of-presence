@@ -127,6 +127,9 @@ const config: HardhatUserConfig = {
     },
     ignition: process.env.IGNITION_ROOT || 'ignition',
   },
+  coverage: {
+    skipFiles: ['src/legacy/**', 'src/village/test/**'],
+  },
   test: {
     mocha: {
       timeout: 0,

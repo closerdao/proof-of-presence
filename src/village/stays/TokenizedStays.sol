@@ -408,7 +408,7 @@ contract TokenizedStays is
         uint256 lastDay = uint256(startDayOfYear) + limit - 1;
         if (lastDay > yearDays) lastDay = yearDays;
         bookings = new BookingView[](limit);
-        uint256 count;
+        uint256 count = 0;
         TokenizedStaysStorage storage $ = _getTokenizedStaysStorage();
         uint32 dayId = _toDayId(year, startDayOfYear);
 
@@ -552,7 +552,7 @@ contract TokenizedStays is
     ) internal view returns (uint256) {
         (uint16 currentYear, ) = _fromDayId(dayId);
         int256 exposure = _activeExposure($, account, dayId);
-        int256 maximum;
+        int256 maximum = 0;
         (exposure, maximum) = _scanRemainingCurrentYear($, account, dayId, currentYear, exposure);
         maximum = _scanFutureYearSummaries($, account, currentYear, exposure, maximum);
         return uint256(maximum);
@@ -675,11 +675,14 @@ contract TokenizedStays is
     function _createBookings(address account, BookingInput[] calldata bookings) internal {
         if (bookings.length == 0) revert EmptyBookingBatch();
         TokenizedStaysStorage storage $ = _getTokenizedStaysStorage();
-        BatchAccumulator memory accumulator;
-        accumulator.today = currentDayId();
-        accumulator.currentYear = _currentYear();
-        accumulator.maximumYear = currentMaximumBookingYear();
-        accumulator.latestBookedYear = $.latestBookedYears[account];
+        BatchAccumulator memory accumulator = BatchAccumulator({
+            today: currentDayId(),
+            currentYear: _currentYear(),
+            maximumYear: currentMaximumBookingYear(),
+            latestBookedYear: $.latestBookedYears[account],
+            countMask: 0,
+            summaryMask: 0
+        });
         int256[] memory countDeltas = new int256[](uint256(MAX_FUTURE_BOOKING_YEARS) + 1);
 
         for (uint256 i = 0; i < bookings.length; ) {
@@ -698,9 +701,14 @@ contract TokenizedStays is
     function _cancelBookings(address account, DateInput[] calldata dates) internal {
         if (dates.length == 0) revert EmptyBookingBatch();
         TokenizedStaysStorage storage $ = _getTokenizedStaysStorage();
-        BatchAccumulator memory accumulator;
-        accumulator.today = currentDayId();
-        accumulator.currentYear = _currentYear();
+        BatchAccumulator memory accumulator = BatchAccumulator({
+            today: currentDayId(),
+            currentYear: _currentYear(),
+            maximumYear: 0,
+            latestBookedYear: 0,
+            countMask: 0,
+            summaryMask: 0
+        });
         int256[] memory countDeltas = new int256[](uint256(MAX_FUTURE_BOOKING_YEARS) + 1);
 
         for (uint256 i = 0; i < dates.length; ) {
@@ -818,8 +826,8 @@ contract TokenizedStays is
     ) internal view returns (YearSummary memory summary) {
         uint32 dayId = _toDayId(year, 1);
         uint16 yearDays = daysInYear(year);
-        int256 prefix;
-        int256 maximum;
+        int256 prefix = 0;
+        int256 maximum = 0;
 
         for (uint256 i = 0; i < yearDays; ) {
             prefix += _dailyDelta($, account, dayId);
@@ -855,7 +863,7 @@ contract TokenizedStays is
     function _reconcileBookingBalance(TokenizedStaysStorage storage $, address account) internal {
         uint256 required = requiredLockedBalance(account);
         uint256 deposited = $.depositedBalances[account];
-        uint256 amountDeposited;
+        uint256 amountDeposited = 0;
         if (required > deposited) {
             amountDeposited = required - deposited;
             $.depositedBalances[account] = required;
@@ -899,6 +907,8 @@ contract TokenizedStays is
         }
 
         while ($.bookingCountByYear[account][candidate] == 0) {
+            // Equality is the loop's lower-bound termination condition.
+            // slither-disable-next-line incorrect-equality
             if (candidate == currentYear) {
                 $.latestBookedYears[account] = 0;
                 return;
@@ -960,6 +970,9 @@ contract TokenizedStays is
     }
 
     function _isLeapYear(uint256 year) internal pure returns (bool) {
+        // Modulo is deterministic calendar arithmetic, not a source of randomness.
+        // Equality is required by the Gregorian leap-year definition.
+        // slither-disable-next-line weak-prng,incorrect-equality
         return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
     }
 

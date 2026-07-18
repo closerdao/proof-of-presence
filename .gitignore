@@ -2,6 +2,8 @@ cache/
 artifacts/
 
 coverage*
+!security/coverage-baseline.json
+security-reports/
 typechain/
 types/ethers-contracts/
 generated/

@@ -8,3 +8,4 @@ typechain/
 dapp_test/test.sol
 src/Libraries/FixedPointMathLib.sol
 src/legacy/**/*.sol
+src/village/test/**
