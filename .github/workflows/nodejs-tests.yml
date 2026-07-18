@@ -1,6 +1,7 @@
 name: nodejs-tests
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -20,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.22.2
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
@@ -37,6 +38,9 @@ jobs:
       - name: Installing dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Type checking
+        run: yarn typecheck
+
       # TODO include pre-commit hooks to make sure formatting and linting is done on local before running CI where this can make the full pipeline fail?
       - name: Formatting
         run: yarn format
@@ -46,3 +50,14 @@ jobs:
 
       - name: Running tests
         run: yarn test
+
+      - name: Validating UUPS upgrades and storage layouts
+        run: yarn validate:upgrades
+
+      - name: Running deep V2 fuzz and invariant tests
+        if: github.event_name == 'workflow_dispatch'
+        run: yarn test:v2:deep
+
+      - name: Running V2 ten-year scale tests
+        if: github.event_name == 'workflow_dispatch'
+        run: yarn test:v2:scale

@@ -3,7 +3,7 @@ import {network} from 'hardhat';
 import {ethers} from './hardhat3-compat.js';
 import {JsonRpcProvider, type TransactionResponse} from 'ethers';
 
-const connection = await network.connect();
+const connection = await network.create();
 
 function wait(numSec: number): Promise<void> {
   return new Promise<void>((resolve) => {

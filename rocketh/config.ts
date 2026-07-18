@@ -5,7 +5,13 @@ import * as readExecuteExtension from '@rocketh/read-execute';
 import * as deployProxyExtension from '@rocketh/proxy';
 import * as deployDiamondExtension from '@rocketh/diamond';
 
+const configuredScripts = process.env.ROCKETH_DEPLOY_SCRIPTS?.split(',')
+  .map((script) => script.trim())
+  .filter(Boolean);
+const deploymentScripts = configuredScripts?.length ? configuredScripts : ['deploy/legacy/tdf-v1'];
+
 export const config = {
+  scripts: deploymentScripts,
   accounts: {
     deployer: {
       default: 0,

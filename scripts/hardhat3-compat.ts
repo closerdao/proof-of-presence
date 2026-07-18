@@ -3,7 +3,7 @@ import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
 import {Contract, Wallet, ZeroAddress, getAddress} from 'ethers';
 import {loadEnvironmentFromHardhat} from '../rocketh/environment.js';
 
-const connection = await network.connect();
+const connection = await network.getOrCreate();
 const hreEthers = connection.ethers;
 
 type RockethEnv = Awaited<ReturnType<typeof loadEnvironmentFromHardhat>>;

@@ -10,7 +10,7 @@ import {getAddress} from 'ethers';
 import {loadAndExecuteDeploymentsFromFiles} from '../rocketh/environment.js';
 
 // Top-level await — ESM supports this
-const connection = await network.connect();
+export const connection = await network.getOrCreate();
 const hreEthers = connection.ethers;
 const hreNetworkHelpers = connection.networkHelpers;
 const hreProvider = connection.provider;

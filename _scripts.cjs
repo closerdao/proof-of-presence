@@ -7,6 +7,16 @@ const path = require('path');
 require('dotenv').config();
 
 const commandlineArgs = process.argv.slice(2);
+const LEGACY_DEPLOY_TAGS = [
+  'TDFToken',
+  'Crowdsale',
+  'Diamond',
+  'DynamicSale',
+  'SweatToken',
+  'PresenceToken',
+  'AdminFacetUpgrade',
+].join(',');
+const LEGACY_DEPLOY_SCRIPTS = 'deploy/legacy/tdf-v1';
 
 function parseArgs(rawArgs, numFixedArgs, expectedOptions) {
   const fixedArgs = [];
@@ -73,22 +83,32 @@ async function performAction(rawArgs) {
       filepath = filepath.slice(folder.length + 1);
     }
     await execute(
-      `cross-env HARDHAT_DEPLOY_LOG=true HARDHAT_NETWORK=${fixedArgs[0]} ts-node --files ${filepath} ${extra.join(' ')}`
+      `cross-env HARDHAT_DEPLOY_LOG=true HARDHAT_NETWORK=${fixedArgs[0]} ts-node --files ${filepath} ${extra.join(' ')}`,
     );
   } else if (firstArg === 'deploy') {
+    console.error(
+      'Bare deploy is disabled. Use npm run deploy for help, or deploy:legacy/deploy:village/deploy:tdf-v2.',
+    );
+    process.exitCode = 1;
+  } else if (firstArg === 'deploy:legacy') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
-    await execute(`hardhat --network ${fixedArgs[0]} deploy ${extra.join(' ')}`);
+    await execute(
+      `cross-env ROCKETH_DEPLOY_SCRIPTS=${LEGACY_DEPLOY_SCRIPTS} hardhat --network ${fixedArgs[0]} deploy --tags ${LEGACY_DEPLOY_TAGS} ${extra.join(' ')}`,
+    );
   } else if (firstArg === 'verify') {
+    console.error('Bare verify is disabled. Use verify:legacy or verify:village.');
+    process.exitCode = 1;
+  } else if (firstArg === 'verify:legacy') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0];
     if (!network) {
       console.error(`need to specify the network as first argument`);
       return;
     }
-    await execute(`hardhat --network ${network} etherscan-verify ${extra.join(' ')}`);
+    await execute(`hardhat --network ${network} verify ${extra.join(' ')}`);
   } else if (firstArg === 'export') {
-    const {fixedArgs} = parseArgs(args, 2, {});
-    await execute(`hardhat --network ${fixedArgs[0]} export --export ${fixedArgs[1]}`);
+    console.error('Bare export is disabled. Use export:village.');
+    process.exitCode = 1;
   } else if (firstArg === 'fork:run') {
     const {fixedArgs, options, extra} = parseArgs(args, 2, {
       deploy: 'boolean',
@@ -101,11 +121,13 @@ async function performAction(rawArgs) {
       filepath = filepath.slice(folder.length + 1);
     }
     await execute(
-      `cross-env ${options.deploy ? 'HARDHAT_DEPLOY_FIXTURE=true' : ''} HARDHAT_DEPLOY_LOG=true HARDHAT_FORK=${
-        fixedArgs[0]
-      } ${options.blockNumber ? `HARDHAT_FORK_NUMBER=${options.blockNumber}` : ''} ${
+      `cross-env ${
+        options.deploy ? `HARDHAT_DEPLOY_FIXTURE=true ROCKETH_DEPLOY_SCRIPTS=${LEGACY_DEPLOY_SCRIPTS}` : ''
+      } HARDHAT_DEPLOY_LOG=true HARDHAT_FORK=${fixedArgs[0]} ${
+        options.blockNumber ? `HARDHAT_FORK_NUMBER=${options.blockNumber}` : ''
+      } ${
         options['no-impersonation'] ? `HARDHAT_DEPLOY_NO_IMPERSONATION=true` : ''
-      } ts-node --files ${filepath} ${extra.join(' ')}`
+      } ts-node --files ${filepath} ${extra.join(' ')}`,
     );
   } else if (firstArg === 'fork:deploy') {
     const {fixedArgs, options, extra} = parseArgs(args, 1, {
@@ -117,7 +139,7 @@ async function performAction(rawArgs) {
         options.blockNumber ? `HARDHAT_FORK_NUMBER=${options.blockNumber}` : ''
       } ${
         options['no-impersonation'] ? `HARDHAT_DEPLOY_NO_IMPERSONATION=true` : ''
-      } hardhat deploy ${extra.join(' ')}`
+      } ROCKETH_DEPLOY_SCRIPTS=${LEGACY_DEPLOY_SCRIPTS} hardhat deploy --tags ${LEGACY_DEPLOY_TAGS} ${extra.join(' ')}`,
     );
   } else if (firstArg === 'fork:node') {
     const {fixedArgs, options, extra} = parseArgs(args, 1, {
@@ -129,7 +151,7 @@ async function performAction(rawArgs) {
         options.blockNumber ? `HARDHAT_FORK_NUMBER=${options.blockNumber}` : ''
       } ${
         options['no-impersonation'] ? `HARDHAT_DEPLOY_NO_IMPERSONATION=true` : ''
-      } hardhat node --hostname 0.0.0.0 ${extra.join(' ')}`
+      } hardhat node --hostname 0.0.0.0 ${extra.join(' ')}`,
     );
   } else if (firstArg === 'fork:test') {
     const {fixedArgs, options, extra} = parseArgs(args, 1, {
@@ -141,7 +163,7 @@ async function performAction(rawArgs) {
         options.blockNumber ? `HARDHAT_FORK_NUMBER=${options.blockNumber}` : ''
       } ${
         options['no-impersonation'] ? `HARDHAT_DEPLOY_NO_IMPERSONATION=true` : ''
-      } HARDHAT_DEPLOY_FIXTURE=true HARDHAT_COMPILE=true mocha --bail --recursive test ${extra.join(' ')}`
+      } HARDHAT_DEPLOY_FIXTURE=true ROCKETH_DEPLOY_SCRIPTS=${LEGACY_DEPLOY_SCRIPTS} HARDHAT_COMPILE=true mocha --bail --recursive test ${extra.join(' ')}`,
     );
   } else if (firstArg === 'fork:dev') {
     const {fixedArgs, options, extra} = parseArgs(args, 1, {
@@ -153,7 +175,7 @@ async function performAction(rawArgs) {
         options.blockNumber ? `HARDHAT_FORK_NUMBER=${options.blockNumber}` : ''
       } ${
         options['no-impersonation'] ? `HARDHAT_DEPLOY_NO_IMPERSONATION=true` : ''
-      } hardhat node --hostname 0.0.0.0 --watch --export contractsInfo.json ${extra.join(' ')}`
+      } hardhat node --hostname 0.0.0.0 --watch --export contractsInfo.json ${extra.join(' ')}`,
     );
   } else if (firstArg === 'tenderly:push') {
     const {fixedArgs} = parseArgs(args, 1, {});

@@ -4,6 +4,7 @@ artifacts/
 cache/
 coverage/
 node_modules/
+src/legacy/
 package.json
 typechain/
 types/

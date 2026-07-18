@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const FACETS_DIR = 'artifacts/src/diamond/facets';
+const FACETS_DIR = 'artifacts/src/legacy/tdf-v1/diamond/facets';
 const OUTPUT_DIR = 'generated';
 const OUTPUT_FILE = path.join(OUTPUT_DIR, 'TDFDiamond.json');
 
@@ -49,7 +49,7 @@ for (const dir of facetDirs) {
 const diamondArtifact = {
   _format: 'hh3-artifact-1',
   contractName: 'TDFDiamond',
-  sourceName: 'src/diamond/TDFDiamond.sol',
+  sourceName: 'src/legacy/tdf-v1/diamond/TDFDiamond.sol',
   abi: mergedAbi,
   bytecode: '0x',
   deployedBytecode: '0x',

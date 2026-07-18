@@ -13,6 +13,7 @@
   "include": [
     "hardhat.config.ts",
     "./scripts",
+    "./ignition",
     "./deploy",
     "./test",
     "./rocketh",
