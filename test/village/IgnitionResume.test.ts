@@ -13,7 +13,7 @@ function account(index: number): string {
   return HDNodeWallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${index}`).address;
 }
 
-describe('V2 Ignition HTTP-network recovery', function () {
+describe('Ignition HTTP-network recovery', function () {
   it('resumes the same deployment ID without redeploying contracts', async function () {
     this.timeout(90_000);
     const root = await mkdtemp(path.join(tmpdir(), 'village-ignition-resume-'));
@@ -37,6 +37,7 @@ describe('V2 Ignition HTTP-network recovery', function () {
     try {
       await waitForNode(node);
       const config = {
+        schemaVersion: 3,
         villageSlug: 'ignition-resume-test',
         chainId: 31337,
         deploymentProfile: 'token-village',
@@ -83,7 +84,7 @@ describe('V2 Ignition HTTP-network recovery', function () {
 
       const upgradeCommand = [
         'run',
-        'upgrade:v2:prepare',
+        'upgrade:prepare',
         '--silent',
         '--',
         '--manifest',
@@ -91,9 +92,9 @@ describe('V2 Ignition HTTP-network recovery', function () {
         '--contract',
         'VillageAccess',
         '--implementation',
-        'VillageAccessV2Mock',
+        'VillageAccessUpgradeMock',
         '--version',
-        'v2-test',
+        'upgrade-test',
         '--network',
         'localhost',
       ];
@@ -101,7 +102,7 @@ describe('V2 Ignition HTTP-network recovery', function () {
       const prepared = JSON.parse(await readFile(manifestPath, 'utf8'));
       expect(prepared.upgradeHistory[0]).to.include({
         contractName: 'VillageAccess',
-        version: 'v2-test',
+        version: 'upgrade-test',
         status: 'prepared',
       });
       expect(prepared.upgradeHistory[0].implementationCodeHash).to.match(/^0x[0-9a-f]{64}$/);
@@ -109,7 +110,7 @@ describe('V2 Ignition HTTP-network recovery', function () {
       const wrongChainManifestPath = path.join(root, 'wrong-chain-manifest.json');
       const wrongChainManifest = `${JSON.stringify({...prepared, chainId: 42220}, null, 2)}\n`;
       await writeFile(wrongChainManifestPath, wrongChainManifest);
-      for (const upgradeArgs of [[], ['--upgrade', 'VillageAccess:v2-test']]) {
+      for (const upgradeArgs of [[], ['--upgrade', 'VillageAccess:upgrade-test']]) {
         let statusError: (Error & {stderr?: string}) | undefined;
         try {
           await execFile(
@@ -155,7 +156,7 @@ describe('V2 Ignition HTTP-network recovery', function () {
       );
 
       const eoaUpgradeCommand = upgradeCommand.map((argument) =>
-        argument === 'v2-test' ? 'v3-eoa-submit-test' : argument,
+        argument === 'upgrade-test' ? 'eoa-submit-test' : argument,
       );
       await execFile('npm', eoaUpgradeCommand, {cwd: process.cwd(), env});
       await execFile(
@@ -170,13 +171,13 @@ describe('V2 Ignition HTTP-network recovery', function () {
           '--network',
           'localhost',
           '--upgrade',
-          'VillageAccess:v3-eoa-submit-test',
+          'VillageAccess:eoa-submit-test',
         ],
         {cwd: process.cwd(), env},
       );
       const eoaExecuted = JSON.parse(await readFile(manifestPath, 'utf8'));
       const eoaUpgrade = eoaExecuted.upgradeHistory.find(
-        (upgrade: {version: string}) => upgrade.version === 'v3-eoa-submit-test',
+        (upgrade: {version: string}) => upgrade.version === 'eoa-submit-test',
       );
       expect(eoaUpgrade.status).to.equal('executed');
       expect(eoaExecuted.contracts.VillageAccess.implementationAddress).to.equal(eoaUpgrade.newImplementation);
@@ -185,24 +186,24 @@ describe('V2 Ignition HTTP-network recovery', function () {
       );
 
       const nextUpgradeCommand = upgradeCommand.map((argument) =>
-        argument === 'v2-test' ? 'v4-unreconciled-test' : argument,
+        argument === 'upgrade-test' ? 'unreconciled-test' : argument,
       );
       await execFile('npm', nextUpgradeCommand, {cwd: process.cwd(), env});
       const nextPrepared = JSON.parse(await readFile(manifestPath, 'utf8'));
       const unreconciled = nextPrepared.upgradeHistory.find(
-        (upgrade: {version: string}) => upgrade.version === 'v4-unreconciled-test',
+        (upgrade: {version: string}) => upgrade.version === 'unreconciled-test',
       );
       await (await access.upgradeToAndCall(unreconciled.newImplementation, '0x')).wait();
 
       // Simulate external state drift by discarding the prepared history entry
       // after its candidate was executed on-chain.
       nextPrepared.upgradeHistory = nextPrepared.upgradeHistory.filter(
-        (upgrade: {version: string}) => upgrade.version !== 'v4-unreconciled-test',
+        (upgrade: {version: string}) => upgrade.version !== 'unreconciled-test',
       );
       const staleManifest = `${JSON.stringify(nextPrepared, null, 2)}\n`;
       await writeFile(manifestPath, staleManifest);
       const driftedUpgradeCommand = upgradeCommand.map((argument) =>
-        argument === 'v2-test' ? 'v5-must-not-deploy' : argument,
+        argument === 'upgrade-test' ? 'must-not-deploy' : argument,
       );
 
       let driftError: Error | undefined;
@@ -214,7 +215,7 @@ describe('V2 Ignition HTTP-network recovery', function () {
       expect(driftError?.message).to.include('does not match manifest');
       expect(await readFile(manifestPath, 'utf8')).to.equal(staleManifest);
 
-      const forbiddenDeploymentId = 'upgrade-31337-ignition-resume-test-village-access-v5-must-not-deploy';
+      const forbiddenDeploymentId = 'upgrade-31337-ignition-resume-test-village-access-must-not-deploy';
       let forbiddenJournalExists = true;
       try {
         await readFile(path.join(ignitionRoot, 'deployments', forbiddenDeploymentId, 'journal.jsonl'));

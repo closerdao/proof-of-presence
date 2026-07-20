@@ -51,7 +51,7 @@ export async function validateSelectedImplementations(
   if (modules.tokenizedStays) selected.push('TokenizedStays');
 
   if (!context.upgrades?.validateImplementation) {
-    throw new Error('OpenZeppelin upgrades validation is required before every V2 Ignition UUPS deployment');
+    throw new Error('OpenZeppelin upgrades validation is required before every Ignition UUPS deployment');
   }
   for (const contractName of selected) {
     const factory = await context.ethers.getContractFactory(contractName, deployer);
@@ -136,7 +136,7 @@ export async function deployVillageIgnitionGraph(
   initializerGrants: ResolvedRoleGrant[],
   deployerAddress: string,
 ): Promise<IgnitionVillageDeployment> {
-  if (!context.ignition?.deploy) throw new Error('Hardhat Ignition is required for every V2 contract deployment');
+  if (!context.ignition?.deploy) throw new Error('Hardhat Ignition is required for every contract deployment');
 
   const module = selectVillageProfileModule(modules);
   // A caller override is used by standalone-contract deployment; normal village reruns must retain the derived ID.

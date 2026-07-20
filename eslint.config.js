@@ -4,18 +4,7 @@ import eslintConfigPrettier from 'eslint-config-prettier/flat';
 
 export default [
   {
-    ignores: [
-      'export/',
-      'deployments/',
-      'artifacts/',
-      'cache/',
-      'coverage/',
-      'node_modules/',
-      'typechain/',
-      'types/',
-      'generated/',
-      '.yalc/',
-    ],
+    ignores: ['export/', 'deployments/', 'artifacts/', 'cache/', 'coverage/', 'node_modules/', '.yalc/'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

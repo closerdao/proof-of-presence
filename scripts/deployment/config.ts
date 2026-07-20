@@ -24,14 +24,14 @@ const safeOwner = z.strictObject({
 const finalOwner = z.discriminatedUnion('type', [eoaOwner, safeOwner]);
 
 /**
- * Strict, versioned schema for untrusted V2 deployment input.
+ * Strict, versioned schema for untrusted deployment input.
  * Unknown fields are rejected so removed options cannot silently look effective in a production config.
  */
 export const VillageDeploymentConfigSchema = z.strictObject({
-  schemaVersion: z.literal(2).default(2),
+  schemaVersion: z.literal(3),
   villageSlug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   chainId: z.number().int().positive(),
-  deploymentProfile: z.enum(['minimal-village', 'token-village', 'tokenized-stays-village', 'tdf-v2']),
+  deploymentProfile: z.enum(['minimal-village', 'token-village', 'tokenized-stays-village', 'tdf']),
   ownership: z.strictObject({
     mode: z.enum(['direct', 'deployer-handoff']).default('direct'),
     finalOwner,

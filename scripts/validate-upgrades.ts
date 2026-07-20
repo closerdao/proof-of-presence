@@ -3,11 +3,11 @@ import hre from 'hardhat';
 import {upgrades} from '@openzeppelin/hardhat-upgrades';
 
 const upgradePairs = [
-  ['VillageAccess', 'VillageAccessV2Mock'],
-  ['CommunityToken', 'CommunityTokenV2Mock'],
-  ['VillagePresenceToken', 'PresenceTokenV2Mock'],
-  ['VillageSweatToken', 'SweatTokenV2Mock'],
-  ['TokenizedStays', 'TokenizedStaysV2Mock'],
+  ['VillageAccess', 'VillageAccessUpgradeMock'],
+  ['CommunityToken', 'CommunityTokenUpgradeMock'],
+  ['VillagePresenceToken', 'PresenceTokenUpgradeMock'],
+  ['VillageSweatToken', 'SweatTokenUpgradeMock'],
+  ['TokenizedStays', 'TokenizedStaysUpgradeMock'],
 ] as const;
 
 async function main(): Promise<void> {

@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Quality and V2 tests
+    name: Quality and contract tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,8 +52,8 @@ jobs:
       - name: Linting
         run: yarn lint
 
-      - name: V2 tests
-        run: yarn test:v2
+      - name: Contract tests
+        run: yarn test
 
       - name: Validate UUPS upgrades and storage layouts
         run: yarn validate:upgrades
@@ -116,11 +116,11 @@ jobs:
       - name: Install JavaScript dependencies
         run: yarn install --frozen-lockfile --ignore-scripts
 
-      - name: Deep V2 fuzz and invariant tests
-        run: yarn test:v2:deep
+      - name: Deep fuzz and invariant tests
+        run: yarn test:deep
 
       - name: Ten-year scale tests
-        run: yarn test:v2:scale
+        run: yarn test:scale
 
       - name: Coverage regression gate
         run: yarn security:coverage
@@ -129,7 +129,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v2-coverage
+          name: contract-coverage
           path: coverage/
           if-no-files-found: warn
 
@@ -160,14 +160,8 @@ jobs:
       - name: Wake independent detector pass
         run: mise run security:wake
 
-      - name: Install Gambit mutation generator
-        run: cargo install --git https://github.com/Certora/gambit --tag v1.0.6 --locked
-
-      - name: Generate deterministic targeted mutants
-        run: gambit mutate --json security/gambit.json
-
-      - name: Summarize generated mutants
-        run: gambit summary --mutation-directory security-reports/gambit > security-reports/gambit/summary.txt
+      - name: Generate and test deterministic targeted mutants
+        run: mise run security:gambit
 
       - name: Upload pre-audit reports
         if: always()

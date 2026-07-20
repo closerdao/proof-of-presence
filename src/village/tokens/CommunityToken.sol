@@ -19,6 +19,9 @@ import {ITransferPolicy} from "../interfaces/ITransferPolicy.sol";
 /// @dev A configured policy is consulted for transfers, mints, and burns. The owner alone authorizes UUPS upgrades and
 /// role-authority replacement; the owner or VillageAccess default admin may pause the token or replace its policy.
 /// Pausing blocks every balance update, including minting and burning. Ownership transfers require two-step acceptance.
+/// Aderyn follows UUPSUpgradeable's payable upgrade surface, but OpenZeppelin rejects value when there is no setup call,
+/// while every initializer/reinitializer in this implementation is nonpayable.
+/// aderyn-fp-next-line(contract-locks-ether)
 contract CommunityToken is
     Initializable,
     ERC20Upgradeable,

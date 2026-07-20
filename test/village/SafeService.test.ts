@@ -59,7 +59,7 @@ async function expectRejected(promise: Promise<unknown>, message: string): Promi
   }
 }
 
-describe('V2 Safe owner-action status', function () {
+describe('Safe owner-action status', function () {
   it('tracks confirmation readiness without deciding on-chain completion', async function () {
     const awaiting = await refreshSafeOwnerActionsStatus(manifest(), {client: client()});
     expect(awaiting.ownerTransaction?.serviceStatus).to.include({

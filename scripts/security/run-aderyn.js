@@ -8,17 +8,18 @@ import {ensureReportDirectory, run} from './shared.js';
 
 const SOLC_VERSION = '0.8.35';
 const SOLC_BUILD_PATTERN = /Version: 0\.8\.35\+commit\.47b9dedd/;
+const EVM_VERSION = 'cancun';
 const ADERYN_PACKAGE = '@cyfrin/aderyn@0.6.8';
-const PATH_EXCLUDES = 'src/legacy,src/village/test,security/smt,test';
-const REQUIRED_SOURCES = ['src/village/stays/TokenizedStays.sol', 'src/profiles/tdf-v2/TDFTransferPolicy.sol'];
+const PATH_EXCLUDES = 'src/village/test,security/smt,test';
+const REQUIRED_SOURCES = ['src/village/stays/TokenizedStays.sol', 'src/profiles/tdf/TDFTransferPolicy.sol'];
 
 const reportDirectory = ensureReportDirectory('aderyn');
 const reportPath = path.join(reportDirectory, 'report.md');
 const runLogPath = path.join(reportDirectory, 'run.txt');
 const solcVersionPath = path.join(reportDirectory, 'solc-version.txt');
 
-function captured(command, args) {
-  const result = run(command, args, {capture: true});
+function captured(command, args, options = {}) {
+  const result = run(command, args, {capture: true, ...options});
   return {result, output: `${result.stdout ?? ''}${result.stderr ?? ''}`};
 }
 
@@ -57,15 +58,13 @@ if (aderynSolcExists) {
   symlinkSync(solcExecutable, aderynSolc, 'file');
 }
 
-const analysis = captured('npx', [
-  '--yes',
-  ADERYN_PACKAGE,
-  '.',
-  '--path-excludes',
-  PATH_EXCLUDES,
-  '--output',
-  reportPath,
-]);
+const analysis = captured(
+  'npx',
+  ['--yes', ADERYN_PACKAGE, '.', '--path-excludes', PATH_EXCLUDES, '--output', reportPath],
+  {
+    env: {...process.env, FOUNDRY_EVM_VERSION: EVM_VERSION},
+  },
+);
 writeFileSync(runLogPath, analysis.output);
 if (analysis.result.stdout) process.stdout.write(analysis.result.stdout);
 if (analysis.result.stderr) process.stderr.write(analysis.result.stderr);
@@ -76,6 +75,9 @@ if (analysis.result.status !== 0) {
 if (!/Ingesting [1-9][0-9]* compiled files \[solc : v0\.8\.35\]/.test(analysis.output)) {
   throw new Error('Aderyn did not compile a nonzero source scope with solc 0.8.35.');
 }
+if (!new RegExp(`EVM version - ${EVM_VERSION}`).test(analysis.output)) {
+  throw new Error(`Aderyn did not target the required ${EVM_VERSION} EVM version.`);
+}
 if (!/Running [1-9][0-9]* detectors/.test(analysis.output)) {
   throw new Error('Aderyn did not run a nonzero detector set.');
 }
@@ -85,6 +87,9 @@ for (const requiredSource of REQUIRED_SOURCES) {
   if (!report.includes(requiredSource)) {
     throw new Error(`Aderyn report omitted required source ${requiredSource}.`);
   }
+}
+if (/^## H-\d+:/m.test(report)) {
+  throw new Error(`Aderyn reported a high-severity finding. Review ${reportPath}.`);
 }
 
 console.log(`Aderyn analysis completed. Review ${reportPath}.`);

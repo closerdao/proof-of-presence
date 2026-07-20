@@ -1,7 +1,7 @@
 import type {ContractFuture, IgnitionModuleBuilder, ArgumentType} from '@nomicfoundation/ignition-core';
 
 /**
- * Builds the one supported V2 UUPS deployment shape.
+ * Builds the supported UUPS deployment shape.
  *
  * OpenZeppelin validation deliberately lives in the supported TypeScript
  * wrappers because an Ignition Module is a synchronous deployment graph. The

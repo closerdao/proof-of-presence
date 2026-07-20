@@ -9,6 +9,9 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 /// @dev This project-owned wrapper intentionally adds no state or upgrade behavior.
 /// It provides a stable artifact for the shared Ignition deployment modules.
 /// UUPS upgrade logic and authorization remain in each implementation contract.
+/// Aderyn follows the inherited payable proxy entry points, but nonzero value cannot be retained by the nonpayable
+/// initializers and implementation entry points used by this project.
+/// aderyn-fp-next-line(contract-locks-ether)
 contract VillageUUPSProxy is ERC1967Proxy {
     /// @notice Deploys a proxy and optionally initializes it in the same transaction.
     /// @dev Production deployments should always provide initializer calldata; empty `data` leaves the proxy

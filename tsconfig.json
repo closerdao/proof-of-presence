@@ -14,10 +14,7 @@
     "hardhat.config.ts",
     "./scripts",
     "./ignition",
-    "./deploy",
-    "./test",
-    "./rocketh",
-    "./utils"
+    "./test"
   ],
-  "exclude": ["node_modules", "types", "generated", "dist", "artifacts", "cache"]
+  "exclude": ["node_modules", "dist", "artifacts", "cache"]
 }

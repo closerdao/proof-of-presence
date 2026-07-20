@@ -33,7 +33,7 @@ function parseArgs(argv: string[]): Args {
 
 function printHelp(): void {
   console.log(`Usage:
-  tsx scripts/deploy-village.ts --config path/to/config.json [--network <network>] [--profile tdf-v2]
+  tsx scripts/deploy-village.ts --config path/to/config.json [--network <network>] [--profile tdf]
     [--output-root <path>]
 
 The config must include villageSlug, chainId, deploymentProfile, ownership, modules, and apiOperator.

@@ -16,8 +16,6 @@ updates:
           - '@nomicfoundation/*'
           - '@openzeppelin/hardhat-upgrades'
           - ethers
-          - typechain
-          - '@typechain/*'
       openzeppelin-v5:
         patterns:
           - '@openzeppelin/contracts'
@@ -33,14 +31,6 @@ updates:
           - solhint
           - tsx
     ignore:
-      # Frozen aliases compile the already-deployed V1 contracts.
-      - dependency-name: '@openzeppelin/contracts-v4'
-      - dependency-name: '@openzeppelin/contracts-upgradeable-v4'
-      # Rocketh/hardhat-deploy remain pinned until their deployment output is
-      # migrated and reviewed separately.
-      - dependency-name: '@rocketh/*'
-      - dependency-name: rocketh
-      - dependency-name: hardhat-deploy
       # Deliberately deferred major migrations.
       - dependency-name: typescript
         versions: ['>=6']
@@ -48,11 +38,5 @@ updates:
         versions: ['>=10']
       - dependency-name: chai
         versions: ['>=6']
-      - dependency-name: date-fns
-        versions: ['>=3']
       - dependency-name: dotenv
         versions: ['>=17']
-      - dependency-name: luxon
-        versions: ['>=4']
-      - dependency-name: fs-extra
-        versions: ['>=11']

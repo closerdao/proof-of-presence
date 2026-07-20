@@ -1,7 +1,6 @@
 import {expect} from 'chai';
 import {id, parseEther, ZeroAddress} from 'ethers';
-import {ethers} from '../../hardhat-compat.js';
-import type {RuntimeContract} from '../../../utils/runtimeContract.js';
+import {ethers, type RuntimeContract} from '../../hardhat.js';
 
 type Contract = RuntimeContract;
 
@@ -40,7 +39,7 @@ async function setup(balance: bigint) {
   return {member, stays};
 }
 
-describe('V2 TokenizedStays gas boundary', function () {
+describe('TokenizedStays gas boundary', function () {
   it('books a full 365-night year below a normal block gas limit', async function () {
     this.timeout(120_000);
     const {member, stays} = await setup(parseEther('500'));
@@ -59,9 +58,9 @@ describe('V2 TokenizedStays gas boundary', function () {
   });
 });
 
-const describeTenYearScale = process.env.RUN_V2_SCALE === '1' ? describe : describe.skip;
+const describeTenYearScale = process.env.RUN_SCALE_TESTS === '1' ? describe : describe.skip;
 
-describeTenYearScale('V2 TokenizedStays ten-year scale', function () {
+describeTenYearScale('TokenizedStays ten-year scale', function () {
   it('supports a continuous ten-calendar-year stay across normal yearly transactions', async function () {
     this.timeout(180_000);
     const {member, stays} = await setup(parseEther('500'));

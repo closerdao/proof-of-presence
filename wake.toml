@@ -9,9 +9,9 @@ exclude_paths = [
   "lib",
   "script",
   "test",
-  "src/legacy",
   "src/village/test",
   "security/smt",
+  "security-reports",
 ]
 
 [compiler.solc.optimizer]
@@ -23,8 +23,8 @@ ignore_paths = [
   "venv",
   ".venv",
   "test",
-  "src/legacy",
   "src/village/test",
   "security/smt",
+  "security-reports",
 ]
-exclude_paths = ["node_modules", "lib", "script"]
+exclude_paths = ["node_modules", "lib", "script", "security-reports"]

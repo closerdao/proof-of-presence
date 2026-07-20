@@ -3,7 +3,7 @@
   "contracts": {
     "CommunityToken": {
       "deployedBytecodeBytes": 11703,
-      "deployedBytecodeSha256": "16907eb84fbb7fd501885ae111a89cded03c5a8e729a59019d51d0777f8ed5c2",
+      "deployedBytecodeSha256": "930e911640c8645a04bccdcea133ab25fea6ad36b90cf8ba25e4f1b32eee7ad0",
       "events": {
         "Approval(address,address,uint256)": "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
         "EIP712DomainChanged()": "0x0a6387c9ea3628b88a633bb4f3b151770f70085117a15f9bf3787cda53f13d31",
@@ -57,7 +57,7 @@
     },
     "TDFTransferPolicy": {
       "deployedBytecodeBytes": 2022,
-      "deployedBytecodeSha256": "86b1a4b21a188aace94b2dcc4a4fe3bbaecac3b1f4753663235506ff7f6365f4",
+      "deployedBytecodeSha256": "8afb093fb1790c5bc2985323f4cda186b2a4743f88035c97b6045f465aa5c773",
       "events": {
         "AllowedCounterpartyChanged(address,bool)": "0xf7070e38ee242922344baf4d713f72dd0e6987e5ad1c0e0d5730603e9b5e0577",
         "OwnershipTransferStarted(address,address)": "0x38d16b8cac22d99fc7c124b9cd0de2d3fa1faef420bfe791d8c362d765e22700",
@@ -80,12 +80,12 @@
         "transfersRestricted()": "0x8423df79",
         "treasury()": "0x61d027b3"
       },
-      "sourceName": "src/profiles/tdf-v2/TDFTransferPolicy.sol",
-      "storageLayoutSha256": "56cbe1269ebd138cddc4222d53d84f549c79e12e19f2353a992fb0215b86354d"
+      "sourceName": "src/profiles/tdf/TDFTransferPolicy.sol",
+      "storageLayoutSha256": "6167f97d00ab3ae161c480f30cea0ee0ef2159b681df6c7f06ab2767c409973d"
     },
     "TokenizedStays": {
-      "deployedBytecodeBytes": 18851,
-      "deployedBytecodeSha256": "ccbdc127eccc0719c417698aedd536510f717a55d5c2768296c7b5e8250cfdaa",
+      "deployedBytecodeBytes": 19135,
+      "deployedBytecodeSha256": "ac964083b37ca4e60437b5f939a9977a7f2a57d7b8dde7a581e51d2ac3cefc11",
       "events": {
         "BookingBalanceReconciled(address,uint256,uint256,uint256)": "0x0f0e9684b94e4d0aae24472a23baa23e5f080b7483136ff3d7a74c8b83415d27",
         "BookingCanceled(address,uint16,uint16,uint256)": "0xa8a007a8f6d181846b3661a47edb28c9b4d098dc24b7930a6d82b8e60882f817",
@@ -155,7 +155,7 @@
     },
     "VillageAccess": {
       "deployedBytecodeBytes": 9429,
-      "deployedBytecodeSha256": "3ee1402f1eb91cfa76adaa8cbde995aacaf513e02a4c8440d217097002d97b55",
+      "deployedBytecodeSha256": "da0df6709e94519799ab9d8922fd59883aed0d0bfdd3e4a3d63895c93165f8b6",
       "events": {
         "DefaultAdminDelayChangeCanceled()": "0x2b1fa2edafe6f7b9e97c1a9e0c3660e645beb2dcaa2d45bdbf9beaf5472e1ec5",
         "DefaultAdminDelayChangeScheduled(uint48,uint48)": "0xf1038c18cf84a56e432fdbfaf746924b7ea511dfe03a6506a0ceba4888788d9b",
@@ -202,8 +202,8 @@
       "storageLayoutSha256": "f846b023549275be2e0c1636ca4bec256cd67a0365c39781e76ec879398473a8"
     },
     "VillagePresenceToken": {
-      "deployedBytecodeBytes": 12157,
-      "deployedBytecodeSha256": "f97f38bdbd15bfe02f5bca012ff038be897b599a1dd3ed9a8fd2546b04f9cdd3",
+      "deployedBytecodeBytes": 12152,
+      "deployedBytecodeSha256": "8fea7f2c1af6cb28fe95fcc8b1f6e91c2c17557a76ac8db5d4b1543575623fbd",
       "events": {
         "Approval(address,address,uint256)": "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
         "BurnAllUserTokens(address)": "0x94f487081fa4538b2d02a6ad0e4d80a512d428f3bbfaf74d96ee177063ece9a7",
@@ -263,8 +263,8 @@
       "storageLayoutSha256": "f846b023549275be2e0c1636ca4bec256cd67a0365c39781e76ec879398473a8"
     },
     "VillageSweatToken": {
-      "deployedBytecodeBytes": 12157,
-      "deployedBytecodeSha256": "65018f6fc4116606671ed65238b26782c49aa80128723c9f30f1db5d107d1840",
+      "deployedBytecodeBytes": 12152,
+      "deployedBytecodeSha256": "d6e29354e85d205a26184c1513a62b52d4cad94f14c94b6f0375bba1c7a86530",
       "events": {
         "Approval(address,address,uint256)": "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
         "BurnAllUserTokens(address)": "0x94f487081fa4538b2d02a6ad0e4d80a512d428f3bbfaf74d96ee177063ece9a7",

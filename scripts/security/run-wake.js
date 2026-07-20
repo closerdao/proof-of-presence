@@ -9,12 +9,12 @@ import {ensureReportDirectory, run} from './shared.js';
 const WAKE_REPOSITORY = 'https://github.com/microhoffman/wake.git';
 const WAKE_COMMIT = '6484ca1961fab54fd594aef9479880d0522bdbcd';
 const CONFIG_PATH = 'wake.toml';
-const TARGETS = ['src/village', 'src/profiles/tdf-v2'];
-const REQUIRED_SOURCES = ['src/village/stays/TokenizedStays.sol', 'src/profiles/tdf-v2/TDFTransferPolicy.sol'];
+const TARGETS = ['src/village', 'src/profiles/tdf'];
+const REQUIRED_SOURCES = ['src/village/stays/TokenizedStays.sol', 'src/profiles/tdf/TDFTransferPolicy.sol'];
 const REQUIRED_DETECTORS = ['reentrancy', 'unchecked-return-value'];
 const FINDINGS_EXIT_CODE = 3;
 
-const reportDirectory = ensureReportDirectory('wake/v2');
+const reportDirectory = ensureReportDirectory('wake/contracts');
 const nativeReportPath = 'wake-detections.html';
 const reportPath = path.join(reportDirectory, 'report.html');
 const runLogPath = path.join(reportDirectory, 'run.txt');

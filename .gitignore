@@ -5,25 +5,20 @@ artifacts/
 coverage*
 !security/coverage-baseline.json
 security-reports/
-typechain/
-types/ethers-contracts/
-generated/
 
-.vscode/*
-!.vscode/settings.json.default
-!.vscode/launch.json.default
-!.vscode/extensions.json.default
+/.vscode/
+
+# Local development deployment state. Real-network manifests and Ignition
+# journals remain trackable.
+/deployments/localhost/
+/deployments/villages/31337/
+/deployments/profiles/*/31337/
+/deployments/contracts/31337/
+/ignition/deployments/chain-31337/
+/ignition/deployments/*-31337-*/
 
 node_modules/
 .env
 
 .yalc
 yalc.lock
-
-contractsInfo.json
-deployments/hardhat
-deployments/localhost
-
-/.dapp
-
-__Flattened*.sol

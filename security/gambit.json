@@ -4,7 +4,8 @@
     "sourceroot": "..",
     "contract": "DecayMath",
     "functions": ["powWithPrecision", "nthRoot"],
-    "solc": "solc",
+    "solc": "./scripts/security/gambit-solc.js",
+    "solc_evm_version": "cancun",
     "solc_base_path": "..",
     "solc_include_path": "../node_modules",
     "solc_remappings": ["@openzeppelin=../node_modules/@openzeppelin"],
@@ -12,13 +13,14 @@
     "outdir": "../security-reports/gambit",
     "num_mutants": 2,
     "seed": 20260718,
-    "mutations": ["binary-op-mutation", "assignment-mutation", "if-cond-mutation"]
+    "mutations": ["binary-op-mutation", "assignment-mutation", "if-statement-mutation"]
   },
   {
     "filename": "../src/village/tokens/ERC20NonTransferableDecaying.sol",
     "sourceroot": "..",
     "contract": "ERC20NonTransferableDecaying",
-    "solc": "solc",
+    "solc": "./scripts/security/gambit-solc.js",
+    "solc_evm_version": "cancun",
     "solc_base_path": "..",
     "solc_include_path": "../node_modules",
     "solc_remappings": ["@openzeppelin=../node_modules/@openzeppelin"],
@@ -26,13 +28,14 @@
     "outdir": "../security-reports/gambit",
     "num_mutants": 2,
     "seed": 20260718,
-    "mutations": ["binary-op-mutation", "assignment-mutation", "if-cond-mutation"]
+    "mutations": ["binary-op-mutation", "assignment-mutation", "if-statement-mutation"]
   },
   {
     "filename": "../src/village/stays/TokenizedStays.sol",
     "sourceroot": "..",
     "contract": "TokenizedStays",
-    "solc": "solc",
+    "solc": "./scripts/security/gambit-solc.js",
+    "solc_evm_version": "cancun",
     "solc_base_path": "..",
     "solc_include_path": "../node_modules",
     "solc_remappings": ["@openzeppelin=../node_modules/@openzeppelin"],
@@ -40,13 +43,14 @@
     "outdir": "../security-reports/gambit",
     "num_mutants": 2,
     "seed": 20260718,
-    "mutations": ["binary-op-mutation", "assignment-mutation", "if-cond-mutation"]
+    "mutations": ["binary-op-mutation", "assignment-mutation", "if-statement-mutation"]
   },
   {
     "filename": "../src/village/tokens/CommunityToken.sol",
     "sourceroot": "..",
     "contract": "CommunityToken",
-    "solc": "solc",
+    "solc": "./scripts/security/gambit-solc.js",
+    "solc_evm_version": "cancun",
     "solc_base_path": "..",
     "solc_include_path": "../node_modules",
     "solc_remappings": ["@openzeppelin=../node_modules/@openzeppelin"],
@@ -54,13 +58,14 @@
     "outdir": "../security-reports/gambit",
     "num_mutants": 2,
     "seed": 20260718,
-    "mutations": ["assignment-mutation", "if-cond-mutation"]
+    "mutations": ["assignment-mutation", "if-statement-mutation"]
   },
   {
     "filename": "../src/village/access/VillageAccess.sol",
     "sourceroot": "..",
     "contract": "VillageAccess",
-    "solc": "solc",
+    "solc": "./scripts/security/gambit-solc.js",
+    "solc_evm_version": "cancun",
     "solc_base_path": "..",
     "solc_include_path": "../node_modules",
     "solc_remappings": ["@openzeppelin=../node_modules/@openzeppelin"],
@@ -68,13 +73,14 @@
     "outdir": "../security-reports/gambit",
     "num_mutants": 2,
     "seed": 20260718,
-    "mutations": ["assignment-mutation", "if-cond-mutation"]
+    "mutations": ["assignment-mutation", "if-statement-mutation"]
   },
   {
-    "filename": "../src/profiles/tdf-v2/TDFTransferPolicy.sol",
+    "filename": "../src/profiles/tdf/TDFTransferPolicy.sol",
     "sourceroot": "..",
     "contract": "TDFTransferPolicy",
-    "solc": "solc",
+    "solc": "./scripts/security/gambit-solc.js",
+    "solc_evm_version": "cancun",
     "solc_base_path": "..",
     "solc_include_path": "../node_modules",
     "solc_remappings": ["@openzeppelin=../node_modules/@openzeppelin"],
@@ -82,6 +88,6 @@
     "outdir": "../security-reports/gambit",
     "num_mutants": 2,
     "seed": 20260718,
-    "mutations": ["binary-op-mutation", "assignment-mutation", "if-cond-mutation"]
+    "mutations": ["binary-op-mutation", "assignment-mutation", "if-statement-mutation"]
   }
 ]

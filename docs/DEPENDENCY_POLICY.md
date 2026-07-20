@@ -2,79 +2,84 @@
 
 ## Reproducible installs
 
-- Use Node.js 22.22.2 and Yarn Classic 1.22.22, as declared in
-  `.tool-versions` and `package.json`.
-- Direct dependencies are exact-pinned. `yarn.lock` is the authoritative
-  transitive dependency graph and CI installs it with `--frozen-lockfile`.
-- Update related packages together, then run type checking, formatting,
-  linting, contract tests, upgrade validation, and the ABI/bytecode review.
-- Do not add broad `resolutions` merely to make an audit report green. Prefer
-  upgrading the package that owns the vulnerable dependency. A resolution is
-  acceptable only after compatibility tests prove that the parent package's
-  declared range supports it and the reason is documented here.
+- Tool versions are pinned in `mise.toml` and `mise.lock`.
+- Direct JavaScript dependencies use exact versions in `package.json`.
+- `yarn.lock` is authoritative; CI installs with `yarn install --frozen-lockfile --ignore-scripts`.
+- Related packages should be upgraded together and verified with `mise run check` and the relevant security gates.
+- Broad `resolutions` are not used merely to hide vulnerability reports. A resolution requires proof that every
+  parent package supports the chosen version and a documented reason.
 
-## Active dependency groups
+## Current dependency boundary
 
-- OpenZeppelin Contracts v5 and the Hardhat Upgrades plugin
-- Hardhat 3, its Nomic Foundation plugins, Ethers v6, and TypeChain
-- Safe API Kit, Protocol Kit, Types Kit, and Safe deployments
-- TypeScript execution, tests, formatting, and Solidity linting tools
+The contract stack is:
 
-Dependabot checks these groups weekly. It opens reviewable pull requests; it
-does not auto-merge them.
+- Solidity 0.8.35 targeting Cancun;
+- OpenZeppelin Contracts and Contracts Upgradeable 5.6.1;
+- OpenZeppelin Hardhat Upgrades 4;
+- Hardhat 3.11 with Ethers, Mocha, Chai matchers, Ignition, and verification plugins;
+- Ethers 6 and Safe API/Protocol/Types kits;
+- TypeScript 5.9, ESLint 9, Prettier 3, Solhint 6, Mocha 11, Zod 4, and tsx.
 
-## Frozen and deferred dependencies
+Both OpenZeppelin packages are development/build dependencies because this repository publishes contracts rather than
+a runtime JavaScript application. `@safe-global/safe-deployments` remains only as a transitive dependency of Safe
+Protocol Kit; it is no longer a direct dependency.
 
-- `@openzeppelin/contracts-v4` and
-  `@openzeppelin/contracts-upgradeable-v4` are immutable aliases used by the
-  already-deployed V1 contracts. Do not upgrade or replace their imports. The
-  `src/legacy` tree is formatter-excluded so a tooling update cannot rewrite
-  frozen source and contract metadata for style-only reasons.
-- Rocketh and `hardhat-deploy` are held at the current versions until the
-  legacy deployment path is migrated and its generated output is reviewed.
-- Major upgrades of TypeScript, ESLint, Chai, date-fns, dotenv, Luxon, and
-  fs-extra are separate migrations. In particular, date-fns is only used by
-  the legacy deployment code.
-- The project remains on Ethers. A viem/wagmi migration would be an application
-  architecture change, not dependency maintenance.
+The repository does not use OpenZeppelin 4 aliases, Rocketh, Hardhat Deploy, TypeChain, date-fns, Luxon, fs-extra, or
+Lodash directly. Reintroducing any of them requires a current architectural need and normal dependency review.
 
-## OpenZeppelin v5 build boundary
+## Compiler and OpenZeppelin boundary
 
-V1 remains compiled for Paris. OpenZeppelin Contracts 5.6 uses EIP-5656
-`MCOPY`, so Solidity 0.8.35 V2 contracts target Cancun. The two V1 libraries
-with range pragmas have explicit Paris compiler overrides to keep them out of
-the V2 compiler target.
+OpenZeppelin Contracts 5.6 uses instructions and primitives that require the Cancun target. All production and test
+contracts therefore compile through one Solidity 0.8.35/Cancun profile with optimizer runs set to 2000.
 
-OpenZeppelin 5.6 makes `Initializable` and `UUPSUpgradeable` stateless bases in
-`@openzeppelin/contracts`. V2 imports them from that package and does not call
-the removed no-op UUPS initializer. `TokenizedStays` uses the constructor-free
-`ReentrancyGuardTransient`, which is supported by the same Cancun boundary and
-does not reserve proxy storage. Upgrade validation must pass after every
-OpenZeppelin update.
+`Initializable` and `UUPSUpgradeable` are stateless bases imported from `@openzeppelin/contracts`.
+`TokenizedStays` uses `ReentrancyGuardTransient`. Upgrade validation must pass after every Solidity, OpenZeppelin,
+Hardhat, or optimizer change, and intentional bytecode/storage changes require an artifact-baseline review.
 
-## Known audit exceptions
+## Update policy
 
-- Luxon 3.0.4 is currently used only by frozen V1 tests. Its reported ReDoS
-  does not process production input; the explicitly deferred Luxon update
-  should still move to a patched 3.x release when the legacy test harness is
-  refreshed.
-- TypeChain, Solhint, and OpenZeppelin Defender SDK packages still bring in
-  transitive `lodash@4.17.21`. The project's direct Lodash dependency is
-  patched. Do not force incompatible transitive resolutions; track updates of
-  the owning development tools instead.
-- Ignition's transitive `lodash-es@4.17.21` usage is limited to collection and
-  equality helpers; it does not use the vulnerable template API. Do not force
-  a resolution without an upstream-compatible release.
-- Mocha's transitive `serialize-javascript@6` is development-only. Track the
-  upstream update rather than overriding Mocha's dependency graph.
+Dependabot groups Hardhat, OpenZeppelin, Safe, and development-tooling updates. The following major migrations remain
+separate reviewed changes:
 
-Reassess these exceptions whenever their parent package is upgraded or the
-dependency starts handling untrusted production input.
+- TypeScript 6 or later;
+- ESLint 10 or later;
+- Chai 6 or later;
+- dotenv 17 or later.
+
+Before merging dependency changes:
+
+1. read the owning project's release and migration notes;
+2. regenerate `yarn.lock`;
+3. run type checking, formatting, linting, all tests, and upgrade validation;
+4. run the dependency and artifact security gates;
+5. review changes to compiler output, ABI, storage layout, code size, Ignition behavior, and Safe handling.
+
+## Vulnerability baseline
+
+`yarn security:dependencies` scans the lockfile with OSV-Scanner. The committed baseline records current exact
+package/version/advisory tuples and fails any new tuple. It is not an ignore list; full findings remain in the generated
+report.
+
+Current findings are transitive development/deployment-tool findings, including old archive/zip, glob/regex, YAML,
+serialization, HTTP/WebSocket, elliptic, and utility packages. Some originate through Ignition, Safe, Mocha, Solhint,
+or OpenZeppelin tooling. Prefer updates of the owning parent package. Update the baseline only after reviewing the full
+report and documenting any material risk change.
+
+The direct dependencies are currently at their declared versions, and a Yarn Classic semver-compatible upgrade does
+not replace the affected nested lock entries. Do not force the following incompatible or unavailable remediations:
+
+- Hardhat's `adm-zip` requires a jump from 0.4 to 0.6;
+- Mocha's `diff` and `serialize-javascript` require new major versions;
+- `elliptic` has no fixed release for the recorded advisory.
+
+Other findings have fixed patch/minor releases, but remain owned by current Hardhat, Mocha, Solhint, ESLint,
+TypeScript-ESLint, Ignition, Safe, or OpenZeppelin dependency chains. Prefer upstream parent releases over broad Yarn
+resolutions. These packages execute only in local/CI build, test, lint, deployment, or verification tooling; none are
+linked into deployed EVM bytecode. Revisit the baseline whenever a parent release or advisory changes.
 
 ## Static-analysis compatibility
 
-Slither 0.11.5 does not yet parse Solidity 0.8.35's `erc7201(...)` compile-time
-builtin. Its V2 run therefore remains advisory until upstream support lands;
-Hardhat compilation and OpenZeppelin upgrade validation are the authoritative
-storage-layout gates in the meantime. The Slither runner still targets Cancun
-so its compiler configuration matches the V2 build.
+The security toolchain deliberately pins compatible analyzer/compiler combinations. Wake uses a pinned project fork
+until upstream supports Solidity 0.8.35; Slither runs from a recorded upstream commit for ERC-7201 support; Aderyn is a
+secondary independent pass. Hardhat compilation and OpenZeppelin upgrade validation remain the authoritative build and
+storage-layout gates.

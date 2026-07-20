@@ -6,7 +6,7 @@ import {z} from 'zod';
 import {deployVillageIgnitionGraph, isPolicyOnlyDeployment, validateSelectedImplementations} from './ignition.js';
 import {prepareSafeOwnerActions} from './safe-service.js';
 
-export type DeploymentProfile = 'minimal-village' | 'token-village' | 'tokenized-stays-village' | 'tdf-v2';
+export type DeploymentProfile = 'minimal-village' | 'token-village' | 'tokenized-stays-village' | 'tdf';
 export type OwnershipMode = 'direct' | 'deployer-handoff';
 
 export interface EoaOwnerConfig {
@@ -29,7 +29,7 @@ export interface OwnershipConfig {
 }
 
 export interface VillageDeploymentConfig {
-  schemaVersion?: 2;
+  schemaVersion: 3;
   villageSlug: string;
   chainId: number;
   deploymentProfile: DeploymentProfile;
@@ -159,11 +159,11 @@ export interface ManifestUpgrade {
  * It summarizes configured and observed onchain state; Ignition's journal remains the source for transaction resumption.
  */
 export interface VillageDeploymentManifest {
-  schemaVersion: 2;
-  generation: 'village' | 'profile';
+  schemaVersion: 3;
+  deploymentKind: 'village' | 'profile';
   villageSlug: string;
   chainId: number;
-  configSchemaVersion: 2;
+  configSchemaVersion: 3;
   configHash: string;
   sourceRevision?: string;
   network: string;
@@ -329,15 +329,15 @@ const manifestUpgrade = z.strictObject({
 
 /** Strict schema for persisted deployment state; Ignition remains the transaction journal. */
 export const VillageDeploymentManifestSchema = z.strictObject({
-  schemaVersion: z.literal(2),
-  generation: z.enum(['village', 'profile']),
+  schemaVersion: z.literal(3),
+  deploymentKind: z.enum(['village', 'profile']),
   villageSlug: z.string().min(1),
   chainId: z.number().int().positive(),
-  configSchemaVersion: z.literal(2),
+  configSchemaVersion: z.literal(3),
   configHash: manifestHash,
   sourceRevision: z.string().min(1).optional(),
   network: z.string().min(1),
-  deploymentProfile: z.enum(['minimal-village', 'token-village', 'tokenized-stays-village', 'tdf-v2']),
+  deploymentProfile: z.enum(['minimal-village', 'token-village', 'tokenized-stays-village', 'tdf']),
   modules: manifestModules,
   contracts: z.record(z.string(), manifestContract),
   compiler: z.strictObject({solidity: z.string().min(1)}),
@@ -401,15 +401,6 @@ export const ROLE_IDS = {
 
 const ROLE_NAMES_BY_ID = new Map(Object.entries(ROLE_IDS).map(([name, role]) => [role.toLowerCase(), name]));
 const MODULE_NAMES = ['communityToken', 'presenceToken', 'sweatToken', 'tokenizedStays', 'tdfTransferPolicy'] as const;
-const LEGACY_DEPLOYMENT_NAMES = new Set([
-  'TDFToken',
-  'TDFDiamond',
-  'PresenceToken',
-  'SweatToken',
-  'DynamicSale',
-  'Crowdsale',
-]);
-
 /** Combines explicitly selected modules with the modules implied by a named deployment profile. */
 export function normalizeModules(config: VillageDeploymentConfig): NormalizedModules {
   const modules: NormalizedModules = {
@@ -430,19 +421,19 @@ export function normalizeModules(config: VillageDeploymentConfig): NormalizedMod
     modules.communityToken = true;
     modules.tokenizedStays = true;
   }
-  if (config.deploymentProfile === 'tdf-v2') {
+  if (config.deploymentProfile === 'tdf') {
     for (const key of MODULE_NAMES) modules[key] = true;
   }
   return modules;
 }
 
-export function deploymentGeneration(profile: DeploymentProfile): 'village' | 'profile' {
-  return profile === 'tdf-v2' ? 'profile' : 'village';
+export function deploymentKind(profile: DeploymentProfile): 'village' | 'profile' {
+  return profile === 'tdf' ? 'profile' : 'village';
 }
 
 export function manifestPathFor(config: VillageDeploymentConfig, projectRoot: string): string {
-  return config.deploymentProfile === 'tdf-v2'
-    ? path.join(projectRoot, 'deployments', 'profiles', 'tdf-v2', String(config.chainId), `${config.villageSlug}.json`)
+  return config.deploymentProfile === 'tdf'
+    ? path.join(projectRoot, 'deployments', 'profiles', 'tdf', String(config.chainId), `${config.villageSlug}.json`)
     : path.join(projectRoot, 'deployments', 'villages', String(config.chainId), `${config.villageSlug}.json`);
 }
 
@@ -491,11 +482,10 @@ export function validateVillageDeploymentConfig(
   }
   normalizeAddress(config.ownership.finalOwner.address, 'ownership.finalOwner.address');
   normalizeAddress(config.apiOperator, 'apiOperator');
-  rejectLegacyReferences(config);
   const modules = normalizeModules(config);
   if (modules.tokenizedStays && !modules.communityToken) throw new Error('tokenizedStays requires communityToken');
-  if (config.deploymentProfile === 'tdf-v2' && !config.tdfTransferPolicy?.treasury) {
-    throw new Error('tdf-v2 requires tdfTransferPolicy.treasury');
+  if (config.deploymentProfile === 'tdf' && !config.tdfTransferPolicy?.treasury) {
+    throw new Error('tdf requires tdfTransferPolicy.treasury');
   }
   if (modules.communityToken) {
     const initialSupply = BigInt(config.communityToken?.initialSupply ?? 0);
@@ -532,7 +522,7 @@ export function validateVillageDeploymentConfig(
 }
 
 /**
- * Deploys a new V2 graph, or reconciles a same-config deployment already recorded at the canonical manifest path.
+ * Deploys a new graph, or reconciles a same-config deployment already recorded at the canonical manifest path.
  * The config hash prevents an existing deployment path from being silently reused with different settings.
  */
 export async function deployVillage(
@@ -605,11 +595,11 @@ export async function deployVillage(
   }
 
   const manifest: VillageDeploymentManifest = {
-    schemaVersion: 2,
-    generation: deploymentGeneration(config.deploymentProfile),
+    schemaVersion: 3,
+    deploymentKind: deploymentKind(config.deploymentProfile),
     villageSlug: config.villageSlug,
     chainId: config.chainId,
-    configSchemaVersion: 2,
+    configSchemaVersion: 3,
     configHash,
     sourceRevision: process.env.GITHUB_SHA ?? process.env.SOURCE_REVISION,
     network: context.networkName,
@@ -1128,14 +1118,6 @@ function dedupeRoleGrants(grants: ResolvedRoleGrant[]): ResolvedRoleGrant[] {
   });
 }
 
-function rejectLegacyReferences(value: unknown): void {
-  if (typeof value === 'string' && LEGACY_DEPLOYMENT_NAMES.has(value)) {
-    throw new Error(`Village deployment config must not reference legacy deployment name '${value}'`);
-  }
-  if (Array.isArray(value)) value.forEach(rejectLegacyReferences);
-  else if (value && typeof value === 'object') Object.values(value).forEach(rejectLegacyReferences);
-}
-
 function normalizeAddress(value: unknown, field: string): string {
   if (typeof value !== 'string' || !isAddress(value)) throw new Error(`${field} must be a valid address`);
   const address = getAddress(value);
@@ -1145,7 +1127,7 @@ function normalizeAddress(value: unknown, field: string): string {
 
 /** Hashes a canonical representation so object key order cannot change deployment identity. */
 function hashDeploymentConfig(config: VillageDeploymentConfig): string {
-  return keccak256(toUtf8Bytes(stableStringify({...config, schemaVersion: 2})));
+  return keccak256(toUtf8Bytes(stableStringify(config)));
 }
 
 function stableStringify(value: unknown): string {

@@ -8,7 +8,7 @@ const checks = [
   ['src/village/tokens/CommunityToken.sol', 'CommunityToken', 'ERC20'],
   ['src/village/tokens/CommunityToken.sol', 'CommunityToken', 'ERC2612'],
   ['src/village/access/VillageAccess.sol', 'VillageAccess', 'ERC165'],
-  ['src/profiles/tdf-v2/TDFTransferPolicy.sol', 'TDFTransferPolicy', 'ERC165'],
+  ['src/profiles/tdf/TDFTransferPolicy.sol', 'TDFTransferPolicy', 'ERC165'],
 ];
 
 const reportDirectory = ensureReportDirectory('standards');

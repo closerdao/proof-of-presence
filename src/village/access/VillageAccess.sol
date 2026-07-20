@@ -17,6 +17,9 @@ import {VillageRoles} from "./VillageRoles.sol";
 /// enumeration is intended for administration and off-chain discovery; contracts should use `hasRole` for authorization.
 /// UUPS upgrades and changes to the role-admin hierarchy remain reserved for the default admin; renouncing it disables
 /// those operations permanently for that proxy.
+/// Aderyn follows UUPSUpgradeable's payable upgrade surface, but OpenZeppelin rejects value when there is no setup call,
+/// while every initializer/reinitializer in this implementation is nonpayable.
+/// aderyn-fp-next-line(contract-locks-ether)
 contract VillageAccess is
     Initializable,
     AccessControlDefaultAdminRulesUpgradeable,
@@ -53,7 +56,7 @@ contract VillageAccess is
             if (roleGrant.account == address(0)) revert InvalidInitialRoleGrantAccount(roleGrant.role);
             // Duplicate initial grants intentionally collapse to the existing enumerable membership.
             // wake-disable-next-line unchecked-return-value
-            _grantRole(roleGrant.role, roleGrant.account);
+            _grantRole(roleGrant.role, roleGrant.account); // aderyn-ignore(unchecked-return)
 
             unchecked {
                 ++i;

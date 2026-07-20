@@ -1,7 +1,6 @@
 import {expect} from 'chai';
 import {id, parseEther, Signature, ZeroAddress} from 'ethers';
-import {ethers} from '../../hardhat-compat.js';
-import type {RuntimeContract} from '../../../utils/runtimeContract.js';
+import {ethers, type RuntimeContract} from '../../hardhat.js';
 
 type Contract = RuntimeContract;
 
@@ -82,7 +81,7 @@ async function futureBooking(stays: Contract, offset: number, pricePerDate: bigi
   return {year: Number(year), dayOfYear: Number(dayOfYear), pricePerDate};
 }
 
-describe('V2 TokenizedStays permit integration', function () {
+describe('TokenizedStays permit integration', function () {
   it('credits an exact permit-backed deposit and consumes its allowance', async function () {
     const {member, token, stays} = await setup();
     const amount = parseEther('3');

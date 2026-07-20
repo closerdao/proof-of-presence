@@ -6,10 +6,10 @@ import process from 'node:process';
 const LCOV_PATH = 'coverage/lcov.info';
 const BASELINE_PATH = 'security/coverage-baseline.json';
 const NEW_FILE_MINIMUM = 90;
-const ACTIVE_PREFIXES = ['src/village/', 'src/profiles/tdf-v2/'];
+const ACTIVE_PREFIXES = ['src/village/', 'src/profiles/tdf/'];
 const EXCLUDED_PREFIXES = ['src/village/test/', 'src/village/interfaces/'];
 
-if (!existsSync(LCOV_PATH)) throw new Error(`Missing ${LCOV_PATH}; run yarn coverage:v2 first.`);
+if (!existsSync(LCOV_PATH)) throw new Error(`Missing ${LCOV_PATH}; run yarn coverage first.`);
 
 const records = readFileSync(LCOV_PATH, 'utf8').split('end_of_record');
 const files = {};

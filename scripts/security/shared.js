@@ -9,7 +9,7 @@ export const ACTIVE_CONTRACTS = [
   ['src/village/tokens/VillagePresenceToken.sol', 'VillagePresenceToken'],
   ['src/village/tokens/VillageSweatToken.sol', 'VillageSweatToken'],
   ['src/village/stays/TokenizedStays.sol', 'TokenizedStays'],
-  ['src/profiles/tdf-v2/TDFTransferPolicy.sol', 'TDFTransferPolicy'],
+  ['src/profiles/tdf/TDFTransferPolicy.sol', 'TDFTransferPolicy'],
 ];
 
 export const SLITHER_SOURCE = process.env.SLITHER_SOURCE ?? 'git+https://github.com/crytic/slither.git@master';

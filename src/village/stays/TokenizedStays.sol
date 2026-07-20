@@ -34,6 +34,9 @@ import {TokenizedStaysExposure} from "../libraries/TokenizedStaysExposure.sol";
 /// - unlocked balance: deposited balance not currently required by bookings, available for withdrawal or new bookings;
 /// - total deposited balance: sum of all user-credited deposited balances;
 /// - orphaned token balance: tokens held by this contract but not credited to any user.
+/// Aderyn follows UUPSUpgradeable's payable upgrade surface, but OpenZeppelin rejects value when there is no setup call,
+/// while every initializer/reinitializer in this implementation is nonpayable.
+/// aderyn-fp-next-line(contract-locks-ether)
 contract TokenizedStays is
     Initializable,
     Ownable2StepUpgradeable,
@@ -105,7 +108,7 @@ contract TokenizedStays is
     }
 
     /**
-     * @dev ERC-7201 namespaced storage. These V2 contracts have not been deployed, so this is the initial layout for
+     * @dev ERC-7201 namespaced storage. These contracts have not been deployed, so this is the initial layout for
      * the namespace. Once deployed, never rename the namespace or reorder/remove existing fields; append new fields.
      * @custom:storage-location erc7201:closer.storage.TokenizedStays
      */

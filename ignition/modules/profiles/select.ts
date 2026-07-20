@@ -12,7 +12,7 @@ import TokenVillageModule from './TokenVillage.js';
 import TokenizedStaysVillageModule from './TokenizedStaysVillage.js';
 import TdfCommunityTokenModule from './TdfCommunityToken.js';
 import TdfTokenizedStaysModule from './TdfTokenizedStays.js';
-import TdfV2VillageModule from './TdfV2Village.js';
+import TdfVillageModule from './TdfVillage.js';
 
 function deploymentBits(modules: NormalizedModules): string {
   // Keep this field order stable: the bit string is part of a custom graph's persistent Ignition Module ID.
@@ -37,7 +37,7 @@ export function selectVillageProfileModule(modules: NormalizedModules): Ignition
   if (bits === '00000') return MinimalVillageModule;
   if (bits === '10000') return TokenVillageModule;
   if (bits === '10010') return TokenizedStaysVillageModule;
-  if (bits === '11111') return TdfV2VillageModule;
+  if (bits === '11111') return TdfVillageModule;
 
   return buildModule(`CustomVillageModule_${bits}`, (m) => {
     const results: IgnitionModuleResult<string> = {};

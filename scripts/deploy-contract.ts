@@ -57,7 +57,7 @@ async function main(): Promise<void> {
     printHelp();
     throw new Error('--contract and --config are required');
   }
-  if (!(args.contract in CONTRACT_MODULES)) throw new Error(`Unsupported V2 contract Module '${args.contract}'`);
+  if (!(args.contract in CONTRACT_MODULES)) throw new Error(`Unsupported contract Module '${args.contract}'`);
 
   const parsed = parseVillageDeploymentConfig(JSON.parse(await readFile(args.config, 'utf8')));
   const config: VillageDeploymentConfig = {

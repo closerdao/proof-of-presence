@@ -45,8 +45,8 @@ async function main(): Promise<void> {
     path.join(
       process.cwd(),
       'export',
-      manifest.generation === 'profile' ? 'profiles' : 'villages',
-      manifest.generation === 'profile' ? manifest.deploymentProfile : '',
+      manifest.deploymentKind === 'profile' ? 'profiles' : 'villages',
+      manifest.deploymentKind === 'profile' ? manifest.deploymentProfile : '',
       String(manifest.chainId),
       `${manifest.villageSlug}.json`,
     );
@@ -69,9 +69,9 @@ async function main(): Promise<void> {
     exportPath,
     `${JSON.stringify(
       {
-        schemaVersion: 1,
+        schemaVersion: 2,
         sourceManifest: path.relative(process.cwd(), manifestPath),
-        generation: manifest.generation,
+        deploymentKind: manifest.deploymentKind,
         deploymentProfile: manifest.deploymentProfile,
         villageSlug: manifest.villageSlug,
         chainId: manifest.chainId,

@@ -1,10 +1,10 @@
 import {expect} from 'chai';
 import {keccak256, zeroPadValue, ZeroHash} from 'ethers';
-import {ethers} from '../../hardhat-compat.js';
+import {ethers} from '../../hardhat.js';
 import {reconcileExecutedUpgrade} from '../../../scripts/deployment/upgrades.js';
 import type {ManifestContract, ManifestUpgrade} from '../../../scripts/deployment/village.js';
 
-describe('V2 upgrade manifest reconciliation', function () {
+describe('Upgrade manifest reconciliation', function () {
   it('updates execution state, implementation address, and runtime code hash from the proxy slot', async function () {
     const [, previous, next, proxy] = await ethers.getSigners();
     const implementationCode = '0x6001600055';
@@ -101,8 +101,8 @@ function manifestUpgrade(
 ): ManifestUpgrade {
   return {
     contractName: 'CommunityToken',
-    version: 'v2-test',
-    nextArtifact: 'CommunityTokenV2Mock',
+    version: 'upgrade-test',
+    nextArtifact: 'CommunityTokenUpgradeMock',
     deploymentId: 'upgrade-test',
     moduleId: 'UpgradeImplementationModule',
     previousImplementation,

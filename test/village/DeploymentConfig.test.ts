@@ -1,13 +1,14 @@
 import {expect} from 'chai';
-import {ethers} from '../hardhat-compat.js';
+import {ethers} from '../hardhat.js';
 import {parseVillageDeploymentConfig} from '../../scripts/deployment/config.js';
 import {normalizeModules, type NormalizedModules} from '../../scripts/deployment/village.js';
 import {selectVillageProfileModule} from '../../ignition/modules/profiles/select.js';
 
-describe('V2 village deployment config schema', function () {
-  it('normalizes the direct owner default and rejects removed or unknown fields', async function () {
+describe('Village deployment config schema', function () {
+  it('requires the current schema version, normalizes defaults, and rejects unknown fields', async function () {
     const [, owner, apiOperator] = await ethers.getSigners();
     const base = {
+      schemaVersion: 3,
       villageSlug: 'schema-test',
       chainId: 31337,
       deploymentProfile: 'minimal-village',
@@ -17,16 +18,20 @@ describe('V2 village deployment config schema', function () {
     } as const;
 
     const parsed = parseVillageDeploymentConfig(base);
-    expect(parsed.schemaVersion).to.equal(2);
+    expect(parsed.schemaVersion).to.equal(3);
     expect(parsed.ownership.mode).to.equal('direct');
     expect(() => parseVillageDeploymentConfig({...base, owner: {type: 'eoa', address: owner.address}})).to.throw();
     expect(() => parseVillageDeploymentConfig({...base, roleAssignmentMode: 'initializer-seeded'})).to.throw();
     expect(() => parseVillageDeploymentConfig({...base, modules: ['membership']})).to.throw();
+    const {schemaVersion: _schemaVersion, ...withoutSchemaVersion} = base;
+    expect(() => parseVillageDeploymentConfig(withoutSchemaVersion)).to.throw();
+    expect(() => parseVillageDeploymentConfig({...base, schemaVersion: 2})).to.throw();
   });
 
   it('accepts explicit handoff and rejects removed auto-Safe configuration', async function () {
     const [, owner, apiOperator] = await ethers.getSigners();
     const parsed = parseVillageDeploymentConfig({
+      schemaVersion: 3,
       villageSlug: 'handoff-schema-test',
       chainId: 31337,
       deploymentProfile: 'minimal-village',
@@ -47,6 +52,7 @@ describe('V2 village deployment config schema', function () {
     const [, owner, apiOperator] = await ethers.getSigners();
     expect(() =>
       parseVillageDeploymentConfig({
+        schemaVersion: 3,
         villageSlug: 'negative-value-test',
         chainId: 31337,
         deploymentProfile: 'token-village',
@@ -61,7 +67,7 @@ describe('V2 village deployment config schema', function () {
   it('selects stable Ignition graphs for every supported profile and custom composition', async function () {
     const [, owner, apiOperator, treasury] = await ethers.getSigners();
     const cases: Array<{
-      profile: 'minimal-village' | 'token-village' | 'tokenized-stays-village' | 'tdf-v2';
+      profile: 'minimal-village' | 'token-village' | 'tokenized-stays-village' | 'tdf';
       modules: string[];
       expected: NormalizedModules;
       moduleId: string;
@@ -86,7 +92,7 @@ describe('V2 village deployment config schema', function () {
         moduleId: 'TokenizedStaysVillageModule',
       },
       {
-        profile: 'tdf-v2',
+        profile: 'tdf',
         modules: [],
         expected: flags({
           communityToken: true,
@@ -95,7 +101,7 @@ describe('V2 village deployment config schema', function () {
           tokenizedStays: true,
           tdfTransferPolicy: true,
         }),
-        moduleId: 'TdfV2VillageModule',
+        moduleId: 'TdfVillageModule',
       },
       {
         profile: 'minimal-village',
@@ -127,6 +133,7 @@ describe('V2 village deployment config schema', function () {
 
     for (const [index, testCase] of cases.entries()) {
       const config = parseVillageDeploymentConfig({
+        schemaVersion: 3,
         villageSlug: `profile-selection-${index}`,
         chainId: 31337,
         deploymentProfile: testCase.profile,

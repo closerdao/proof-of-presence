@@ -8,7 +8,7 @@ import hre from 'hardhat';
 import {upgrades as createUpgradesApi} from '@openzeppelin/hardhat-upgrades';
 import {OperationType} from '@safe-global/types-kit';
 import {parseEther, ZeroAddress} from 'ethers';
-import {connection, ethers} from '../hardhat-compat.js';
+import {connection, ethers} from '../hardhat.js';
 import {submitDeploymentOwnerActions} from '../../scripts/deployment/owner-actions.js';
 import {
   deployVillage,
@@ -40,7 +40,7 @@ function baseConfig(
   overrides: Partial<VillageDeploymentConfig> = {},
 ): VillageDeploymentConfig {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     villageSlug: slug,
     chainId: 31337,
     deploymentProfile: 'minimal-village',
@@ -51,7 +51,7 @@ function baseConfig(
   };
 }
 
-describe('V2 village deployment entrypoint', function () {
+describe('Village deployment entrypoint', function () {
   it('prints help for bare npm deploy instead of deploying', async function () {
     const {stdout} = await execFile('npm', ['run', 'deploy', '--silent'], {cwd: process.cwd()});
     expect(stdout).to.include('Bare deploy is intentionally non-transactional');
@@ -65,7 +65,9 @@ describe('V2 village deployment entrypoint', function () {
     const access = await ethers.getContractAt('VillageAccess', result.manifest.contracts.VillageAccess.address);
 
     expect(result.manifest.status).to.equal('complete');
-    expect(result.manifest.schemaVersion).to.equal(2);
+    expect(result.manifest.schemaVersion).to.equal(3);
+    expect(result.manifest.configSchemaVersion).to.equal(3);
+    expect(result.manifest.deploymentKind).to.equal('village');
     expect(result.manifest.ownership).to.include({mode: 'direct', initialOwner: owner.address});
     expect(await access.defaultAdmin()).to.equal(owner.address);
     expect(await access.hasRole(ROLE_IDS.DEFAULT_ADMIN_ROLE, deployer.address)).to.equal(false);
@@ -78,6 +80,9 @@ describe('V2 village deployment entrypoint', function () {
     expect(() =>
       parseVillageDeploymentManifest({...result.manifest, unexpectedOuterJournal: {step: 'complete'}}),
     ).to.throw('Unrecognized key');
+    expect(() => parseVillageDeploymentManifest({...result.manifest, schemaVersion: 2})).to.throw();
+    const {deploymentKind: _deploymentKind, ...withoutDeploymentKind} = result.manifest;
+    expect(() => parseVillageDeploymentManifest({...withoutDeploymentKind, generation: 'village'})).to.throw();
 
     let collision: Error | undefined;
     try {
@@ -91,7 +96,7 @@ describe('V2 village deployment entrypoint', function () {
   it('deploys through the CLI and derives export ABIs from contract records', async function () {
     const [, owner, apiOperator] = await ethers.getSigners();
     const root = await outputRoot();
-    const config = baseConfig('cli-village-test-v2', owner.address, apiOperator.address, {chainId: await chainId()});
+    const config = baseConfig('cli-village-test', owner.address, apiOperator.address, {chainId: await chainId()});
     const configPath = path.join(root, 'config.json');
     await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
     await execFile(
@@ -122,13 +127,16 @@ describe('V2 village deployment entrypoint', function () {
       cwd: process.cwd(),
     });
     const exported = JSON.parse(await readFile(exportPath, 'utf8'));
+    expect(exported.schemaVersion).to.equal(2);
+    expect(exported.deploymentKind).to.equal('village');
+    expect(exported).not.to.have.property('generation');
     expect(exported.contracts.VillageAccess.abi).to.be.an('array').and.not.empty;
   });
 
   it('keeps deploy:contract as a thin standalone target wrapper', async function () {
     const [, owner, apiOperator, treasury] = await ethers.getSigners();
     const root = await outputRoot();
-    const config = baseConfig('standalone-policy-v2-test', owner.address, apiOperator.address, {
+    const config = baseConfig('standalone-policy-test', owner.address, apiOperator.address, {
       chainId: await chainId(),
       tdfTransferPolicy: {treasury: treasury.address},
     });
@@ -169,16 +177,16 @@ describe('V2 village deployment entrypoint', function () {
 
   it('validates module dependencies and OpenZeppelin preflight before Ignition', async function () {
     const [, owner, apiOperator, treasury] = await ethers.getSigners();
-    const invalid = baseConfig('invalid-tokenized-v2', owner.address, apiOperator.address, {
+    const invalid = baseConfig('invalid-tokenized', owner.address, apiOperator.address, {
       chainId: await chainId(),
       modules: ['tokenizedStays'],
     });
     expect(() => validateVillageDeploymentConfig(invalid, invalid.chainId)).to.throw(
       'tokenizedStays requires communityToken',
     );
-    const conflictingPolicies = baseConfig('conflicting-policies-v2', owner.address, apiOperator.address, {
+    const conflictingPolicies = baseConfig('conflicting-policies', owner.address, apiOperator.address, {
       chainId: await chainId(),
-      deploymentProfile: 'tdf-v2',
+      deploymentProfile: 'tdf',
       communityToken: {transferPolicy: treasury.address},
       presenceToken: {decayRatePerDay: 288_617},
       sweatToken: {decayRatePerDay: 288_617},
@@ -189,7 +197,7 @@ describe('V2 village deployment entrypoint', function () {
     );
 
     let ignitionCalled = false;
-    const config = baseConfig('unsafe-preflight-v2', owner.address, apiOperator.address, {
+    const config = baseConfig('unsafe-preflight', owner.address, apiOperator.address, {
       chainId: await chainId(),
       deploymentProfile: 'token-village',
     });
@@ -221,7 +229,7 @@ describe('V2 village deployment entrypoint', function () {
     const [, owner, apiOperator] = await ethers.getSigners();
     const policy = await ethers.deployContract('TransferPolicyMock');
     await policy.waitForDeployment();
-    const config = baseConfig('external-policy-v2', owner.address, apiOperator.address, {
+    const config = baseConfig('external-policy', owner.address, apiOperator.address, {
       chainId: await chainId(),
       deploymentProfile: 'token-village',
       communityToken: {transferPolicy: await policy.getAddress()},
@@ -238,7 +246,7 @@ describe('V2 village deployment entrypoint', function () {
 
   it('keeps a custom internally wired TDF token restricted until its explicit enable action', async function () {
     const [, owner, apiOperator, treasury, member, other] = await ethers.getSigners();
-    const config = baseConfig('custom-internal-policy-v2', owner.address, apiOperator.address, {
+    const config = baseConfig('custom-internal-policy', owner.address, apiOperator.address, {
       chainId: await chainId(),
       modules: ['communityToken', 'tdfTransferPolicy'],
       communityToken: {
@@ -270,14 +278,14 @@ describe('V2 village deployment entrypoint', function () {
     await token.connect(member).transfer(other.address, 1);
   });
 
-  it('deploys and completes the direct-owner TDF V2 flow through the public entrypoint', async function () {
+  it('deploys and completes the direct-owner TDF flow through the public entrypoint', async function () {
     const [, owner, apiOperator, treasury, member, other] = await ethers.getSigners();
-    const config = baseConfig('direct-owner-actions-v2', owner.address, apiOperator.address, {
+    const config = baseConfig('direct-owner-actions', owner.address, apiOperator.address, {
       chainId: await chainId(),
-      deploymentProfile: 'tdf-v2',
+      deploymentProfile: 'tdf',
       communityToken: {
-        name: 'TDF v2',
-        symbol: 'TDF2',
+        name: 'TDF Community',
+        symbol: 'TDFC',
         initialSupply: parseEther('10').toString(),
         initialRecipient: member.address,
         apiOperatorCanMint: true,
@@ -365,7 +373,7 @@ describe('V2 village deployment entrypoint', function () {
     ).wait();
 
     const safeAddress = await safe.getAddress();
-    const config = baseConfig('direct-safe-owner-actions-v2', safeAddress, apiOperator.address, {
+    const config = baseConfig('direct-safe-owner-actions', safeAddress, apiOperator.address, {
       chainId: await chainId(),
       ownership: {
         mode: 'direct',
@@ -416,9 +424,9 @@ describe('V2 village deployment entrypoint', function () {
 
   it('completes deployer handoff after configuration and records manual acceptance calls', async function () {
     const [deployer, finalOwner, apiOperator, treasury] = await ethers.getSigners();
-    const config = baseConfig('handoff-full-v2', finalOwner.address, apiOperator.address, {
+    const config = baseConfig('handoff-full', finalOwner.address, apiOperator.address, {
       chainId: await chainId(),
-      deploymentProfile: 'tdf-v2',
+      deploymentProfile: 'tdf',
       ownership: {mode: 'deployer-handoff', finalOwner: {type: 'eoa', address: finalOwner.address}},
       communityToken: {name: 'Handoff TDF', symbol: 'HTDF'},
       presenceToken: {decayRatePerDay: 288_617},
@@ -447,7 +455,7 @@ describe('V2 village deployment entrypoint', function () {
   it('accepts an externally completed handoff on a later deployment reconciliation', async function () {
     const [, finalOwner, apiOperator] = await ethers.getSigners();
     const root = await outputRoot();
-    const config = baseConfig('accepted-handoff-v2', finalOwner.address, apiOperator.address, {
+    const config = baseConfig('accepted-handoff', finalOwner.address, apiOperator.address, {
       chainId: await chainId(),
       deploymentProfile: 'token-village',
       ownership: {mode: 'deployer-handoff', finalOwner: {type: 'eoa', address: finalOwner.address}},
@@ -491,7 +499,7 @@ describe('V2 village deployment entrypoint', function () {
         ZeroAddress,
       )
     ).wait();
-    const config = baseConfig('safe-handoff-v2', await safe.getAddress(), apiOperator.address, {
+    const config = baseConfig('safe-handoff', await safe.getAddress(), apiOperator.address, {
       chainId: await chainId(),
       ownership: {
         mode: 'deployer-handoff',

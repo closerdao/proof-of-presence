@@ -41,9 +41,9 @@ library DecayMath {
         uint256 low = 0;
         uint256 high = scale;
 
-        // Retain V1's bounded binary search. For decay retention values both
-        // the input and its nth root are in [0, scale], which keeps every
-        // fixed-point power bounded and avoids Newton iteration overshooting.
+        // For decay retention values, both the input and its nth root are in
+        // [0, scale]. A bounded binary search therefore keeps every fixed-point
+        // power bounded and avoids Newton iteration overshooting.
         while (high - low > 1) {
             uint256 mid = (low + high) / 2;
             uint256 midToN = powWithPrecision(mid, n, scale);
