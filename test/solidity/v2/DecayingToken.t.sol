@@ -213,6 +213,7 @@ contract V2DecayingTokenTest is V2TestBase {
     }
 
     function test_HolderRegistryDeduplicatesAndTotalSupplySumsReadableBalances() public {
+        assertEq(token.totalSupply(), 0);
         token.mint(holder, 5 ether, 0);
         token.mint(holder, 2 ether, 0);
         token.mint(other, 3 ether, 2);

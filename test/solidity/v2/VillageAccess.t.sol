@@ -50,6 +50,26 @@ contract V2VillageAccessTest is V2TestBase {
         new ERC1967ProxyForTest(address(implementation), abi.encodeCall(VillageAccess.initialize, (admin, grants)));
     }
 
+    function test_DuplicateInitialRoleGrantsCollapseToOneEnumerableMembership() public {
+        VillageAccess implementation = new VillageAccess();
+        VillageAccess.InitialRoleGrant[] memory grants = new VillageAccess.InitialRoleGrant[](2);
+        grants[0] = VillageAccess.InitialRoleGrant(VillageRoles.MINTER_ROLE, minter);
+        grants[1] = VillageAccess.InitialRoleGrant(VillageRoles.MINTER_ROLE, minter);
+
+        VillageAccess initialized = VillageAccess(
+            address(
+                new ERC1967ProxyForTest(
+                    address(implementation),
+                    abi.encodeCall(VillageAccess.initialize, (admin, grants))
+                )
+            )
+        );
+
+        assertTrue(initialized.hasRole(VillageRoles.MINTER_ROLE, minter));
+        assertEq(initialized.getRoleMemberCount(VillageRoles.MINTER_ROLE), 1);
+        assertEq(initialized.getRoleMember(VillageRoles.MINTER_ROLE, 0), minter);
+    }
+
     function test_DefaultAdminCanDefineADelegatedRoleAdmin() public {
         bytes32 futureRole = keccak256("FUTURE_ROLE");
 

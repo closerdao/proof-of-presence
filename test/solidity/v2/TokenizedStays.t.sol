@@ -1,9 +1,42 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.35;
 
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {TokenizedStays} from "../../../src/village/stays/TokenizedStays.sol";
 import {VillageRoles} from "../../../src/village/access/VillageRoles.sol";
 import {RoleAuthorityHarness, TestCommunityToken, V2TestBase} from "./V2TestBase.sol";
+
+contract ReentrantPermitToken is ERC20 {
+    TokenizedStays public target;
+    bool public lastReentrySucceeded;
+    bytes4 public lastReentrySelector;
+
+    constructor() ERC20("Reentrant Permit Token", "RPT") {}
+
+    function setTarget(TokenizedStays target_) external {
+        target = target_;
+    }
+
+    function mint(address account, uint256 amount) external {
+        _mint(account, amount);
+    }
+
+    function permit(address owner, address spender, uint256 value, uint256, uint8, bytes32, bytes32) external {
+        (bool success, bytes memory returndata) = address(target).call(abi.encodeCall(TokenizedStays.deposit, (0)));
+        lastReentrySucceeded = success;
+        lastReentrySelector = bytes4(0);
+        if (returndata.length >= 4) {
+            bytes4 selector;
+            // solhint-disable-next-line no-inline-assembly
+            assembly ("memory-safe") {
+                selector := mload(add(returndata, 0x20))
+            }
+            lastReentrySelector = selector;
+        }
+        _approve(owner, spender, value);
+    }
+}
 
 contract V2TokenizedStaysTest is V2TestBase {
     TokenizedStays internal stays;
@@ -61,6 +94,45 @@ contract V2TokenizedStaysTest is V2TestBase {
         stays.toDayId(2100, 366);
         vm.expectPartialRevert(TokenizedStays.InvalidDate.selector);
         stays.toDayId(2024, 0);
+        vm.expectPartialRevert(TokenizedStays.InvalidDate.selector);
+        stays.getYearExposureSummary(member, 1969);
+    }
+
+    function test_PermitEntryPointsRejectTokenCallbacksBeforeAccountingChanges() public {
+        ReentrantPermitToken reentrantToken = new ReentrantPermitToken();
+        TokenizedStays implementation = new TokenizedStays();
+        TokenizedStays guardedStays = TokenizedStays(
+            _proxy(
+                address(implementation),
+                abi.encodeCall(TokenizedStays.initialize, (address(reentrantToken), address(authority), address(this)))
+            )
+        );
+        reentrantToken.setTarget(guardedStays);
+        reentrantToken.mint(member, 10 ether);
+
+        vm.prank(member);
+        guardedStays.depositWithPermit(2 ether, type(uint256).max, 0, bytes32(0), bytes32(0));
+
+        assertFalse(reentrantToken.lastReentrySucceeded());
+        assertEq(reentrantToken.lastReentrySelector(), ReentrancyGuardTransient.ReentrancyGuardReentrantCall.selector);
+        assertEq(guardedStays.depositedBalanceOf(member), 2 ether);
+        assertEq(reentrantToken.balanceOf(address(guardedStays)), 2 ether);
+
+        (uint16 year, uint16 dayOfYear) = guardedStays.fromDayId(guardedStays.currentDayId() + 30);
+        TokenizedStays.BookingInput[] memory bookings = new TokenizedStays.BookingInput[](1);
+        bookings[0] = TokenizedStays.BookingInput(year, dayOfYear, 5 ether);
+        vm.prank(member);
+        guardedStays.createBookingsWithPermit(bookings, 3 ether, type(uint256).max, 0, bytes32(0), bytes32(0));
+
+        assertFalse(reentrantToken.lastReentrySucceeded());
+        assertEq(reentrantToken.lastReentrySelector(), ReentrancyGuardTransient.ReentrancyGuardReentrantCall.selector);
+        assertEq(guardedStays.depositedBalanceOf(member), 5 ether);
+        assertEq(guardedStays.requiredLockedBalance(member), 5 ether);
+        assertEq(guardedStays.totalDepositedBalance(), 5 ether);
+        assertEq(reentrantToken.balanceOf(address(guardedStays)), 5 ether);
+        (bool exists, TokenizedStays.BookingView memory stored) = guardedStays.getBooking(member, year, dayOfYear);
+        assertTrue(exists);
+        assertEq(stored.pricePerDate, 5 ether);
     }
 
     function test_CreatesVariableAndZeroPriceBookingsAndUpdatesAccounting() public {
@@ -121,11 +193,24 @@ contract V2TokenizedStaysTest is V2TestBase {
         vm.expectPartialRevert(TokenizedStays.BookingBeyondHorizon.selector);
         stays.createBookings(_singleBooking(beyond));
 
-        TokenizedStays.BookingInput memory oversized = _bookingAt(1, uint256(type(int256).max) + 1);
+        uint256 maximumPrice = uint256(type(int256).max) / uint256(stays.LOCK_DAYS());
+        TokenizedStays.BookingInput memory oversized = _bookingAt(1, maximumPrice + 1);
         vm.prank(member);
         vm.expectPartialRevert(TokenizedStays.InvalidPricePerDate.selector);
         stays.createBookings(_singleBooking(oversized));
         assertEq(stays.depositedBalanceOf(member), 0);
+    }
+
+    function test_AcceptsMaximumOverflowSafePrice() public {
+        uint256 maximumPrice = uint256(type(int256).max) / uint256(stays.LOCK_DAYS());
+        token.mint(member, maximumPrice);
+        TokenizedStays.BookingInput memory booking = _bookingAt(1, maximumPrice);
+
+        vm.prank(member);
+        stays.createBookings(_singleBooking(booking));
+
+        assertEq(stays.requiredLockedBalance(member), maximumPrice);
+        assertEq(stays.depositedBalanceOf(member), maximumPrice);
     }
 
     function test_UsesExact365DayOverlapSemantics() public {

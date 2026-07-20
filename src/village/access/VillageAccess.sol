@@ -51,6 +51,8 @@ contract VillageAccess is
             InitialRoleGrant memory roleGrant = initialRoleGrants[i];
             if (roleGrant.role == DEFAULT_ADMIN_ROLE) revert InitialDefaultAdminRoleGrantNotAllowed();
             if (roleGrant.account == address(0)) revert InvalidInitialRoleGrantAccount(roleGrant.role);
+            // Duplicate initial grants intentionally collapse to the existing enumerable membership.
+            // wake-disable-next-line unchecked-return-value
             _grantRole(roleGrant.role, roleGrant.account);
 
             unchecked {

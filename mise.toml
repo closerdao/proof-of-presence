@@ -6,10 +6,15 @@ z3 = "github:Z3Prover/z3"
 
 [tools]
 node = "22.22.2"
+yarn = "1.22.22"
 uv = "0.11.29"
 solidity = "0.8.35"
 osv-scanner = "2.4.0"
 lefthook = "2.1.10"
+
+[tools."pipx:git+https://github.com/microHoffman/wake.git"]
+version = "6484ca1961fab54fd594aef9479880d0522bdbcd"
+depends = ["uv"]
 
 [tools.z3]
 version = "z3-4.15.8"
@@ -41,9 +46,22 @@ description = "Run blocking static, standards, dependency, and artifact checks"
 run = [
   "yarn analyze:slither",
   "yarn analyze:standards",
+  "yarn analyze:smt",
   "yarn security:dependencies",
   "yarn security:artifacts",
 ]
+
+[tasks."security:aderyn"]
+description = "Run the independent Aderyn analysis with pinned solc 0.8.35"
+run = "yarn analyze:aderyn"
+
+[tasks."security:wake"]
+description = "Run the pinned Wake fork against active V2 contracts"
+run = "yarn analyze:wake"
+
+[tasks."security:smt"]
+description = "Prove the focused TokenizedStays calendar and exposure properties"
+run = "yarn analyze:smt"
 
 [tasks."security:deep"]
 description = "Run the manual deep fuzz/invariant, scale, and coverage gates"

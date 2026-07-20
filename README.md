@@ -18,7 +18,7 @@ For previewing and interacting with the TDFDiamond, it's best to use [louper.dev
 | TDFDiamond    | [`0x475398EeE0E22cb6fe5403ffA294Fb10Ad989e17`](https://celoscan.io/address/0x475398EeE0E22cb6fe5403ffA294Fb10Ad989e17) |
 | TDFToken      | [`0x10CB7F49389787A99b59B2f87dfDd3bba141559f`](https://celoscan.io/address/0x10CB7F49389787A99b59B2f87dfDd3bba141559f) |
 | PresenceToken | [`0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9`](https://celoscan.io/address/0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9) |
-| SweatToken    | [`0xa2898Dd4628eD626bf841530f87c9F1ebA837c87`](https://celoscan.io/address/0xa2898Dd4628eD626bf841530f87c9F1ebA837c87) |
+| SweatToken    | [`0x5D2870B37aB72AB9Cc3F46878373EeCc1312FA6e`](https://celoscan.io/address/0x5D2870B37aB72AB9Cc3F46878373EeCc1312FA6e) |
 | DynamicSale   | [`0xEaa00a0e0D29D1F883485E8f98A0E8FfD75B23FB`](https://celoscan.io/address/0xEaa00a0e0D29D1F883485E8f98A0E8FfD75B23FB) |
 
 ### Celo Sepolia Testnet
@@ -160,9 +160,10 @@ These will lint and format check your code. the `:fix` version will modifiy the 
 
 ### Security checks
 
-`mise run security:static` runs the blocking Slither, ERC conformance, dependency, and artifact gates. `mise run
-security:deep` runs the higher-budget fuzz/invariant, scale, and coverage checks. The independent Wake, Aderyn,
-SMTChecker, and Gambit pre-audit suite is available through the GitHub Actions manual workflow.
+`mise run security:static` runs the blocking Slither, ERC conformance, TokenizedStays SMTChecker, dependency, and
+artifact gates. `mise run security:deep` runs the higher-budget fuzz/invariant, scale, and coverage checks. The
+independent Aderyn analysis is available locally with `mise run security:aderyn`; Aderyn and Gambit mutation evidence
+are also available through the GitHub Actions manual pre-audit workflow.
 <br/><br/>
 
 ### `yarn compile`

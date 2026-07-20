@@ -60,6 +60,10 @@ url = "https://github.com/google/osv-scanner/releases/download/v2.4.0/osv-scanne
 [tools.osv-scanner."platforms.macos-x64".provenance.slsa]
 url = "https://github.com/google/osv-scanner/releases/download/v2.4.0/multiple.intoto.jsonl"
 
+[[tools."pipx:git+https://github.com/microHoffman/wake.git"]]
+version = "6484ca1961fab54fd594aef9479880d0522bdbcd"
+backend = "pipx:git+https://github.com/microHoffman/wake.git"
+
 [[tools.solidity]]
 version = "0.8.35"
 backend = "github:ethereum/solidity"
@@ -98,6 +102,10 @@ checksum = "sha256:c4c4de482da9ccdd076dc4fb5cfe7b740609029385c72f58606be31536023
 url = "https://github.com/astral-sh/uv/releases/download/0.11.29/uv-x86_64-apple-darwin.tar.gz"
 provenance = "github-attestations"
 
+[[tools.yarn]]
+version = "1.22.22"
+backend = "asdf:yarn"
+
 [[tools.z3]]
 version = "z3-4.15.8"
 backend = "github:Z3Prover/z3"
@@ -109,27 +117,3 @@ asset_pattern = "z3-*-x64-glibc-2.39.zip"
 checksum = "sha256:08a3312ef3a632c6e203c07ebdf19ef42f4975c1bd077e25501d204f674542fd"
 url = "https://github.com/Z3Prover/z3/releases/download/z3-4.15.8/z3-4.15.8-x64-glibc-2.39.zip"
 url_api = "https://api.github.com/repos/Z3Prover/z3/releases/assets/354982452"
-
-[[tools.z3]]
-version = "z3-4.15.8"
-backend = "github:Z3Prover/z3"
-
-[tools.z3.options]
-asset_pattern = "z3-*-arm64-osx-*.zip"
-
-[tools.z3."platforms.macos-arm64"]
-checksum = "sha256:c7625db9c06480de2b753bc69a12fbd4ecec22c63e04aaed2f011184739f9b3b"
-url = "https://github.com/Z3Prover/z3/releases/download/z3-4.15.8/z3-4.15.8-arm64-osx-15.7.3.zip"
-url_api = "https://api.github.com/repos/Z3Prover/z3/releases/assets/354982458"
-
-[[tools.z3]]
-version = "z3-4.15.8"
-backend = "github:Z3Prover/z3"
-
-[tools.z3.options]
-asset_pattern = "z3-*-x64-osx-*.zip"
-
-[tools.z3."platforms.macos-x64"]
-checksum = "sha256:0f5f61b30b1caddc6c6b0ecb2b2c71e4a99a65b4560010aa7ec9e3cdd8cc3778"
-url = "https://github.com/Z3Prover/z3/releases/download/z3-4.15.8/z3-4.15.8-x64-osx-15.7.3.zip"
-url_api = "https://api.github.com/repos/Z3Prover/z3/releases/assets/354982477"

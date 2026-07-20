@@ -1,5 +1,6 @@
 cache/
 artifacts/
+/.wake/
 
 coverage*
 !security/coverage-baseline.json

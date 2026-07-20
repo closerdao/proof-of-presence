@@ -11,6 +11,8 @@ import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol"
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {VillageRoles} from "../access/VillageRoles.sol";
+import {GregorianDateMath} from "../libraries/GregorianDateMath.sol";
+import {TokenizedStaysExposure} from "../libraries/TokenizedStaysExposure.sol";
 
 /// @title Tokenized stays escrow
 /// @author Closer DAO
@@ -48,7 +50,10 @@ contract TokenizedStays is
     uint16 public constant MAX_FUTURE_BOOKING_YEARS = 64;
     uint16 private constant EPOCH_YEAR = 1970;
     uint16 private constant MAX_PAGE_DAYS = 366;
-    uint256 private constant MAX_PRICE_PER_DATE = uint256(type(int256).max);
+    /// @dev An account can have at most one booking per date, and every booking locks [D, D + LOCK_DAYS), so no more
+    /// than LOCK_DAYS prices can overlap. Dividing int256.max by LOCK_DAYS guarantees every valid overlapping exposure
+    /// sum fits in the signed accumulator.
+    uint256 private constant MAX_PRICE_PER_DATE = uint256(type(int256).max) / uint256(LOCK_DAYS);
 
     /// @notice Calendar date identified by year and one-based day of year.
     struct DateInput {
@@ -57,8 +62,8 @@ contract TokenizedStays is
     }
 
     /// @notice Calendar date and CommunityToken amount to lock for that date.
-    /// @dev `pricePerDate` is expressed in the token's smallest unit, may be zero, and cannot exceed int256.max because
-    /// exposure deltas use signed arithmetic.
+    /// @dev `pricePerDate` is expressed in the token's smallest unit and may be zero. Its upper bound guarantees that
+    /// every possible set of overlapping 365-day locks fits in the signed exposure accumulator.
     struct BookingInput {
         uint16 year;
         uint16 dayOfYear;
@@ -272,6 +277,8 @@ contract TokenizedStays is
         bytes32 r,
         bytes32 s
     ) external nonReentrant whenNotPaused {
+        // The function-level transient guard rejects token callbacks before any escrow accounting is changed.
+        // wake-disable-next-line reentrancy
         IERC20Permit(address(communityToken())).permit(_msgSender(), address(this), amount, deadline, v, r, s);
         _depositFor(_msgSender(), amount);
     }
@@ -314,6 +321,8 @@ contract TokenizedStays is
         bytes32 r,
         bytes32 s
     ) external nonReentrant whenNotPaused {
+        // The function-level transient guard rejects token callbacks before any booking or deposit accounting is changed.
+        // wake-disable-next-line reentrancy
         IERC20Permit(address(communityToken())).permit(_msgSender(), address(this), permitAmount, deadline, v, r, s);
         _createBookings(_msgSender(), bookings);
     }
@@ -451,7 +460,6 @@ contract TokenizedStays is
     /// @param account Account whose exposure is summarized.
     /// @param year Calendar year to scan.
     function getYearExposureSummary(address account, uint16 year) external view returns (YearSummary memory) {
-        daysInYear(year);
         return _calculateYearSummary(_getTokenizedStaysStorage(), account, year);
     }
 
@@ -534,7 +542,7 @@ contract TokenizedStays is
     /// @dev This remains available while paused so an owner can recover orphaned tokens during incident response.
     /// @param recipient Account receiving the recovered tokens; cannot be zero or this contract.
     /// @param amount Orphaned CommunityToken amount to recover.
-    function recoverOrphanedTokens(address recipient, uint256 amount) external onlyOwner nonReentrant {
+    function recoverOrphanedTokens(address recipient, uint256 amount) external nonReentrant onlyOwner {
         if (recipient == address(0) || recipient == address(this)) revert InvalidRecoveryRecipient(recipient);
         uint256 available = orphanedTokenBalance();
         if (amount > available) revert RecoveryAmountExceedsOrphanedTokenBalance(amount, available);
@@ -551,45 +559,13 @@ contract TokenizedStays is
         uint32 dayId
     ) internal view returns (uint256) {
         (uint16 currentYear, ) = _fromDayId(dayId);
-        int256 exposure = _activeExposure($, account, dayId);
-        int256 maximum = 0;
-        (exposure, maximum) = _scanRemainingCurrentYear($, account, dayId, currentYear, exposure);
+        mapping(uint32 => uint256) storage bookingPrices = $.bookingPricePlusOne[account];
+        int256 exposure = TokenizedStaysExposure.activeExposure(bookingPrices, dayId, LOCK_DAYS);
+        uint32 yearEnd = _toDayId(currentYear, daysInYear(currentYear));
+        int256 maximum;
+        (exposure, maximum) = TokenizedStaysExposure.scanRange(bookingPrices, dayId + 1, yearEnd, LOCK_DAYS, exposure);
         maximum = _scanFutureYearSummaries($, account, currentYear, exposure, maximum);
         return uint256(maximum);
-    }
-
-    /// @dev Sums booking prices whose half-open lock intervals contain `today`.
-    function _activeExposure(
-        TokenizedStaysStorage storage $,
-        address account,
-        uint32 today
-    ) internal view returns (int256 exposure) {
-        uint32 firstActiveDay = today >= LOCK_DAYS - 1 ? today - (LOCK_DAYS - 1) : 0;
-        for (uint32 dayId = firstActiveDay; dayId <= today; ) {
-            exposure += int256(_priceForDay($, account, dayId));
-            unchecked {
-                ++dayId;
-            }
-        }
-    }
-
-    function _scanRemainingCurrentYear(
-        TokenizedStaysStorage storage $,
-        address account,
-        uint32 today,
-        uint16 currentYear,
-        int256 exposure
-    ) internal view returns (int256 endingExposure, int256 maximum) {
-        maximum = exposure;
-        uint32 yearEnd = _toDayId(currentYear, daysInYear(currentYear));
-        for (uint32 dayId = today + 1; dayId <= yearEnd; ) {
-            exposure += _dailyDelta($, account, dayId);
-            if (exposure > maximum) maximum = exposure;
-            unchecked {
-                ++dayId;
-            }
-        }
-        endingExposure = exposure;
     }
 
     function _scanFutureYearSummaries(
@@ -608,9 +584,12 @@ contract TokenizedStays is
 
         for (uint256 year = uint256(currentYear) + 1; year <= throughYear; ) {
             YearSummary storage summary = $.yearSummaries[account][uint16(year)];
-            int256 yearMaximum = exposure + summary.maxPrefix;
-            if (yearMaximum > maximum) maximum = yearMaximum;
-            exposure += summary.totalDelta;
+            (exposure, maximum) = TokenizedStaysExposure.applyYearSummary(
+                exposure,
+                maximum,
+                summary.totalDelta,
+                summary.maxPrefix
+            );
             unchecked {
                 ++year;
             }
@@ -653,7 +632,7 @@ contract TokenizedStays is
     /// @param year Gregorian year at or after 1970.
     function daysInYear(uint16 year) public pure returns (uint16) {
         if (year < EPOCH_YEAR) revert InvalidDate(year, 0);
-        return _isLeapYear(year) ? 366 : 365;
+        return GregorianDateMath.daysInYear(year);
     }
 
     modifier onlyRole(bytes32 role) {
@@ -746,9 +725,17 @@ contract TokenizedStays is
         countDeltas[yearOffset] += 1;
         accumulator.countMask |= uint256(1) << yearOffset;
         // Only the lock's start and expiry years need refreshed annual difference summaries.
-        accumulator.summaryMask = _markSummaryYear(accumulator.summaryMask, accumulator.currentYear, booking.year);
+        accumulator.summaryMask = TokenizedStaysExposure.markSummaryYear(
+            accumulator.summaryMask,
+            accumulator.currentYear,
+            booking.year
+        );
         uint16 expiryYear = _expiryYear(booking.year, dayId);
-        accumulator.summaryMask = _markSummaryYear(accumulator.summaryMask, accumulator.currentYear, expiryYear);
+        accumulator.summaryMask = TokenizedStaysExposure.markSummaryYear(
+            accumulator.summaryMask,
+            accumulator.currentYear,
+            expiryYear
+        );
         if (booking.year > accumulator.latestBookedYear) accumulator.latestBookedYear = booking.year;
 
         emit BookingCreated(account, booking.year, booking.dayOfYear, booking.pricePerDate);
@@ -771,9 +758,17 @@ contract TokenizedStays is
         uint256 yearOffset = uint256(date.year) - accumulator.currentYear;
         countDeltas[yearOffset] -= 1;
         accumulator.countMask |= uint256(1) << yearOffset;
-        accumulator.summaryMask = _markSummaryYear(accumulator.summaryMask, accumulator.currentYear, date.year);
+        accumulator.summaryMask = TokenizedStaysExposure.markSummaryYear(
+            accumulator.summaryMask,
+            accumulator.currentYear,
+            date.year
+        );
         uint16 expiryYear = _expiryYear(date.year, dayId);
-        accumulator.summaryMask = _markSummaryYear(accumulator.summaryMask, accumulator.currentYear, expiryYear);
+        accumulator.summaryMask = TokenizedStaysExposure.markSummaryYear(
+            accumulator.summaryMask,
+            accumulator.currentYear,
+            expiryYear
+        );
         emit BookingCanceled(account, date.year, date.dayOfYear, pricePerDate);
     }
 
@@ -826,38 +821,13 @@ contract TokenizedStays is
     ) internal view returns (YearSummary memory summary) {
         uint32 dayId = _toDayId(year, 1);
         uint16 yearDays = daysInYear(year);
-        int256 prefix = 0;
-        int256 maximum = 0;
-
-        for (uint256 i = 0; i < yearDays; ) {
-            prefix += _dailyDelta($, account, dayId);
-            if (prefix > maximum) maximum = prefix;
-            unchecked {
-                ++i;
-                ++dayId;
-            }
-        }
-
-        summary = YearSummary(prefix, maximum);
-    }
-
-    function _dailyDelta(
-        TokenizedStaysStorage storage $,
-        address account,
-        uint32 dayId
-    ) internal view returns (int256) {
-        uint256 starting = _priceForDay($, account, dayId);
-        uint256 ending = dayId >= LOCK_DAYS ? _priceForDay($, account, dayId - LOCK_DAYS) : 0;
-        return int256(starting) - int256(ending);
-    }
-
-    function _priceForDay(
-        TokenizedStaysStorage storage $,
-        address account,
-        uint32 dayId
-    ) internal view returns (uint256) {
-        uint256 encodedPrice = $.bookingPricePlusOne[account][dayId];
-        return encodedPrice == 0 ? 0 : encodedPrice - 1;
+        (int256 totalDelta, int256 maxPrefix) = TokenizedStaysExposure.summarizeYear(
+            $.bookingPricePlusOne[account],
+            dayId,
+            yearDays,
+            LOCK_DAYS
+        );
+        summary = YearSummary(totalDelta, maxPrefix);
     }
 
     function _reconcileBookingBalance(TokenizedStaysStorage storage $, address account) internal {
@@ -887,6 +857,8 @@ contract TokenizedStays is
     function _withdrawUnlocked(address account, uint256 requested) internal {
         uint256 available = unlockedBalanceOf(account);
         if (requested > available) revert WithdrawalAmountExceedsUnlockedBalance(requested, available);
+        // Zero means there is nothing to transfer; this is not a balance-dependent authorization check.
+        // slither-disable-next-line incorrect-equality
         if (requested == 0) return;
 
         TokenizedStaysStorage storage $ = _getTokenizedStaysStorage();
@@ -920,16 +892,9 @@ contract TokenizedStays is
         $.latestBookedYears[account] = candidate;
     }
 
-    function _markSummaryYear(uint256 mask, uint16 baseYear, uint16 year) internal pure returns (uint256) {
-        // Current-year exposure is scanned directly from the query day, so its full-year summary is never consumed.
-        if (year <= baseYear) return mask;
-        uint256 offset = uint256(year) - baseYear;
-        return mask | (uint256(1) << offset);
-    }
-
     function _expiryYear(uint16 bookingYear, uint32 bookingDayId) internal pure returns (uint16) {
         uint16 nextYear = bookingYear + 1;
-        return bookingDayId + LOCK_DAYS < _toDayId(nextYear, 1) ? bookingYear : nextYear;
+        return TokenizedStaysExposure.expiryYear(bookingYear, bookingDayId, _toDayId(nextYear, 1), LOCK_DAYS);
     }
 
     function _currentYear() internal view returns (uint16 year) {
@@ -938,42 +903,19 @@ contract TokenizedStays is
 
     function _toDayId(uint16 year, uint16 dayOfYear) internal pure returns (uint32) {
         uint16 yearDays = daysInYear(year);
+        // Days are one-based, so equality with zero is the required lower-bound validation.
+        // slither-disable-next-line incorrect-equality
         if (dayOfYear == 0 || dayOfYear > yearDays) revert InvalidDate(year, dayOfYear);
-        uint256 dayId = _daysBeforeYear(year) - _daysBeforeYear(EPOCH_YEAR) + dayOfYear - 1;
+        uint256 dayId = GregorianDateMath.toDayId(EPOCH_YEAR, year, dayOfYear);
         if (dayId > type(uint32).max) revert DayIdOutOfRange(dayId);
         return uint32(dayId);
     }
 
     function _fromDayId(uint32 dayId) internal pure returns (uint16 year, uint16 dayOfYear) {
-        uint256 absoluteDay = uint256(dayId) + _daysBeforeYear(EPOCH_YEAR);
-        uint256 maximumDay = _daysBeforeYear(uint256(type(uint16).max) + 1) - 1;
+        uint256 absoluteDay = uint256(dayId) + GregorianDateMath.daysBeforeYear(EPOCH_YEAR);
+        uint256 maximumDay = GregorianDateMath.daysBeforeYear(uint256(type(uint16).max) + 1) - 1;
         if (absoluteDay > maximumDay) revert DayIdOutOfRange(dayId);
-
-        uint256 low = EPOCH_YEAR;
-        uint256 high = uint256(type(uint16).max) + 1;
-        while (low + 1 < high) {
-            uint256 middle = (low + high) / 2;
-            if (_daysBeforeYear(middle) <= absoluteDay) {
-                low = middle;
-            } else {
-                high = middle;
-            }
-        }
-
-        year = uint16(low);
-        dayOfYear = uint16(absoluteDay - _daysBeforeYear(low) + 1);
-    }
-
-    function _daysBeforeYear(uint256 year) internal pure returns (uint256) {
-        uint256 completedYears = year - 1;
-        return 365 * completedYears + completedYears / 4 - completedYears / 100 + completedYears / 400;
-    }
-
-    function _isLeapYear(uint256 year) internal pure returns (bool) {
-        // Modulo is deterministic calendar arithmetic, not a source of randomness.
-        // Equality is required by the Gregorian leap-year definition.
-        // slither-disable-next-line weak-prng,incorrect-equality
-        return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+        return GregorianDateMath.fromDayId(EPOCH_YEAR, dayId);
     }
 
     function _checkRole(bytes32 role) internal view {

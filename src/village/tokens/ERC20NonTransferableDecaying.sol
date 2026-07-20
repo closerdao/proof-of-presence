@@ -244,6 +244,7 @@ abstract contract ERC20NonTransferableDecaying is
                 ++i;
             }
         }
+        return decayedTotalSupply;
     }
 
     /// @notice Applies the current daily decay rate to an amount for a number of complete days.
@@ -424,7 +425,7 @@ abstract contract ERC20NonTransferableDecaying is
     function _mintWithDecay(address account, uint256 amount, uint256 daysAgo) internal {
         if (amount == 0) revert MintWithZeroAmount();
 
-        _addHolderIfNotExists(account);
+        _registerHolderIfNeeded(account);
         uint256 decayedMintedAmount = calculateDecayForDays(amount, daysAgo);
         emit MintWithDecay(account, amount, decayedMintedAmount, daysAgo);
         DecayingTokenStorage storage $ = _getDecayingTokenStorage();
@@ -510,14 +511,11 @@ abstract contract ERC20NonTransferableDecaying is
         revert Unauthorized(sender, VillageRoles.BOOKING_MANAGER_ROLE);
     }
 
-    function _addHolderIfNotExists(address holder) internal returns (bool wasAdded) {
+    function _registerHolderIfNeeded(address holder) internal {
         DecayingTokenStorage storage $ = _getDecayingTokenStorage();
-        if (!$.isHolder[holder]) {
-            $.isHolder[holder] = true;
-            $.holders.push(holder);
-            return true;
-        }
-        return false;
+        if ($.isHolder[holder]) return;
+        $.isHolder[holder] = true;
+        $.holders.push(holder);
     }
 
     function _update(address from, address to, uint256 amount) internal virtual override {

@@ -81,6 +81,9 @@ jobs:
       - name: ERC conformance checks
         run: yarn analyze:standards
 
+      - name: TokenizedStays formal verification
+        run: yarn analyze:smt
+
       - name: Dependency vulnerability regression gate
         run: yarn security:dependencies
 
@@ -149,29 +152,13 @@ jobs:
         run: yarn install --frozen-lockfile --ignore-scripts
 
       - name: Prepare report directories
-        run: mkdir -p security-reports/wake security-reports/aderyn security-reports/gambit
-
-      - name: Wake independent detector pass
-        run: >-
-          uvx --from eth-wake==4.22.1 wake detect all
-          src/village/access
-          src/village/libraries
-          src/village/proxy
-          src/village/stays
-          src/village/tokens
-          src/profiles/tdf-v2
-          --min-impact medium
-          --min-confidence high
-          2>&1 | tee security-reports/wake/report.txt
+        run: mkdir -p security-reports/aderyn security-reports/wake security-reports/gambit
 
       - name: Aderyn independent detector pass
-        run: >-
-          npx --yes @cyfrin/aderyn@0.6.8 .
-          --path-excludes src/legacy,src/village/test
-          --output security-reports/aderyn/report.md
+        run: mise run security:aderyn
 
-      - name: Targeted Solidity SMTChecker pass
-        run: yarn analyze:smt
+      - name: Wake independent detector pass
+        run: mise run security:wake
 
       - name: Install Gambit mutation generator
         run: cargo install --git https://github.com/Certora/gambit --tag v1.0.6 --locked

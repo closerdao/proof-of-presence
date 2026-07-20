@@ -86,6 +86,8 @@
     "test:v2:deep": "V2_FUZZ_RUNS=2000 V2_INVARIANT_RUNS=256 V2_INVARIANT_DEPTH=100 hardhat test solidity",
     "test:v2:scale": "RUN_V2_SCALE=1 hardhat test mocha test/village/scale/TokenizedStays.scale.test.ts",
     "validate:upgrades": "hardhat compile --force && tsx scripts/validate-upgrades.ts",
+    "analyze:aderyn": "node scripts/security/run-aderyn.js",
+    "analyze:wake": "node scripts/security/run-wake.js",
     "analyze:slither": "node scripts/security/run-slither.js",
     "analyze:standards": "node scripts/security/run-slither-standards.js",
     "analyze:smt": "node scripts/security/run-smt.js",
