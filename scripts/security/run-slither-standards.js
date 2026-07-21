@@ -2,7 +2,7 @@
 import {rmSync} from 'node:fs';
 import console from 'node:console';
 import process from 'node:process';
-import {SLITHER_BUILD_ARGS, ensureReportDirectory, reportSlug, slitherCommand} from './shared.js';
+import {ensureReportDirectory, reportSlug, slitherBuildArgs, slitherCommand} from './shared.js';
 
 const checks = [
   ['src/village/tokens/CommunityToken.sol', 'CommunityToken', 'ERC20'],
@@ -12,6 +12,7 @@ const checks = [
 ];
 
 const reportDirectory = ensureReportDirectory('standards');
+const buildArgs = slitherBuildArgs();
 let failed = false;
 for (const [target, contract, standard] of checks) {
   const report = `${reportDirectory}/${reportSlug(target, `-${standard.toLowerCase()}`)}.json`;
@@ -24,7 +25,7 @@ for (const [target, contract, standard] of checks) {
     standard,
     '--json',
     report,
-    ...SLITHER_BUILD_ARGS,
+    ...buildArgs,
   ]);
   failed ||= result.status !== 0;
 }

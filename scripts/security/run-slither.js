@@ -4,10 +4,10 @@ import console from 'node:console';
 import process from 'node:process';
 import {
   ACTIVE_CONTRACTS,
-  SLITHER_COMPILE_ARGS,
   ensureReportDirectory,
   reportSlug,
   run,
+  slitherCompileArgs,
   slitherCommand,
 } from './shared.js';
 
@@ -25,6 +25,7 @@ if (!/^[0-9a-f]{40}$/.test(resolvedCommit)) {
 writeFileSync(`${reportDirectory}/commit.txt`, `${resolvedCommit}\n`);
 console.log(`Slither source: master @ ${resolvedCommit}`);
 const resolvedSource = `git+https://github.com/crytic/slither.git@${resolvedCommit}`;
+const compileArgs = slitherCompileArgs();
 
 let failed = false;
 for (const [target] of ACTIVE_CONTRACTS) {
@@ -36,7 +37,7 @@ for (const [target] of ACTIVE_CONTRACTS) {
   console.log(`\n=== Slither: ${target} ===`);
   const result = slitherCommand(
     'slither',
-    [target, ...SLITHER_COMPILE_ARGS, '--json', jsonReport, '--sarif', sarifReport, '--fail-medium'],
+    [target, ...compileArgs, '--json', jsonReport, '--sarif', sarifReport, '--fail-medium'],
     target === ACTIVE_CONTRACTS[0][0],
     {},
     resolvedSource,
