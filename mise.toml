@@ -1,0 +1,79 @@
+[settings]
+lockfile = true
+
+[tool_alias]
+z3 = "github:Z3Prover/z3"
+
+[tools]
+node = "22.22.2"
+yarn = "1.22.22"
+uv = "0.11.29"
+solidity = "0.8.35"
+osv-scanner = "2.4.0"
+lefthook = "2.1.10"
+"cargo:https://github.com/Certora/gambit" = "tag:v1.0.6"
+
+[tools."pipx:git+https://github.com/microHoffman/wake.git"]
+version = "6484ca1961fab54fd594aef9479880d0522bdbcd"
+depends = ["uv"]
+
+[tools.z3]
+version = "z3-4.15.8"
+
+[tools.z3.platforms]
+linux-x64 = { asset_pattern = "z3-*-x64-glibc-2.39.zip" }
+macos-x64 = { asset_pattern = "z3-*-x64-osx-*.zip" }
+macos-arm64 = { asset_pattern = "z3-*-arm64-osx-*.zip" }
+
+[tasks.setup]
+description = "Install pinned tools, JavaScript dependencies, and local Git hooks"
+run = [
+  "yarn install --frozen-lockfile",
+  "lefthook install",
+]
+
+[tasks.check]
+description = "Run the normal local and pull-request checks"
+run = [
+  "yarn typecheck",
+  "yarn format",
+  "yarn lint",
+  "yarn test",
+  "yarn validate:upgrades",
+]
+
+[tasks."security:static"]
+description = "Run blocking static, standards, dependency, and artifact checks"
+run = [
+  "yarn analyze:slither",
+  "yarn analyze:standards",
+  "yarn analyze:smt",
+  "yarn security:dependencies",
+  "yarn security:artifacts",
+]
+
+[tasks."security:aderyn"]
+description = "Run the independent Aderyn analysis with pinned solc 0.8.35"
+run = "yarn analyze:aderyn"
+
+[tasks."security:gambit"]
+description = "Generate, summarize, and test deterministic targeted Solidity mutants"
+run = [
+  "yarn analyze:gambit",
+  "yarn test:gambit-mutants",
+]
+
+[tasks."security:wake"]
+description = "Run the pinned Wake fork against active contracts"
+run = "yarn analyze:wake"
+
+[tasks."security:smt"]
+description = "Prove the focused TokenizedStays calendar and exposure properties"
+run = "yarn analyze:smt"
+
+[tasks."security:deep"]
+description = "Run the manual deep fuzz/invariant and coverage gates"
+run = [
+  "yarn test:deep",
+  "yarn security:coverage",
+]

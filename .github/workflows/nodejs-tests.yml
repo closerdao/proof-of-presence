@@ -1,6 +1,17 @@
-name: nodejs-tests
+name: contracts
 
 on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Additional security suite to run
+        required: true
+        default: standard
+        type: choice
+        options:
+          - standard
+          - deep
+          - preaudit
   push:
     branches:
       - main
@@ -8,41 +19,152 @@ on:
     branches:
       - main
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+concurrency:
+  group: contracts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality and contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain
+        uses: jdx/mise-action@v3
         with:
-          fetch-depth: 1
+          version: 2026.6.14
+          install: true
+          cache: true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 16.19.0
+      - name: Install JavaScript dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+      - name: Type checking
+        run: yarn typecheck
 
-      - uses: actions/cache@v4
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Installing dependencies
-        run: yarn install --frozen-lockfile
-
-      # TODO include pre-commit hooks to make sure formatting and linting is done on local before running CI where this can make the full pipeline fail?
       - name: Formatting
         run: yarn format
 
       - name: Linting
         run: yarn lint
 
-      - name: Running tests
+      - name: Contract tests
         run: yarn test
+
+      - name: Validate UUPS upgrades and storage layouts
+        run: yarn validate:upgrades
+
+  security:
+    name: Static security gates
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain
+        uses: jdx/mise-action@v3
+        with:
+          version: 2026.6.14
+          install: true
+          cache: true
+
+      - name: Install JavaScript dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Slither medium/high gate
+        run: yarn analyze:slither
+
+      - name: ERC conformance checks
+        run: yarn analyze:standards
+
+      - name: TokenizedStays formal verification
+        run: yarn analyze:smt
+
+      - name: Dependency vulnerability regression gate
+        run: yarn security:dependencies
+
+      - name: ABI, storage fingerprint, and code-size gate
+        run: yarn security:artifacts
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: security-reports/
+          if-no-files-found: warn
+
+  deep:
+    name: Deep fuzz, invariant, and coverage
+    if: github.event_name == 'workflow_dispatch' && (inputs.suite == 'deep' || inputs.suite == 'preaudit')
+    needs: security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain
+        uses: jdx/mise-action@v3
+        with:
+          version: 2026.6.14
+          install: true
+          cache: true
+
+      - name: Install JavaScript dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Deep fuzz and invariant tests
+        run: yarn test:deep
+
+      - name: Coverage regression gate
+        run: yarn security:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-coverage
+          path: coverage/
+          if-no-files-found: warn
+
+  preaudit:
+    name: Independent pre-audit analyzers
+    if: github.event_name == 'workflow_dispatch' && inputs.suite == 'preaudit'
+    needs: deep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain
+        uses: jdx/mise-action@v3
+        with:
+          version: 2026.6.14
+          install: true
+          cache: true
+
+      - name: Install JavaScript dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Prepare report directories
+        run: mkdir -p security-reports/aderyn security-reports/wake security-reports/gambit
+
+      - name: Aderyn independent detector pass
+        run: mise run security:aderyn
+
+      - name: Wake independent detector pass
+        run: mise run security:wake
+
+      - name: Generate and test deterministic targeted mutants
+        run: mise run security:gambit
+
+      - name: Upload pre-audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preaudit-reports
+          path: security-reports/
+          if-no-files-found: warn

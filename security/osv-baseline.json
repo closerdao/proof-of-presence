@@ -1,0 +1,199 @@
+{
+  "format": 1,
+  "reviewedOn": "2026-07-21",
+  "note": "Existing dependency findings only. Reports remain visible; new package/version/advisory tuples fail CI.",
+  "findings": [
+    {
+      "ecosystem": "npm",
+      "package": "adm-zip",
+      "version": "0.4.16",
+      "id": "GHSA-xcpc-8h2w-3j85"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "ansi-regex",
+      "version": "5.0.0",
+      "id": "GHSA-93q8-gq69-wqmw"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "bn.js",
+      "version": "4.12.1",
+      "id": "GHSA-378v-28hj-76wf"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "bn.js",
+      "version": "5.2.1",
+      "id": "GHSA-378v-28hj-76wf"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "diff",
+      "version": "7.0.0",
+      "id": "GHSA-73rr-hh4g-fpgx"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "elliptic",
+      "version": "6.6.1",
+      "id": "GHSA-848j-6mx2-7j84"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "esbuild",
+      "version": "0.27.3",
+      "id": "GHSA-g7r4-m6w7-qqqr"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "fast-uri",
+      "version": "3.1.0",
+      "id": "GHSA-q3j6-qgpj-74h6"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "fast-uri",
+      "version": "3.1.0",
+      "id": "GHSA-v39h-62p7-jpjc"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "flatted",
+      "version": "3.3.4",
+      "id": "GHSA-25h7-pfq9-p65f"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "flatted",
+      "version": "3.3.4",
+      "id": "GHSA-rf6f-7fwh-wjgh"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "lodash-es",
+      "version": "4.17.21",
+      "id": "GHSA-f23m-r3pf-42rh"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "lodash-es",
+      "version": "4.17.21",
+      "id": "GHSA-r5fr-rjxr-66jc"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "lodash-es",
+      "version": "4.17.21",
+      "id": "GHSA-xxjr-mmjv-4gpg"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "lodash",
+      "version": "4.17.21",
+      "id": "GHSA-f23m-r3pf-42rh"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "lodash",
+      "version": "4.17.21",
+      "id": "GHSA-r5fr-rjxr-66jc"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "lodash",
+      "version": "4.17.21",
+      "id": "GHSA-xxjr-mmjv-4gpg"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "picomatch",
+      "version": "4.0.3",
+      "id": "GHSA-3v7f-55p6-f55p"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "picomatch",
+      "version": "4.0.3",
+      "id": "GHSA-c2c7-rcm5-vvqj"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "serialize-javascript",
+      "version": "6.0.2",
+      "id": "GHSA-5c6j-r48x-rmvq"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "serialize-javascript",
+      "version": "6.0.2",
+      "id": "GHSA-qj8w-gfj5-8c6v"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "undici",
+      "version": "6.23.0",
+      "id": "GHSA-2mjp-6q6p-2qxm"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "undici",
+      "version": "6.23.0",
+      "id": "GHSA-35p6-xmwp-9g52"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "undici",
+      "version": "6.23.0",
+      "id": "GHSA-4992-7rv2-5pvq"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "undici",
+      "version": "6.23.0",
+      "id": "GHSA-f269-vfmq-vjvj"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "undici",
+      "version": "6.23.0",
+      "id": "GHSA-g8m3-5g58-fq7m"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "undici",
+      "version": "6.23.0",
+      "id": "GHSA-p88m-4jfj-68fv"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "undici",
+      "version": "6.23.0",
+      "id": "GHSA-v9p9-hfj2-hcw8"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "undici",
+      "version": "6.23.0",
+      "id": "GHSA-vrm6-8vpv-qv8q"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "undici",
+      "version": "6.23.0",
+      "id": "GHSA-vxpw-j846-p89q"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "ws",
+      "version": "8.19.0",
+      "id": "GHSA-58qx-3vcg-4xpx"
+    },
+    {
+      "ecosystem": "npm",
+      "package": "ws",
+      "version": "8.19.0",
+      "id": "GHSA-96hv-2xvq-fx4p"
+    }
+  ]
+}

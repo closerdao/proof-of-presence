@@ -1,228 +1,70 @@
-# Proof of Presence
+# Closer smart contracts
 
-## DEPLOYED CONTRACTS
+This repository contains the current Closer village contracts and their deployment, upgrade, verification, and
+security tooling. The former contract system is preserved separately on the `legacy-v1` branch, created from
+`main` at commit `16735b858567a87aaa6af430bf8600ec0531a392`.
 
-For a complete list of all deployed contract addresses (including implementations, proxies, and facets), see the `deployments/<network>/` directories.
+## Quick start
 
-For previewing and interacting with the TDFDiamond, it's best to use [louper.dev](https://louper.dev).
+The pinned toolchain is Node.js 22, Yarn Classic, Solidity 0.8.35, and the security tools declared in
+`mise.toml`.
 
-### Celo Mainnet
-
-| Contract | Address |
-|----------|---------|
-| TDFDiamond | [`0x475398EeE0E22cb6fe5403ffA294Fb10Ad989e17`](https://celoscan.io/address/0x475398EeE0E22cb6fe5403ffA294Fb10Ad989e17) |
-| TDFToken | [`0x10CB7F49389787A99b59B2f87dfDd3bba141559f`](https://celoscan.io/address/0x10CB7F49389787A99b59B2f87dfDd3bba141559f) |
-| PresenceToken | [`0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9`](https://celoscan.io/address/0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9) |
-| SweatToken | [`0xa2898Dd4628eD626bf841530f87c9F1ebA837c87`](https://celoscan.io/address/0xa2898Dd4628eD626bf841530f87c9F1ebA837c87) |
-| DynamicSale | [`0xEaa00a0e0D29D1F883485E8f98A0E8FfD75B23FB`](https://celoscan.io/address/0xEaa00a0e0D29D1F883485E8f98A0E8FfD75B23FB) |
-
-### Celo Sepolia Testnet
-
-| Contract | Address |
-|----------|---------|
-| TDFDiamond | [`0x5D2870B37aB72AB9Cc3F46878373EeCc1312FA6e`](https://sepolia.celoscan.io/address/0x5D2870B37aB72AB9Cc3F46878373EeCc1312FA6e) |
-| TDFToken | [`0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9`](https://sepolia.celoscan.io/address/0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9) |
-| PresenceToken | [`0xBA72D0644F465D78e5076284ea3480f4dBc006F6`](https://sepolia.celoscan.io/address/0xBA72D0644F465D78e5076284ea3480f4dBc006F6) |
-| SweatToken | [`0x913d4e87A54A89DaCB80279d263aFd6a500889b5`](https://sepolia.celoscan.io/address/0x913d4e87A54A89DaCB80279d263aFd6a500889b5) |
-| DynamicSale | [`0x076F0Ba89A33A6b268F164ddb2cC61df75Ee0168`](https://sepolia.celoscan.io/address/0x076F0Ba89A33A6b268F164ddb2cC61df75Ee0168) |
-| Crowdsale | [`0xdD5FCC4992C5C8795c557B2865B2ceE6c2CF6316`](https://sepolia.celoscan.io/address/0xdD5FCC4992C5C8795c557B2865B2ceE6c2CF6316) |
-
-## Repo description
-
-This is a collection of contracts aiming to implement tokenized timeshare access to land projects.
-You can read more about Closer in our [Documentation](https://closer.gitbook.io/closer-protocol/)
-
-This contracts include:
-
-- ERC20 token
-- Booking System:
-
-      Implemented a locking mechanism to reuse the tokens every year preventing doble spending by locking those tokens in a Diamond contract
-
-- Sale Contract:
-  minting operation from sale contract:
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant SaleContract
-    participant TDFDiamond
-    participant TDFToken
-    User->>+SaleContract: `buy`
-    SaleContract->>TDFDiamond: mint
-    Note left of TDFDiamond: Access Control
-    TDFDiamond->>TDFToken: mint
-    Note left of TDFToken: onlyOwner or DAO
-    TDFToken-->>TDFDiamond: approveTransfer
-    TDFDiamond-->>TDFToken: allowsMinting
-    TDFToken-->>SaleContract: transferTokens
-    SaleContract-->>User: Finish Operation
+```sh
+mise install
+mise run setup
+mise run check
 ```
 
-## BUG BOUNTY
+`mise run check` runs type checking, formatting, linting, all contract tests, and OpenZeppelin upgrade validation.
+The complete test suite currently contains Solidity fuzz/invariant tests and TypeScript deployment/integration tests.
 
-If you find critical security gaps in our smart contract code, please reach sam@closer.earth.
-For smaller issues you can create tickets in our open source code repositories and we will happily consider an appropriate reward.
+## Repository structure
 
-## INSTALL
+- `src/village/` — reusable access, token, booking, proxy, interface, and library contracts.
+- `src/profiles/tdf/` — TDF-specific policy contracts composed with the generic village contracts.
+- `ignition/modules/` — the only supported deployment graphs.
+- `scripts/deployment/` — strict config/manifest validation and deployment reconciliation.
+- `test/solidity/` — Solidity unit, fuzz, and invariant tests.
+- `test/village/` — deployment, Safe, recovery, integration, scale, and upgrade tests.
+- `security/` — security-tool configuration and reviewed regression baselines.
 
-```bash
-yarn
-```
+The contract and authority model is described in [Architecture](./docs/ARCHITECTURE.md). Operators should start with
+[Deployment](./docs/DEPLOYMENT.md); API and UI consumers should use [Integration](./docs/INTEGRATION.md). Current
+release work is tracked in [Remaining work](./docs/REMAINING_WORK.md).
 
-## SETUP
+## Common commands
 
-### ENV variables
-
-1. duplicate .env.example
-2. fill the required env variables. Most importantly `PRIVATE_KEY`
-
-### Get access roles
-
-You should had been given `DEFAULT_ADMIN_ROLE` in the Diamond to be able to execute any of this functions
-
-**grant minting role:** _recommended only for celoSepolia network_
-
-```bash
-npx hardhat diamond:grant-role [ADDRESS] --minter --network celoSepolia
-```
-
-You can give different roles by changing the `--minter` flag
-
-### Minting for development
-
-Once your `.env` `PRIVATE_KEY` has `minter` role you can just mint like this:
-
-```bash
-npx hardhat diamond:mint --address [ADDRESS] --amount [amount] --network celoSepolia
-
-# ex:
-#
-#     npx hardhat diamond:mint --address 0x661Ac71bbe43fe56935c1CA4d62e62ed380950A3 --amount 32 --network celoSepolia
-```
-
-## TEST
-
-- One using hardhat that can leverage hardhat-deploy to reuse deployment procedures and named accounts:
-
-```bash
+```sh
+yarn compile
 yarn test
+yarn validate:upgrades
+yarn deploy:village -- --config config.json --network celoSepolia
+yarn deploy:tdf -- --config config.json --network celoSepolia
+yarn verify:village -- --manifest <manifest.json>
+yarn export:village -- --manifest <manifest.json>
+yarn upgrade:prepare -- --manifest <manifest.json> --contract <name> \
+  --implementation <artifact> --version <id> --network <network>
 ```
 
-## Hardhat tasks
+Bare `yarn deploy` only prints help; it never sends a transaction.
 
-### deploy
+## Deployment records and schemas
 
-```
-npx hardhat deploy --network celoSepolia
-```
+Hardhat Ignition owns transaction journaling and resumption. A strict deployment manifest summarizes reconciled
+on-chain state for operators and downstream systems; it does not duplicate the Ignition journal. Consumer exports are
+derived from manifests and contain only stable addresses, ABIs, aliases, and routing metadata.
 
-### Grant role
+- Deployment config: `schemaVersion: 3`.
+- Deployment manifest: `schemaVersion: 3`, with `configSchemaVersion: 3`.
+- Consumer export: `schemaVersion: 2`.
 
-```
-npx hardhat diamond:grant-role 0xbE5B7A0F27e7Ec296670c3fc7c34BE652303e716 --network celoSepolia
-```
+`schemaVersion` identifies the JSON wire format. It is not a contract version, proxy storage version, or Ignition
+journal version. The value is required and checked with an exact schema literal, so unsupported or ambiguous files
+fail before deployment. See [Deployment schemas](./docs/DEPLOYMENT.md#deployment-schemas) for the full explanation.
 
-## SCRIPTS
+## Security
 
-Here is the list of npm scripts you can execute:
-
-Some of them relies on [./\_scripts.js](./_scripts.js) to allow parameterizing it via command line argument (have a look inside if you need modifications)
-<br/><br/>
-
-### `yarn prepare`
-
-As a standard lifecycle npm script, it is executed automatically upon install. It generate config file and typechain to get you started with type safe contract interactions
-<br/><br/>
-
-### `yarn lint`, `yarn lint:fix`, `yarn format` and `yarn format:fix`
-
-These will lint and format check your code. the `:fix` version will modifiy the files to match the requirement specified in `.eslintrc` and `.prettierrc.`
-<br/><br/>
-
-### `yarn compile`
-
-These will compile your contracts
-<br/><br/>
-
-### `yarn void:deploy`
-
-This will deploy your contracts on the in-memory hardhat network and exit, leaving no trace. quick way to ensure deployments work as intended without consequences
-<br/><br/>
-
-### `yarn test [mocha args...]`
-
-These will execute your tests using mocha. you can pass extra arguments to mocha
-<br/><br/>
-
-## Verify contracts on Sourcify
-
-```
-npx hardhat --network celoSepolia sourcify
-```
-
-### `yarn coverage`
-
-These will produce a coverage report in the `coverage/` folder
-<br/><br/>
-
-### `yarn gas`
-
-These will produce a gas report for function used in the tests
-<br/><br/>
-
-### `yarn dev`
-
-These will run a local hardhat network on `localhost:8545` and deploy your contracts on it. Plus it will watch for any changes and redeploy them.
-<br/><br/>
-
-### `yarn local:dev`
-
-This assumes a local node it running on `localhost:8545`. It will deploy your contracts on it. Plus it will watch for any changes and redeploy them.
-<br/><br/>
-
-### `yarn execute <network> <file.ts> [args...]`
-
-This will execute the script `<file.ts>` against the specified network
-<br/><br/>
-
-### `yarn deploy <network> [args...]`
-
-This will deploy the contract on the specified network.
-
-Behind the scene it uses `hardhat deploy` command so you can append any argument for it
-<br/><br/>
-
-### `yarn export <network> <file.json>`
-
-This will export the abi+address of deployed contract to `<file.json>`
-<br/><br/>
-
-### `yarn fork:execute <network> [--blockNumber <blockNumber>] [--deploy] <file.ts> [args...]`
-
-This will execute the script `<file.ts>` against a temporary fork of the specified network
-
-if `--deploy` is used, deploy scripts will be executed
-<br/><br/>
-
-### `yarn fork:deploy <network> [--blockNumber <blockNumber>] [args...]`
-
-This will deploy the contract against a temporary fork of the specified network.
-
-Behind the scene it uses `hardhat deploy` command so you can append any argument for it
-<br/><br/>
-
-### `yarn fork:test <network> [--blockNumber <blockNumber>] [mocha args...]`
-
-This will test the contract against a temporary fork of the specified network.
-<br/><br/>
-
-### `yarn fork:dev <network> [--blockNumber <blockNumber>] [args...]`
-
-This will deploy the contract against a fork of the specified network and it will keep running as a node.
-
-Behind the scene it uses `hardhat node` command so you can append any argument for it
-
-## LICENCE
-
-This software is released under [MIT licence](https://github.com/closerdao/proof-of-presence/blob/main/LICENSE)
+Production Solidity is compiled only with Solidity 0.8.35 for Cancun, using OpenZeppelin Contracts 5.6. The repository
+has ABI/storage/code-size, dependency, coverage, static-analysis, formal-verification, fuzz, invariant, scale, and
+upgrade-validation gates. See [Security tooling](./security/README.md) and
+[Dependency policy](./docs/DEPENDENCY_POLICY.md).

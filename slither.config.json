@@ -1,0 +1,6 @@
+{
+  "detectors_to_run": "all",
+  "exclude_dependencies": true,
+  "filter_paths": "src/village/test|node_modules",
+  "show_ignored_findings": false
+}

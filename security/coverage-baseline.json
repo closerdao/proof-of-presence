@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "metric": "lcov-lines",
+  "newFileMinimumPercent": 90,
+  "files": {
+    "src/village/libraries/GregorianDateMath.sol": {
+      "hit": 15,
+      "found": 15,
+      "percent": 100
+    },
+    "src/village/libraries/TokenizedStaysExposure.sol": {
+      "hit": 45,
+      "found": 46,
+      "percent": 97.83
+    },
+    "src/village/libraries/DecayMath.sol": {
+      "hit": 21,
+      "found": 21,
+      "percent": 100
+    },
+    "src/profiles/tdf/TDFTransferPolicy.sol": {
+      "hit": 18,
+      "found": 18,
+      "percent": 100
+    },
+    "src/village/access/VillageAccess.sol": {
+      "hit": 15,
+      "found": 22,
+      "percent": 68.18
+    },
+    "src/village/tokens/ERC20NonTransferableDecaying.sol": {
+      "hit": 150,
+      "found": 158,
+      "percent": 94.94
+    },
+    "src/village/tokens/VillagePresenceToken.sol": {
+      "hit": 1,
+      "found": 1,
+      "percent": 100
+    },
+    "src/village/tokens/VillageSweatToken.sol": {
+      "hit": 1,
+      "found": 1,
+      "percent": 100
+    },
+    "src/village/stays/TokenizedStays.sol": {
+      "hit": 307,
+      "found": 317,
+      "percent": 96.85
+    },
+    "src/village/tokens/CommunityToken.sol": {
+      "hit": 55,
+      "found": 59,
+      "percent": 93.22
+    }
+  }
+}
