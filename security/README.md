@@ -25,7 +25,8 @@ mise run security:wake
 mise run security:gambit
 ```
 
-`security:deep` raises fuzz and invariant runs, enables the ten-year scale case, and checks coverage regression.
+`security:deep` raises fuzz and invariant runs and checks coverage regression. The standard pull-request suite already
+includes the ten-year scale case.
 Aderyn, Wake, and targeted Gambit mutation generation are independent pre-audit evidence rather than per-commit
 linters. Aderyn finding dispositions are tracked in `security/ADERYN_TRIAGE.md`.
 
@@ -49,8 +50,8 @@ SMTChecker and Z3, including a negative control that must yield a counterexample
 ## Fuzzing, invariants, scale, and mutation
 
 Hardhat Solidity tests are the canonical fuzz and stateful invariant system. Default runs are bounded for pull
-requests; `yarn test:deep` increases runs and sequence depth. `yarn test:scale` enables the opt-in continuous
-ten-calendar-year TokenizedStays case.
+requests; `yarn test:deep` increases runs and sequence depth. The continuous ten-calendar-year TokenizedStays case
+runs in the standard suite, while `yarn test:scale` remains available as a focused command.
 
 Gambit configuration targets high-risk booking, decay, policy, and authorization code. `mise run security:gambit`
 uses the pinned Cargo tool to generate a deterministic sample, then runs every mutant against the Solidity suite in an

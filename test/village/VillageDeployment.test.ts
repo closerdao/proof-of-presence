@@ -1,24 +1,22 @@
-import {execFile as execFileCallback} from 'node:child_process';
 import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {promisify} from 'node:util';
 import {expect} from 'chai';
 import hre from 'hardhat';
 import {upgrades as createUpgradesApi} from '@openzeppelin/hardhat-upgrades';
 import {OperationType} from '@safe-global/types-kit';
 import {parseEther, ZeroAddress} from 'ethers';
 import {connection, ethers} from '../hardhat.js';
+import {runChildProcess, runTsxWorker} from '../helpers/child-process.js';
+import {exportVillageCommand} from '../../scripts/deployment/commands/export-village.js';
 import {submitDeploymentOwnerActions} from '../../scripts/deployment/owner-actions.js';
 import {
   deployVillage,
   parseVillageDeploymentManifest,
   ROLE_IDS,
-  validateVillageDeploymentConfig,
   type VillageDeploymentConfig,
 } from '../../scripts/deployment/village.js';
 
-const execFile = promisify(execFileCallback);
 const upgradesApi = await createUpgradesApi(hre, connection);
 
 function deploymentContext(outputRoot: string) {
@@ -53,7 +51,7 @@ function baseConfig(
 
 describe('Village deployment entrypoint', function () {
   it('prints help for bare npm deploy instead of deploying', async function () {
-    const {stdout} = await execFile('npm', ['run', 'deploy', '--silent'], {cwd: process.cwd()});
+    const {stdout} = await runChildProcess('npm', ['run', 'deploy', '--silent'], {cwd: process.cwd()});
     expect(stdout).to.include('Bare deploy is intentionally non-transactional');
   });
 
@@ -83,6 +81,15 @@ describe('Village deployment entrypoint', function () {
     expect(() => parseVillageDeploymentManifest({...result.manifest, schemaVersion: 2})).to.throw();
     const {deploymentKind: _deploymentKind, ...withoutDeploymentKind} = result.manifest;
     expect(() => parseVillageDeploymentManifest({...withoutDeploymentKind, generation: 'village'})).to.throw();
+  });
+
+  it('rejects a conflicting manifest for an existing village deployment', async function () {
+    const [deployer, owner, apiOperator] = await ethers.getSigners();
+    const config = baseConfig('manifest-collision-test', owner.address, apiOperator.address, {
+      chainId: await chainId(),
+    });
+    const context = deploymentContext(await outputRoot());
+    await deployVillage(config, context);
 
     let collision: Error | undefined;
     try {
@@ -93,26 +100,15 @@ describe('Village deployment entrypoint', function () {
     expect(collision?.message).to.include('Deployment manifest collision');
   });
 
-  it('deploys through the CLI and derives export ABIs from contract records', async function () {
+  it('deploys through the public CLI entrypoint', async function () {
     const [, owner, apiOperator] = await ethers.getSigners();
     const root = await outputRoot();
     const config = baseConfig('cli-village-test', owner.address, apiOperator.address, {chainId: await chainId()});
     const configPath = path.join(root, 'config.json');
     await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
-    await execFile(
-      'npm',
-      [
-        'run',
-        'deploy:village',
-        '--silent',
-        '--',
-        '--config',
-        configPath,
-        '--network',
-        'default',
-        '--output-root',
-        root,
-      ],
+    await runTsxWorker(
+      'scripts/deploy-village.ts',
+      ['--config', configPath, '--network', 'default', '--output-root', root],
       {cwd: process.cwd()},
     );
     const manifestPath = path.join(
@@ -122,10 +118,19 @@ describe('Village deployment entrypoint', function () {
       String(config.chainId),
       `${config.villageSlug}.json`,
     );
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    expect(manifest.status).to.equal('complete');
+    expect(manifest.contracts.VillageAccess.abi).to.be.an('array').and.not.empty;
+  });
+
+  it('derives an export from manifest contract records in-process', async function () {
+    const [, owner, apiOperator] = await ethers.getSigners();
+    const root = await outputRoot();
+    const config = baseConfig('export-village-test', owner.address, apiOperator.address, {chainId: await chainId()});
+    const result = await deployVillage(config, deploymentContext(root));
     const exportPath = path.join(root, 'export.json');
-    await execFile('npx', ['tsx', 'scripts/export-village.ts', '--manifest', manifestPath, '--out', exportPath], {
-      cwd: process.cwd(),
-    });
+
+    await exportVillageCommand({manifestPath: result.manifestPath, outPath: exportPath});
     const exported = JSON.parse(await readFile(exportPath, 'utf8'));
     expect(exported.schemaVersion).to.equal(2);
     expect(exported.deploymentKind).to.equal('village');
@@ -142,22 +147,9 @@ describe('Village deployment entrypoint', function () {
     });
     const configPath = path.join(root, 'config.json');
     await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
-    await execFile(
-      'npm',
-      [
-        'run',
-        'deploy:contract',
-        '--silent',
-        '--',
-        '--contract',
-        'TDFTransferPolicy',
-        '--config',
-        configPath,
-        '--network',
-        'default',
-        '--output-root',
-        root,
-      ],
+    await runTsxWorker(
+      'scripts/deploy-contract.ts',
+      ['--contract', 'TDFTransferPolicy', '--config', configPath, '--network', 'default', '--output-root', root],
       {cwd: process.cwd()},
     );
     const manifestPath = path.join(
@@ -175,27 +167,8 @@ describe('Village deployment entrypoint', function () {
     expect(manifest.contracts.TDFTransferPolicy.constructorArgs).to.deep.equal([treasury.address, owner.address]);
   });
 
-  it('validates module dependencies and OpenZeppelin preflight before Ignition', async function () {
-    const [, owner, apiOperator, treasury] = await ethers.getSigners();
-    const invalid = baseConfig('invalid-tokenized', owner.address, apiOperator.address, {
-      chainId: await chainId(),
-      modules: ['tokenizedStays'],
-    });
-    expect(() => validateVillageDeploymentConfig(invalid, invalid.chainId)).to.throw(
-      'tokenizedStays requires communityToken',
-    );
-    const conflictingPolicies = baseConfig('conflicting-policies', owner.address, apiOperator.address, {
-      chainId: await chainId(),
-      deploymentProfile: 'tdf',
-      communityToken: {transferPolicy: treasury.address},
-      presenceToken: {decayRatePerDay: 288_617},
-      sweatToken: {decayRatePerDay: 288_617},
-      tdfTransferPolicy: {treasury: treasury.address},
-    });
-    expect(() => validateVillageDeploymentConfig(conflictingPolicies, conflictingPolicies.chainId)).to.throw(
-      'communityToken.transferPolicy cannot be set when the deployed TDFTransferPolicy is selected',
-    );
-
+  it('runs OpenZeppelin preflight before calling Ignition', async function () {
+    const [, owner, apiOperator] = await ethers.getSigners();
     let ignitionCalled = false;
     const config = baseConfig('unsafe-preflight', owner.address, apiOperator.address, {
       chainId: await chainId(),

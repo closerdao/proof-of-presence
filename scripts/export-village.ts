@@ -1,7 +1,5 @@
 #!/usr/bin/env tsx
-import {mkdir, writeFile} from 'node:fs/promises';
-import path from 'node:path';
-import {readVillageDeploymentManifest} from './deployment/village.js';
+import {exportVillageCommand} from './deployment/commands/export-village.js';
 
 interface Args {
   manifest?: string;
@@ -38,51 +36,7 @@ async function main(): Promise<void> {
     throw new Error('--manifest is required');
   }
 
-  const manifestPath = path.resolve(args.manifest);
-  const manifest = await readVillageDeploymentManifest(manifestPath);
-  const outPath =
-    args.out ??
-    path.join(
-      process.cwd(),
-      'export',
-      manifest.deploymentKind === 'profile' ? 'profiles' : 'villages',
-      manifest.deploymentKind === 'profile' ? manifest.deploymentProfile : '',
-      String(manifest.chainId),
-      `${manifest.villageSlug}.json`,
-    );
-  const exportPath = path.resolve(outPath);
-  // Downstream consumers need stable addresses and ABIs, not deployment journals, owner actions, or code provenance.
-  const contracts = Object.fromEntries(
-    Object.entries(manifest.contracts).map(([name, contract]) => [
-      name,
-      {
-        address: contract.address,
-        deploymentName: contract.deploymentName,
-        implementationAddress: contract.implementationAddress,
-        abi: contract.abi,
-      },
-    ]),
-  );
-
-  await mkdir(path.dirname(exportPath), {recursive: true});
-  await writeFile(
-    exportPath,
-    `${JSON.stringify(
-      {
-        schemaVersion: 2,
-        sourceManifest: path.relative(process.cwd(), manifestPath),
-        deploymentKind: manifest.deploymentKind,
-        deploymentProfile: manifest.deploymentProfile,
-        villageSlug: manifest.villageSlug,
-        chainId: manifest.chainId,
-        network: manifest.network,
-        contracts,
-        productAliases: manifest.productAliases ?? {},
-      },
-      null,
-      2,
-    )}\n`,
-  );
+  const exportPath = await exportVillageCommand({manifestPath: args.manifest, outPath: args.out});
   console.log(`Village export written to ${exportPath}`);
 }
 

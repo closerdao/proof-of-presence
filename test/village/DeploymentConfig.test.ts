@@ -1,7 +1,12 @@
 import {expect} from 'chai';
 import {ethers} from '../hardhat.js';
 import {parseVillageDeploymentConfig} from '../../scripts/deployment/config.js';
-import {normalizeModules, type NormalizedModules} from '../../scripts/deployment/village.js';
+import {
+  normalizeModules,
+  validateVillageDeploymentConfig,
+  type NormalizedModules,
+  type VillageDeploymentConfig,
+} from '../../scripts/deployment/village.js';
 import {selectVillageProfileModule} from '../../ignition/modules/profiles/select.js';
 
 describe('Village deployment config schema', function () {
@@ -62,6 +67,44 @@ describe('Village deployment config schema', function () {
         communityToken: {initialSupply: -1},
       }),
     ).to.throw();
+  });
+
+  it('rejects custom module compositions with missing dependencies', async function () {
+    const [, owner, apiOperator] = await ethers.getSigners();
+    const config: VillageDeploymentConfig = {
+      schemaVersion: 3,
+      villageSlug: 'invalid-tokenized',
+      chainId: 31337,
+      deploymentProfile: 'minimal-village',
+      ownership: {mode: 'direct', finalOwner: {type: 'eoa', address: owner.address}},
+      modules: ['tokenizedStays'],
+      apiOperator: apiOperator.address,
+    };
+
+    expect(() => validateVillageDeploymentConfig(config, config.chainId)).to.throw(
+      'tokenizedStays requires communityToken',
+    );
+  });
+
+  it('rejects conflicting external and deployed transfer policies', async function () {
+    const [, owner, apiOperator, treasury] = await ethers.getSigners();
+    const config: VillageDeploymentConfig = {
+      schemaVersion: 3,
+      villageSlug: 'conflicting-policies',
+      chainId: 31337,
+      deploymentProfile: 'tdf',
+      ownership: {mode: 'direct', finalOwner: {type: 'eoa', address: owner.address}},
+      modules: [],
+      apiOperator: apiOperator.address,
+      communityToken: {transferPolicy: treasury.address},
+      presenceToken: {decayRatePerDay: 288_617},
+      sweatToken: {decayRatePerDay: 288_617},
+      tdfTransferPolicy: {treasury: treasury.address},
+    };
+
+    expect(() => validateVillageDeploymentConfig(config, config.chainId)).to.throw(
+      'communityToken.transferPolicy cannot be set when the deployed TDFTransferPolicy is selected',
+    );
   });
 
   it('selects stable Ignition graphs for every supported profile and custom composition', async function () {

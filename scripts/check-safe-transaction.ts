@@ -1,15 +1,6 @@
 #!/usr/bin/env tsx
-import path from 'node:path';
 import hre from 'hardhat';
-import {refreshDeploymentOwnerActions} from './deployment/owner-actions.js';
-import {refreshSafeOwnerActionsStatus} from './deployment/safe-service.js';
-import {reconcileExecutedUpgrade} from './deployment/upgrades.js';
-import {
-  readVillageDeploymentManifest,
-  writeVillageDeploymentManifest,
-  type ManifestUpgrade,
-  type VillageDeploymentManifest,
-} from './deployment/village.js';
+import {ownerStatusCommand} from './deployment/commands/owner-status.js';
 
 interface Args {
   manifest?: string;
@@ -42,57 +33,21 @@ async function main(): Promise<void> {
       throw new Error('--manifest and --network are required');
     return;
   }
-  const manifestPath = path.resolve(args.manifest);
-  const manifest = await readVillageDeploymentManifest(manifestPath);
+
   const connection = await hre.network.create(args.network);
   try {
-    const chainId = Number((await connection.ethers.provider.getNetwork()).chainId);
-    if (chainId !== manifest.chainId) {
-      throw new Error(`Connected chain ${chainId} does not match manifest chain ${manifest.chainId}`);
-    }
-    if (args.upgrade) {
-      const upgrade = selectUpgrade(manifest, args.upgrade);
-      if (upgrade.ownerTransaction) {
-        const virtual = {...manifest, ownerActions: [upgrade.ownerAction], ownerTransaction: upgrade.ownerTransaction};
-        const refreshed = await refreshSafeOwnerActionsStatus(virtual, {
-          apiKey: process.env.SAFE_API_KEY,
-          txServiceUrl: args.txServiceUrl ?? process.env.SAFE_TX_SERVICE_URL,
-        });
-        upgrade.ownerTransaction = refreshed.ownerTransaction;
-      }
-      // Transaction Service state is retained for operators; the proxy slot remains authoritative for execution.
-      const reconciliation = await reconcileExecutedUpgrade(manifest.contracts, upgrade, connection.ethers.provider);
-      if (upgrade.ownerTransaction?.serviceStatus?.status === 'executed' && !reconciliation.executed) {
-        throw new Error(
-          `Safe service reports ${upgrade.contractName} upgrade executed but the proxy slot still uses ` +
-            reconciliation.liveImplementation,
-        );
-      }
-      await writeVillageDeploymentManifest(manifestPath, manifest);
-      console.log(`${upgrade.status}: ${reconciliation.liveImplementation}`);
-      return;
-    }
-    const updated = await refreshDeploymentOwnerActions(
-      manifest,
+    await ownerStatusCommand(
+      {
+        manifestPath: args.manifest,
+        upgrade: args.upgrade,
+        apiKey: process.env.SAFE_API_KEY,
+        txServiceUrl: args.txServiceUrl ?? process.env.SAFE_TX_SERVICE_URL,
+      },
       {ethers: connection.ethers, networkName: connection.networkName},
-      manifest.ownerTransaction
-        ? {apiKey: process.env.SAFE_API_KEY, txServiceUrl: args.txServiceUrl ?? process.env.SAFE_TX_SERVICE_URL}
-        : undefined,
     );
-    await writeVillageDeploymentManifest(manifestPath, updated);
-    console.log(updated.status);
   } finally {
     await connection.close();
   }
-}
-
-function selectUpgrade(manifest: VillageDeploymentManifest, selector: string): ManifestUpgrade {
-  const [contractName, version] = selector.split(':');
-  const upgrade = manifest.upgradeHistory?.find(
-    (item) => item.contractName === contractName && item.version === version,
-  );
-  if (!upgrade) throw new Error(`Manifest has no upgrade '${selector}'`);
-  return upgrade;
 }
 
 main().catch((error) => {

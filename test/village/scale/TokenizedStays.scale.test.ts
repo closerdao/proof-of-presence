@@ -41,7 +41,6 @@ async function setup(balance: bigint) {
 
 describe('TokenizedStays gas boundary', function () {
   it('books a full 365-night year below a normal block gas limit', async function () {
-    this.timeout(120_000);
     const {member, stays} = await setup(parseEther('500'));
     const [currentYear] = await stays.fromDayId(await stays.currentDayId());
     const bookingYear = Number(currentYear) + 1;
@@ -58,11 +57,8 @@ describe('TokenizedStays gas boundary', function () {
   });
 });
 
-const describeTenYearScale = process.env.RUN_SCALE_TESTS === '1' ? describe : describe.skip;
-
-describeTenYearScale('TokenizedStays ten-year scale', function () {
+describe('TokenizedStays ten-year scale', function () {
   it('supports a continuous ten-calendar-year stay across normal yearly transactions', async function () {
-    this.timeout(180_000);
     const {member, stays} = await setup(parseEther('500'));
     const [currentYear] = await stays.fromDayId(await stays.currentDayId());
     const firstYear = Number(currentYear) + 1;

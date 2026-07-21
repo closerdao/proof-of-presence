@@ -98,18 +98,8 @@ contract TokenizedStaysTest is TestBase {
         stays.getYearExposureSummary(member, 1969);
     }
 
-    function test_PermitEntryPointsRejectTokenCallbacksBeforeAccountingChanges() public {
-        ReentrantPermitToken reentrantToken = new ReentrantPermitToken();
-        TokenizedStays implementation = new TokenizedStays();
-        TokenizedStays guardedStays = TokenizedStays(
-            _proxy(
-                address(implementation),
-                abi.encodeCall(TokenizedStays.initialize, (address(reentrantToken), address(authority), address(this)))
-            )
-        );
-        reentrantToken.setTarget(guardedStays);
-        reentrantToken.mint(member, 10 ether);
-
+    function test_DepositWithPermitRejectsTokenCallbackBeforeAccountingChanges() public {
+        (ReentrantPermitToken reentrantToken, TokenizedStays guardedStays) = _deployReentrantStays();
         vm.prank(member);
         guardedStays.depositWithPermit(2 ether, type(uint256).max, 0, bytes32(0), bytes32(0));
 
@@ -117,6 +107,14 @@ contract TokenizedStaysTest is TestBase {
         assertEq(reentrantToken.lastReentrySelector(), ReentrancyGuardTransient.ReentrancyGuardReentrantCall.selector);
         assertEq(guardedStays.depositedBalanceOf(member), 2 ether);
         assertEq(reentrantToken.balanceOf(address(guardedStays)), 2 ether);
+    }
+
+    function test_CreateBookingsWithPermitRejectsTokenCallbackBeforeAccountingChanges() public {
+        (ReentrantPermitToken reentrantToken, TokenizedStays guardedStays) = _deployReentrantStays();
+        vm.startPrank(member);
+        reentrantToken.approve(address(guardedStays), 2 ether);
+        guardedStays.deposit(2 ether);
+        vm.stopPrank();
 
         (uint16 year, uint16 dayOfYear) = guardedStays.fromDayId(guardedStays.currentDayId() + 30);
         TokenizedStays.BookingInput[] memory bookings = new TokenizedStays.BookingInput[](1);
@@ -337,7 +335,7 @@ contract TokenizedStaysTest is TestBase {
         assertEq(token.balanceOf(address(stays)), contractBalanceBefore);
     }
 
-    function test_DepositWithdrawalOrphanRecoveryAndInsolvencyDetection() public {
+    function test_DepositAndWithdrawalUpdateAccounting() public {
         vm.prank(member);
         stays.deposit(10 ether);
         vm.expectEmit(true, false, false, true, address(stays));
@@ -346,7 +344,10 @@ contract TokenizedStaysTest is TestBase {
         stays.withdraw(3 ether);
         assertEq(stays.depositedBalanceOf(member), 7 ether);
         assertEq(stays.totalDepositedBalance(), 7 ether);
+        assertEq(token.balanceOf(address(stays)), 7 ether);
+    }
 
+    function test_RecoversOnlyOrphanedTokensToAValidRecipient() public {
         vm.prank(other);
         token.transfer(address(stays), 5 ether);
         assertEq(stays.orphanedTokenBalance(), 5 ether);
@@ -359,8 +360,12 @@ contract TokenizedStaysTest is TestBase {
         stays.recoverOrphanedTokens(other, 4 ether);
         vm.expectPartialRevert(TokenizedStays.InvalidRecoveryRecipient.selector);
         stays.recoverOrphanedTokens(address(stays), 1);
+    }
 
-        token.forceBurn(address(stays), 4 ether);
+    function test_DetectsCommunityTokenInsolvency() public {
+        vm.prank(member);
+        stays.deposit(7 ether);
+        token.forceBurn(address(stays), 1 ether);
         vm.expectPartialRevert(TokenizedStays.DepositedBalanceInvariantViolation.selector);
         stays.orphanedTokenBalance();
     }
@@ -389,7 +394,7 @@ contract TokenizedStaysTest is TestBase {
         assertEq(stays.unlockedBalanceOf(member), 2 ether);
     }
 
-    function test_PauseAndAuthorityReplacementProtectOurMutations() public {
+    function test_PauseAuthorizationAndStateProtectMutations() public {
         vm.prank(outsider);
         vm.expectRevert(
             abi.encodeWithSelector(TokenizedStays.Unauthorized.selector, outsider, VillageRoles.DEFAULT_ADMIN_ROLE)
@@ -409,7 +414,10 @@ contract TokenizedStaysTest is TestBase {
         stays.unpause();
         vm.prank(member);
         stays.deposit(1 ether);
+        assertEq(stays.depositedBalanceOf(member), 1 ether);
+    }
 
+    function test_ReplacingAuthorityImmediatelyChangesManagerPermissions() public {
         RoleAuthorityHarness replacement = new RoleAuthorityHarness(address(this));
         replacement.grantRole(VillageRoles.BOOKING_MANAGER_ROLE, other);
         stays.setRoleAuthority(address(replacement));
@@ -641,6 +649,22 @@ contract TokenizedStaysTest is TestBase {
     ) private pure returns (TokenizedStays.BookingInput[] memory bookings) {
         bookings = new TokenizedStays.BookingInput[](1);
         bookings[0] = booking;
+    }
+
+    function _deployReentrantStays()
+        private
+        returns (ReentrantPermitToken reentrantToken, TokenizedStays guardedStays)
+    {
+        reentrantToken = new ReentrantPermitToken();
+        TokenizedStays implementation = new TokenizedStays();
+        guardedStays = TokenizedStays(
+            _proxy(
+                address(implementation),
+                abi.encodeCall(TokenizedStays.initialize, (address(reentrantToken), address(authority), address(this)))
+            )
+        );
+        reentrantToken.setTarget(guardedStays);
+        reentrantToken.mint(member, 10 ether);
     }
 }
 

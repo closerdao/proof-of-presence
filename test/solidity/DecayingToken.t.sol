@@ -77,11 +77,13 @@ contract DecayingTokenTest is TestBase {
         token.mint(holder, 1, 0);
     }
 
-    function test_MintBatchUpdatesCustomAccountingAndIsAtomic() public {
+    function test_MintBatchRejectsEmptyInput() public {
         ERC20NonTransferableDecaying.MintData[] memory empty = new ERC20NonTransferableDecaying.MintData[](0);
         vm.expectRevert(ERC20NonTransferableDecaying.MintDataEmpty.selector);
         token.mintBatch(empty);
+    }
 
+    function test_MintBatchRollsBackEveryEntryWhenOneIsInvalid() public {
         ERC20NonTransferableDecaying.MintData[] memory entries = new ERC20NonTransferableDecaying.MintData[](2);
         entries[0] = ERC20NonTransferableDecaying.MintData(holder, 2 ether, 3);
         entries[1] = ERC20NonTransferableDecaying.MintData(other, 0, 0);
@@ -90,7 +92,11 @@ contract DecayingTokenTest is TestBase {
 
         assertEq(token.nonDecayedBalanceOf(holder), 0);
         assertFalse(token.isHolder(holder));
+    }
 
+    function test_MintBatchUpdatesCustomAccounting() public {
+        ERC20NonTransferableDecaying.MintData[] memory entries = new ERC20NonTransferableDecaying.MintData[](2);
+        entries[0] = ERC20NonTransferableDecaying.MintData(holder, 2 ether, 3);
         entries[1] = ERC20NonTransferableDecaying.MintData(other, 3 ether, 2);
         token.mintBatch(entries);
         assertEq(token.nonDecayedBalanceOf(holder), 2 ether);

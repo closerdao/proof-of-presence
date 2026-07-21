@@ -66,7 +66,7 @@
     "test:typescript": "hardhat test mocha",
     "test:deep": "CONTRACT_FUZZ_RUNS=2000 CONTRACT_INVARIANT_RUNS=256 CONTRACT_INVARIANT_DEPTH=100 hardhat test solidity",
     "test:gambit-mutants": "node scripts/security/test-gambit-mutants.js",
-    "test:scale": "RUN_SCALE_TESTS=1 hardhat test mocha test/village/scale/TokenizedStays.scale.test.ts",
+    "test:scale": "hardhat test mocha test/village/scale/TokenizedStays.scale.test.ts",
     "validate:upgrades": "hardhat compile --force && tsx scripts/validate-upgrades.ts",
     "analyze:aderyn": "node scripts/security/run-aderyn.js",
     "analyze:gambit": "node scripts/security/run-gambit.js",

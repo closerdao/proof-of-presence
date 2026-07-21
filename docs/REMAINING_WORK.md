@@ -1,6 +1,6 @@
 # Remaining work
 
-Last reconciled: 2026-07-20
+Last reconciled: 2026-07-21
 
 The repository implementation and automated local test surface are complete for the current contract architecture.
 The remaining work is release, live-network, security-review, and downstream integration work.
@@ -10,8 +10,8 @@ The remaining work is release, live-network, security-review, and downstream int
 - Rehearse automatic verification and retry behavior on Celo Sepolia, including proxy/implementation presentation and
   provider-specific failures.
 - Rehearse a Safe-owned UUPS upgrade on Celo Sepolia, with optional reinitializer calldata and manifest reconciliation.
-- Run the manual deep fuzz/invariant, ten-year scale, coverage, Aderyn, Wake, and targeted mutation suites against the
-  release candidate.
+- Run the standard pull-request suite (including the ten-year scale test) plus the manual deep fuzz/invariant,
+  coverage, Aderyn, Wake, and targeted mutation suites against the release candidate.
 - Triage every current static-analysis and OSV finding, then freeze an immutable audit revision.
 - Obtain an independent audit covering contracts, storage/upgrades, authority, booking/deposit invariants, policy,
   deployment recovery, and manifest trust boundaries.

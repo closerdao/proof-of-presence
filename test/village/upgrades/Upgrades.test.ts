@@ -127,19 +127,23 @@ describe('Upgrades', function () {
       upgraded,
       'InvalidInitialization',
     );
+  });
 
-    const fresh = await deployProxy(
+  it('rolls back the implementation change when migration calldata reverts', async function () {
+    const {access, deployer, owner} = await setupVillageAccess();
+    const token = await deployProxy(
       'CommunityToken',
       ['Fresh', 'FRH', 0, ZeroAddress, await access.getAddress(), ZeroAddress, owner.address],
       deployer,
     );
+    const next = await deployImplementation('CommunityTokenUpgradeMock', deployer);
     const upgradesApi = await upgrades(hre, connection);
-    const implementationBefore = await upgradesApi.erc1967.getImplementationAddress(await fresh.getAddress());
+    const implementationBefore = await upgradesApi.erc1967.getImplementationAddress(await token.getAddress());
     const rejectedMigration = next.interface.encodeFunctionData('initializeUpgrade', [99, true]);
     await expect(
-      fresh.connect(owner).upgradeToAndCall(await next.getAddress(), rejectedMigration),
+      token.connect(owner).upgradeToAndCall(await next.getAddress(), rejectedMigration),
     ).to.be.revertedWithCustomError(next, 'MigrationRejected');
-    expect(await upgradesApi.erc1967.getImplementationAddress(await fresh.getAddress())).to.equal(implementationBefore);
+    expect(await upgradesApi.erc1967.getImplementationAddress(await token.getAddress())).to.equal(implementationBefore);
   });
 
   it('preserves the shared decaying-token storage through a representative PresenceToken upgrade', async function () {

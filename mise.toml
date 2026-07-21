@@ -72,9 +72,8 @@ description = "Prove the focused TokenizedStays calendar and exposure properties
 run = "yarn analyze:smt"
 
 [tasks."security:deep"]
-description = "Run the manual deep fuzz/invariant, scale, and coverage gates"
+description = "Run the manual deep fuzz/invariant and coverage gates"
 run = [
   "yarn test:deep",
-  "yarn test:scale",
   "yarn security:coverage",
 ]
