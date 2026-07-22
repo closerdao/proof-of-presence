@@ -59,7 +59,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const diamond = (await ethers.getContract('TDFDiamond', deployer)).connect(
     await ethers.getSigner(deployer)
   ) as TDFDiamond;
-  await diamond.grantRole(ROLES['MINTER_ROLE'], sale.address, gasOverrides);
+  if (!(await diamond.hasRole(ROLES['MINTER_ROLE'], sale.address))) {
+    await diamond.grantRole(ROLES['MINTER_ROLE'], sale.address, gasOverrides);
+  }
 };
 export default func;
 func.tags = ['DynamicSale'];
