@@ -87,14 +87,6 @@ contract DynamicSale is ContextUpgradeable, ReentrancyGuardUpgradeable, Ownable2
         _buyFrom(_msgSender(), _msgSender(), amount);
     }
 
-    function buyFrom(
-        address spender,
-        address to,
-        uint256 amount
-    ) public whenNotPaused buyAmountConstraints(amount, to) nonReentrant {
-        _buyFrom(spender, to, amount);
-    }
-
     function _buyFrom(
         address spender,
         address to,
