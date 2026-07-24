@@ -1,12 +1,15 @@
 import {ZeroAddress, getAddress} from 'ethers';
 import type {DeploymentParameters, IgnitionModule} from '@nomicfoundation/ignition-core';
 import {COMMUNITY_TOKEN_MODULE_ID} from '../../ignition/modules/contracts/CommunityToken.js';
+import {DYNAMIC_PRICE_SALE_MODULE_ID} from '../../ignition/modules/contracts/DynamicPriceSale.js';
 import {TDF_TRANSFER_POLICY_MODULE_ID} from '../../ignition/modules/contracts/TDFTransferPolicy.js';
 import {TOKENIZED_STAYS_MODULE_ID} from '../../ignition/modules/contracts/TokenizedStays.js';
 import {VILLAGE_ACCESS_MODULE_ID} from '../../ignition/modules/contracts/VillageAccess.js';
 import {VILLAGE_PRESENCE_TOKEN_MODULE_ID} from '../../ignition/modules/contracts/VillagePresenceToken.js';
 import {VILLAGE_SWEAT_TOKEN_MODULE_ID} from '../../ignition/modules/contracts/VillageSweatToken.js';
 import {TDF_COMMUNITY_TOKEN_MODULE_ID} from '../../ignition/modules/profiles/TdfCommunityToken.js';
+import {TDF_DYNAMIC_PRICE_SALE_MODULE_ID} from '../../ignition/modules/profiles/TdfDynamicPriceSale.js';
+import {TDF_EXTERNAL_DYNAMIC_PRICE_SALE_MODULE_ID} from '../../ignition/modules/profiles/TdfExternalDynamicPriceSale.js';
 import {TDF_TOKENIZED_STAYS_MODULE_ID} from '../../ignition/modules/profiles/TdfTokenizedStays.js';
 import {selectVillageProfileModule} from '../../ignition/modules/profiles/select.js';
 import type {
@@ -16,6 +19,7 @@ import type {
   VillageDeploymentConfig,
   VillageDeploymentContext,
 } from './village.js';
+import {resolvedCloserFeeBps} from './village.js';
 
 export const UUPS_CONTRACTS = [
   'VillageAccess',
@@ -23,6 +27,7 @@ export const UUPS_CONTRACTS = [
   'VillagePresenceToken',
   'VillageSweatToken',
   'TokenizedStays',
+  'DynamicPriceSale',
 ] as const;
 
 type UupsContractName = (typeof UUPS_CONTRACTS)[number];
@@ -49,6 +54,7 @@ export async function validateSelectedImplementations(
   if (modules.presenceToken) selected.push('VillagePresenceToken');
   if (modules.sweatToken) selected.push('VillageSweatToken');
   if (modules.tokenizedStays) selected.push('TokenizedStays');
+  if (modules.dynamicPriceSale) selected.push('DynamicPriceSale');
 
   if (!context.upgrades?.validateImplementation) {
     throw new Error('OpenZeppelin upgrades validation is required before every Ignition UUPS deployment');
@@ -93,6 +99,7 @@ export function buildVillageIgnitionParameters(
       name: config.communityToken?.name ?? titleFromSlug(config.villageSlug, 'Token'),
       symbol: config.communityToken?.symbol ?? symbolFromSlug(config.villageSlug),
       initialSupply,
+      maxSupply: BigInt(config.communityToken!.maxSupply!).toString(),
       initialRecipient: BigInt(initialSupply) > 0n ? getAddress(config.communityToken!.initialRecipient!) : ZeroAddress,
       ...(usesInternalTransferPolicy ? {} : {transferPolicy: initializedTransferPolicy}),
       owner: initialOwner,
@@ -125,6 +132,28 @@ export function buildVillageIgnitionParameters(
       owner: initialOwner,
     };
   }
+  if (modules.dynamicPriceSale) {
+    const sale = config.dynamicPriceSale!;
+    const moduleId =
+      config.deploymentProfile === 'tdf'
+        ? TDF_DYNAMIC_PRICE_SALE_MODULE_ID
+        : modules.tdfTransferPolicy
+          ? TDF_EXTERNAL_DYNAMIC_PRICE_SALE_MODULE_ID
+          : DYNAMIC_PRICE_SALE_MODULE_ID;
+    parameters[moduleId] = {
+      quoteToken: getAddress(sale.quoteToken),
+      ...(config.deploymentProfile === 'tdf' ? {} : {bondingCurve: getAddress(sale.bondingCurve!)}),
+      villageTreasury: getAddress(sale.villageTreasury),
+      closerFeeRecipient: getAddress(sale.closerFeeRecipient),
+      closerFeeBps: resolvedCloserFeeBps(config),
+      saleCap: BigInt(sale.saleCap).toString(),
+      minimumPurchase: BigInt(sale.minimumPurchase).toString(),
+      maximumPurchase: BigInt(sale.maximumPurchase).toString(),
+      purchaseGranularity: BigInt(sale.purchaseGranularity).toString(),
+      maximumRecipientBalance: BigInt(sale.maximumRecipientBalance).toString(),
+      owner: initialOwner,
+    };
+  }
   return {parameters, initializedTransferPolicy};
 }
 
@@ -138,7 +167,7 @@ export async function deployVillageIgnitionGraph(
 ): Promise<IgnitionVillageDeployment> {
   if (!context.ignition?.deploy) throw new Error('Hardhat Ignition is required for every contract deployment');
 
-  const module = selectVillageProfileModule(modules);
+  const module = selectVillageProfileModule(modules, config.deploymentProfile === 'tdf');
   // A caller override is used by standalone-contract deployment; normal village reruns must retain the derived ID.
   const deploymentId = context.deploymentIdOverride ?? villageIgnitionDeploymentId(config);
   const {parameters, initializedTransferPolicy: configuredTransferPolicy} = buildVillageIgnitionParameters(
@@ -156,7 +185,12 @@ export async function deployVillageIgnitionGraph(
   const contracts: Record<string, ManifestContract> = {};
   const instances: Record<string, any> = {};
 
-  const addPlain = async (contractName: string, resultKey: string, constructorArgs: unknown[]): Promise<void> => {
+  const addPlain = async (
+    contractName: string,
+    resultKey: string,
+    constructorArgs: unknown[],
+    authority?: 'ownerless',
+  ): Promise<void> => {
     const instance = deployed[resultKey];
     contracts[contractName] = {
       name: contractName,
@@ -164,6 +198,7 @@ export async function deployVillageIgnitionGraph(
       address: getAddress(await instance.getAddress()),
       constructorArgs,
       abi: JSON.parse(instance.interface.formatJson()) as unknown[],
+      authority,
     };
     instances[contractName] = instance;
   };
@@ -212,6 +247,7 @@ export async function deployVillageIgnitionGraph(
       config.communityToken?.name ?? titleFromSlug(config.villageSlug, 'Token'),
       config.communityToken?.symbol ?? symbolFromSlug(config.villageSlug),
       initialSupply,
+      BigInt(config.communityToken!.maxSupply!).toString(),
       BigInt(initialSupply) > 0n ? getAddress(config.communityToken!.initialRecipient!) : ZeroAddress,
       accessAddress,
       initializedTransferPolicy,
@@ -239,6 +275,28 @@ export async function deployVillageIgnitionGraph(
   if (modules.tokenizedStays) {
     await addUups('TokenizedStays', 'tokenizedStays', [contracts.CommunityToken.address, accessAddress, initialOwner]);
   }
+  if (modules.dynamicPriceSale) {
+    const sale = config.dynamicPriceSale!;
+    if (config.deploymentProfile === 'tdf') {
+      await addPlain('TDFV1BondingCurve', 'tdfBondingCurve', [], 'ownerless');
+    }
+    const bondingCurve =
+      config.deploymentProfile === 'tdf' ? contracts.TDFV1BondingCurve.address : getAddress(sale.bondingCurve!);
+    const configuration = {
+      communityToken: contracts.CommunityToken.address,
+      quoteToken: getAddress(sale.quoteToken),
+      bondingCurve,
+      villageTreasury: getAddress(sale.villageTreasury),
+      closerFeeRecipient: getAddress(sale.closerFeeRecipient),
+      saleCap: BigInt(sale.saleCap).toString(),
+      minimumPurchase: BigInt(sale.minimumPurchase).toString(),
+      maximumPurchase: BigInt(sale.maximumPurchase).toString(),
+      purchaseGranularity: BigInt(sale.purchaseGranularity).toString(),
+      maximumRecipientBalance: BigInt(sale.maximumRecipientBalance).toString(),
+      closerFeeBps: resolvedCloserFeeBps(config),
+    };
+    await addUups('DynamicPriceSale', 'dynamicPriceSale', [configuration, initialOwner]);
+  }
 
   return {
     module,
@@ -257,7 +315,8 @@ export function isPolicyOnlyDeployment(modules: NormalizedModules): boolean {
     !modules.communityToken &&
     !modules.presenceToken &&
     !modules.sweatToken &&
-    !modules.tokenizedStays
+    !modules.tokenizedStays &&
+    !modules.dynamicPriceSale
   );
 }
 

@@ -3,6 +3,7 @@ pragma solidity 0.8.35;
 
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ITransferPolicy} from "../../village/interfaces/ITransferPolicy.sol";
@@ -10,9 +11,16 @@ import {ITransferPolicy} from "../../village/interfaces/ITransferPolicy.sol";
 /// @title TDF CommunityToken transfer policy
 /// @author Closer DAO
 /// @notice Restricts CommunityToken transfers to routes involving the treasury or an approved counterparty.
-/// @dev Minting and burning are always permitted. The policy is intentionally replaceable rather than upgradeable:
-/// CommunityToken governance can point the token at a new policy. Ownership transfer uses two-step acceptance.
+/// @dev Minting is always permitted. Burning must retain the TDF operating supply required by the V1 curve.
+/// The policy is intentionally replaceable rather than upgradeable: CommunityToken governance can point the token
+/// at a new policy. Ownership transfer uses two-step acceptance.
 contract TDFTransferPolicy is ITransferPolicy, ERC165, Ownable2Step {
+    /// @notice Lowest live TDF supply permitted after a burn.
+    /// @dev 5,381 TDF is the lowest historical V1 quote-vector supply. It also safely supports every configured
+    /// whole-token purchase from 1 through 100 TDF without changing the V1 curve's exact checked arithmetic.
+    /// The curve's nominal 4,109 TDF mathematical boundary remains unchanged.
+    uint256 public constant MINIMUM_OPERATING_SUPPLY = 5_381 ether;
+
     /// @notice Account permitted on either side of every transfer while restrictions are enabled.
     address public treasury;
 
@@ -70,10 +78,21 @@ contract TDFTransferPolicy is ITransferPolicy, ERC165, Ownable2Step {
     }
 
     /// @inheritdoc ITransferPolicy
-    /// @dev The policy is independent of token, operator, and amount. A mint or burn is recognized by a zero endpoint.
-    function isTransferAllowed(address, address, address from, address to, uint256) external view returns (bool) {
+    /// @dev The burn floor remains active when ordinary transfer restrictions are disabled so a holder cannot make
+    /// the sale unquotable. Mints remain available to recover a deployment that started below the operating floor.
+    function isTransferAllowed(
+        address token,
+        address,
+        address from,
+        address to,
+        uint256 amount
+    ) external view returns (bool) {
+        if (from == address(0)) return true;
+        if (to == address(0)) {
+            uint256 currentSupply = IERC20(token).totalSupply();
+            return currentSupply >= MINIMUM_OPERATING_SUPPLY && amount <= currentSupply - MINIMUM_OPERATING_SUPPLY;
+        }
         if (!transfersRestricted) return true;
-        if (from == address(0) || to == address(0)) return true;
         if (from == treasury || to == treasury) return true;
         if (allowedCounterparty[from] || allowedCounterparty[to]) return true;
         return false;

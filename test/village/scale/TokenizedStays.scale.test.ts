@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {id, parseEther, ZeroAddress} from 'ethers';
+import {id, MaxUint256, parseEther, ZeroAddress} from 'ethers';
 import {ethers, type RuntimeContract} from '../../hardhat.js';
 
 type Contract = RuntimeContract;
@@ -26,7 +26,7 @@ async function setup(balance: bigint) {
   );
   const token = await deployProxy(
     'CommunityToken',
-    ['Village Token', 'VILLAGE', 0, ZeroAddress, await access.getAddress(), ZeroAddress, owner.address],
+    ['Village Token', 'VILLAGE', 0, MaxUint256, ZeroAddress, await access.getAddress(), ZeroAddress, owner.address],
     deployer,
   );
   const stays = await deployProxy(

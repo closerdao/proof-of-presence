@@ -13,12 +13,14 @@ export function deployCommunityToken(
   const name = m.getParameter<string>('name');
   const symbol = m.getParameter<string>('symbol');
   const initialSupply = m.getParameter<string>('initialSupply', '0');
+  const maxSupply = m.getParameter<string>('maxSupply');
   const initialRecipient = m.getParameter<string>('initialRecipient', '0x0000000000000000000000000000000000000000');
   const owner = m.getParameter<string>('owner');
   return deployVillageUupsProxy(m, 'CommunityToken', [
     name,
     symbol,
     initialSupply,
+    maxSupply,
     initialRecipient,
     villageAccess,
     transferPolicy,

@@ -32,7 +32,7 @@ async function deployAccess(slug: string) {
   const outputRoot = await mkdtemp(path.join(tmpdir(), 'village-command-'));
   const chainId = Number((await ethers.provider.getNetwork()).chainId);
   const config: VillageDeploymentConfig = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     villageSlug: slug,
     chainId,
     deploymentProfile: 'minimal-village',

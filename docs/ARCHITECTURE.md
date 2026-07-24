@@ -5,7 +5,7 @@
 The repository has two production source areas:
 
 - `src/village` contains reusable village contracts.
-- `src/profiles/tdf` contains the TDF transfer policy.
+- `src/profiles/tdf` contains the TDF transfer policy and historical V1-compatible pricing curve.
 
 `src/village/test` contains test-only proxy, Safe, policy, and upgrade implementations. It is excluded from
 production security coverage. There is no separate historical source or deployment engine in this branch.
@@ -19,8 +19,17 @@ The operational roles are:
 - `BOOKING_MANAGER_ROLE` for managed TokenizedStays cancellation.
 - `BOOKING_PLATFORM_ROLE` for Presence/Sweat issuance.
 
-`CommunityToken` is an ERC-20/ERC-2612 token with pausing, role-based mint/burn, and a replaceable
-`ITransferPolicy`. A zero policy explicitly disables policy checks.
+`CommunityToken` is an ERC-20/ERC-2612 token with pausing, role-based mint/burn, an owner-adjustable maximum supply,
+and a replaceable `ITransferPolicy`. A zero policy explicitly disables policy checks. Every mint path enforces
+`maxSupply`; the owner may raise it or lower it no further than the current total supply.
+
+`DynamicPriceSale` is an optional buy-only CommunityToken issuer. The caller always pays the quote token and may
+choose another recipient. Pricing is delegated to an ERC-165 `IBondingCurve`, and both quotes and purchases use the
+CommunityToken's live `totalSupply()`. External mints and burns therefore move the price and remaining capacity by
+design; the TDF policy only prevents burns that would leave the V1 sale outside its safe operating supply. A purchase
+splits the curve-calculated total payment between the village treasury and Closer; the fee is included in the curve
+cost rather than added on top. Fixed launch limits live in proxy storage, while the village owner may replace the
+curve, treasury, and atomic fee configuration, pause purchases, or upgrade the sale.
 
 `VillagePresenceToken` and `VillageSweatToken` are non-transferable decaying tokens over the same implementation
 base. Their readable balances decay with time while mint/burn accounting and holder checkpoints preserve provenance.
@@ -31,14 +40,22 @@ role-authorized managed cancellation. Off-chain booking workflow state such as c
 in this contract.
 
 `TDFTransferPolicy` is a replaceable, non-upgradeable policy. While restricted, ordinary transfers must involve the
-treasury or an allowed counterparty; minting and burning remain allowed. The policy is deployed restricted so setup
-fails closed.
+treasury or an allowed counterparty. Minting remains allowed, while burns must leave at least 5,381 TDF in supply.
+That burn floor remains active even when ordinary transfer restrictions are disabled. The policy is deployed
+restricted so setup fails closed.
+
+`TDFV1BondingCurve` is stateless, ownerless, and non-upgradeable. Its name records that the implementation preserves
+the historical V1 formula, units, evaluation order, and cent rounding. Its 4,109–200,000 TDF domain is a mathematical
+input boundary, not the TDF token maximum or sale cap. TDF launches instead use a 5,381 TDF operating floor: it is the
+lowest historical V1 quote-vector supply and safely supports the full configured 1–100 TDF purchase range with the
+unchanged V1 checked arithmetic. The initial V2 TDF token maximum is 18,600 TDF and the primary sale cap is
+15,097.5 TDF.
 
 ## Upgrade and storage model
 
-`VillageAccess`, `CommunityToken`, the decaying tokens, and `TokenizedStays` use UUPS proxies. Ignition deploys an
-implementation and `VillageUUPSProxy` with initializer calldata in the proxy constructor, eliminating an externally
-initializable proxy window.
+`VillageAccess`, `CommunityToken`, the decaying tokens, `TokenizedStays`, and `DynamicPriceSale` use UUPS proxies.
+Ignition deploys an implementation and `VillageUUPSProxy` with initializer calldata in the proxy constructor,
+eliminating an externally initializable proxy window.
 
 Production implementations:
 
@@ -59,10 +76,11 @@ Contract Ignition modules are composed into stable profile modules. Supported pr
 - `minimal-village`: VillageAccess only unless extra modules are selected.
 - `token-village`: VillageAccess and CommunityToken.
 - `tokenized-stays-village`: VillageAccess, CommunityToken, and TokenizedStays.
-- `tdf`: all village modules plus TDFTransferPolicy.
+- `tdf`: all village modules plus TDFTransferPolicy, DynamicPriceSale, and a new TDFV1BondingCurve.
 
-Other valid module combinations use a deterministic module ID derived from a stable module bit set. The same contract
-modules are reused by standalone contract deployment and profiles.
+Other valid module combinations use a deterministic module ID derived from a stable module bit set. Existing graphs
+without a sale retain their previous IDs; sale-enabled graphs use new IDs. The same contract modules are reused by
+standalone contract deployment and profiles.
 
 Hardhat Ignition is the sole transaction journal and resumption engine. The deployment wrapper adds config
 validation, OpenZeppelin validation, ownership/Safe handling, on-chain reconciliation, verification, and atomic

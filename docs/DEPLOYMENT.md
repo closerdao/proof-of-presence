@@ -9,7 +9,7 @@ Example TDF config:
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "villageSlug": "example-village",
   "chainId": 11142220,
   "deploymentProfile": "tdf",
@@ -18,9 +18,7 @@ Example TDF config:
     "finalOwner": {
       "type": "safe",
       "address": "0x1111111111111111111111111111111111111111",
-      "expectedOwners": [
-        "0x2222222222222222222222222222222222222222"
-      ],
+      "expectedOwners": ["0x2222222222222222222222222222222222222222"],
       "expectedThreshold": 1
     }
   },
@@ -29,7 +27,9 @@ Example TDF config:
   "communityToken": {
     "name": "Example Community",
     "symbol": "EXAMPLE",
-    "initialSupply": "0",
+    "initialSupply": "5381000000000000000000",
+    "maxSupply": "18600000000000000000000",
+    "initialRecipient": "0x5555555555555555555555555555555555555555",
     "apiOperatorCanMint": true
   },
   "presenceToken": {
@@ -46,12 +46,39 @@ Example TDF config:
     "treasury": "0x4444444444444444444444444444444444444444",
     "allowedCounterparties": [],
     "restrictionsEnabled": true
+  },
+  "dynamicPriceSale": {
+    "quoteToken": "0x6666666666666666666666666666666666666666",
+    "villageTreasury": "0x7777777777777777777777777777777777777777",
+    "closerFeeRecipient": "0x8888888888888888888888888888888888888888",
+    "closerFeeBps": 500,
+    "saleCap": "15097500000000000000000",
+    "minimumPurchase": "1000000000000000000",
+    "maximumPurchase": "100000000000000000000",
+    "purchaseGranularity": "1000000000000000000",
+    "maximumRecipientBalance": "915000000000000000000"
   }
 }
 ```
 
 Use decimal strings for integers that may exceed JavaScript's safe integer range. The selected RPC chain ID must
-match `chainId`. A TDF profile requires a treasury and enables every module.
+match `chainId`. A TDF profile requires both treasury recipients and a standard 18-decimal quote token, enables every
+module, and deploys `TDFV1BondingCurve` automatically; omit `bondingCurve` in a TDF config. The historical curve
+retains its nominal 4,109 TDF mathematical boundary, but TDF deployment requires at least 5,381 TDF. That operating
+floor is the lowest historical V1 quote-vector supply and keeps every configured whole-token purchase from 1 through
+100 TDF within the unchanged V1 checked arithmetic. The TDF transfer policy prevents burns below the same floor.
+TDF uses a token maximum of 18,600 TDF, sale cap of 15,097.5 TDF, and a current recipient-balance limit of 915 TDF.
+If omitted, `closerFeeBps` defaults to 500 (5%) for TDF.
+
+For a non-TDF sale, select `dynamicPriceSale` explicitly, supply an already deployed ERC-165 `IBondingCurve` address,
+and configure `closerFeeBps` explicitly. The curve's declared quote-token decimals must match the quote token.
+CommunityToken `maxSupply` is required whenever that token is selected. It is owner-adjustable after deployment, but
+cannot be zero or lower than current total supply; reconciliation treats a value different from config as drift.
+For storage compatibility, a proxy upgraded from the pre-cap implementation treats its unset cap slot as unlimited
+until its owner calls `setMaxSupply`; newly initialized proxies cannot use that legacy fallback.
+
+The sale's `MINTER_ROLE` grant is an address-dependent post-deployment owner action. Deployer-handoff mode executes it
+before initiating ownership transfers. A direct Safe deployment records it in the atomic pending owner-action batch.
 
 ## Commands and records
 
@@ -122,13 +149,13 @@ whose fields or meanings have changed.
 
 This repository uses:
 
-- config schema `3`;
-- manifest schema `3`, which records `configSchemaVersion: 3`;
-- consumer export schema `2`.
+- config schema `4`;
+- manifest schema `4`, which records `configSchemaVersion: 4`;
+- consumer export schema `3`.
 
-Config parsing requires the literal `3`; there is no default. The version is part of the canonical config hash.
-Manifest parsing also requires the exact current literals. The current schema renamed the profile to `tdf` and the
-record kind to `deploymentKind`, so older shapes are intentionally rejected instead of accepted through aliases.
+Config parsing requires the literal `4`; there is no default. The version is part of the canonical config hash.
+Manifest parsing also requires the exact current literals. Schema 4 adds CommunityToken maximum supply and
+DynamicPriceSale configuration; older shapes are intentionally rejected instead of accepted through aliases.
 
 Schema versions are independent of Solidity versions, proxy implementation revisions, `reinitializer(n)`, and
 Ignition's internal journal format. Increase a schema version when a breaking JSON field, type, invariant, or meaning

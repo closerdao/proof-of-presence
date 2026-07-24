@@ -29,7 +29,7 @@ export interface OwnershipConfig {
 }
 
 export interface VillageDeploymentConfig {
-  schemaVersion: 3;
+  schemaVersion: 4;
   villageSlug: string;
   chainId: number;
   deploymentProfile: DeploymentProfile;
@@ -40,6 +40,7 @@ export interface VillageDeploymentConfig {
   presenceToken?: DecayingTokenConfig;
   sweatToken?: DecayingTokenConfig;
   tdfTransferPolicy?: TdfTransferPolicyConfig;
+  dynamicPriceSale?: DynamicPriceSaleConfig;
   initialRoleGrants?: RoleGrantConfig[];
 }
 
@@ -47,6 +48,7 @@ export interface CommunityTokenConfig {
   name?: string;
   symbol?: string;
   initialSupply?: string | number;
+  maxSupply?: string | number;
   initialRecipient?: string;
   transferPolicy?: string;
   apiOperatorCanMint?: boolean;
@@ -65,6 +67,19 @@ export interface TdfTransferPolicyConfig {
   restrictionsEnabled?: boolean;
 }
 
+export interface DynamicPriceSaleConfig {
+  quoteToken: string;
+  bondingCurve?: string;
+  villageTreasury: string;
+  closerFeeRecipient: string;
+  closerFeeBps?: number;
+  saleCap: string | number;
+  minimumPurchase: string | number;
+  maximumPurchase: string | number;
+  purchaseGranularity: string | number;
+  maximumRecipientBalance: string | number;
+}
+
 export interface RoleGrantConfig {
   role: string;
   account: string;
@@ -76,6 +91,7 @@ export interface NormalizedModules {
   sweatToken: boolean;
   tokenizedStays: boolean;
   tdfTransferPolicy: boolean;
+  dynamicPriceSale: boolean;
 }
 
 export interface ResolvedRoleGrant {
@@ -111,6 +127,7 @@ export interface ManifestContract {
   abi: unknown[];
   runtimeCodeHash?: string;
   implementationRuntimeCodeHash?: string;
+  authority?: 'ownerless';
 }
 
 export interface PreparedSafeTransaction {
@@ -159,11 +176,11 @@ export interface ManifestUpgrade {
  * It summarizes configured and observed onchain state; Ignition's journal remains the source for transaction resumption.
  */
 export interface VillageDeploymentManifest {
-  schemaVersion: 3;
+  schemaVersion: 4;
   deploymentKind: 'village' | 'profile';
   villageSlug: string;
   chainId: number;
-  configSchemaVersion: 3;
+  configSchemaVersion: 4;
   configHash: string;
   sourceRevision?: string;
   network: string;
@@ -234,6 +251,7 @@ const manifestModules = z.strictObject({
   sweatToken: z.boolean(),
   tokenizedStays: z.boolean(),
   tdfTransferPolicy: z.boolean(),
+  dynamicPriceSale: z.boolean(),
 });
 const manifestOwnerAction = z.strictObject({
   to: manifestAddress,
@@ -302,6 +320,7 @@ const manifestContract = z.strictObject({
   abi: z.array(z.unknown()),
   runtimeCodeHash: manifestHash.optional(),
   implementationRuntimeCodeHash: manifestHash.optional(),
+  authority: z.literal('ownerless').optional(),
 });
 const manifestRoleGrant = z.strictObject({
   role: manifestHash,
@@ -329,11 +348,11 @@ const manifestUpgrade = z.strictObject({
 
 /** Strict schema for persisted deployment state; Ignition remains the transaction journal. */
 export const VillageDeploymentManifestSchema = z.strictObject({
-  schemaVersion: z.literal(3),
+  schemaVersion: z.literal(4),
   deploymentKind: z.enum(['village', 'profile']),
   villageSlug: z.string().min(1),
   chainId: z.number().int().positive(),
-  configSchemaVersion: z.literal(3),
+  configSchemaVersion: z.literal(4),
   configHash: manifestHash,
   sourceRevision: z.string().min(1).optional(),
   network: z.string().min(1),
@@ -400,7 +419,27 @@ export const ROLE_IDS = {
 } as const;
 
 const ROLE_NAMES_BY_ID = new Map(Object.entries(ROLE_IDS).map(([name, role]) => [role.toLowerCase(), name]));
-const MODULE_NAMES = ['communityToken', 'presenceToken', 'sweatToken', 'tokenizedStays', 'tdfTransferPolicy'] as const;
+export const TDF_COMMUNITY_TOKEN_MAX_SUPPLY = 18_600n * 10n ** 18n;
+export const TDF_DYNAMIC_PRICE_SALE_CAP = 15_097_500_000_000_000_000_000n;
+export const TDF_MINIMUM_PURCHASE = 1n * 10n ** 18n;
+export const TDF_MAXIMUM_PURCHASE = 100n * 10n ** 18n;
+export const TDF_PURCHASE_GRANULARITY = 1n * 10n ** 18n;
+export const TDF_MAXIMUM_RECIPIENT_BALANCE = 915n * 10n ** 18n;
+/**
+ * 5,381 TDF is the lowest historical V1 quote-vector supply and safely supports the complete
+ * configured 1–100 TDF whole-token purchase range. The curve's nominal 4,109 domain is unchanged.
+ */
+export const TDF_MINIMUM_OPERATING_SUPPLY = 5_381n * 10n ** 18n;
+export const TDF_DEFAULT_CLOSER_FEE_BPS = 500;
+
+const MODULE_NAMES = [
+  'communityToken',
+  'presenceToken',
+  'sweatToken',
+  'tokenizedStays',
+  'tdfTransferPolicy',
+  'dynamicPriceSale',
+] as const;
 /** Combines explicitly selected modules with the modules implied by a named deployment profile. */
 export function normalizeModules(config: VillageDeploymentConfig): NormalizedModules {
   const modules: NormalizedModules = {
@@ -409,6 +448,7 @@ export function normalizeModules(config: VillageDeploymentConfig): NormalizedMod
     sweatToken: false,
     tokenizedStays: false,
     tdfTransferPolicy: false,
+    dynamicPriceSale: false,
   };
   for (const moduleName of config.modules) {
     if (!MODULE_NAMES.includes(moduleName as (typeof MODULE_NAMES)[number])) {
@@ -429,6 +469,13 @@ export function normalizeModules(config: VillageDeploymentConfig): NormalizedMod
 
 export function deploymentKind(profile: DeploymentProfile): 'village' | 'profile' {
   return profile === 'tdf' ? 'profile' : 'village';
+}
+
+export function resolvedCloserFeeBps(config: VillageDeploymentConfig): number {
+  const configured = config.dynamicPriceSale?.closerFeeBps;
+  if (configured !== undefined) return configured;
+  if (config.deploymentProfile === 'tdf') return TDF_DEFAULT_CLOSER_FEE_BPS;
+  throw new Error('dynamicPriceSale.closerFeeBps is required outside the TDF profile');
 }
 
 export function manifestPathFor(config: VillageDeploymentConfig, projectRoot: string): string {
@@ -484,11 +531,21 @@ export function validateVillageDeploymentConfig(
   normalizeAddress(config.apiOperator, 'apiOperator');
   const modules = normalizeModules(config);
   if (modules.tokenizedStays && !modules.communityToken) throw new Error('tokenizedStays requires communityToken');
+  if (modules.dynamicPriceSale && !modules.communityToken) {
+    throw new Error('dynamicPriceSale requires communityToken');
+  }
   if (config.deploymentProfile === 'tdf' && !config.tdfTransferPolicy?.treasury) {
     throw new Error('tdf requires tdfTransferPolicy.treasury');
   }
   if (modules.communityToken) {
     const initialSupply = BigInt(config.communityToken?.initialSupply ?? 0);
+    if (config.communityToken?.maxSupply === undefined) {
+      throw new Error('communityToken.maxSupply is required when communityToken is selected');
+    }
+    const maxSupply = BigInt(config.communityToken.maxSupply);
+    if (initialSupply < 0n) throw new Error('communityToken.initialSupply must not be negative');
+    if (maxSupply <= 0n) throw new Error('communityToken.maxSupply must be greater than zero');
+    if (initialSupply > maxSupply) throw new Error('communityToken.initialSupply cannot exceed maxSupply');
     if (initialSupply > 0n)
       normalizeAddress(config.communityToken?.initialRecipient, 'communityToken.initialRecipient');
     if (config.communityToken?.transferPolicy) {
@@ -496,6 +553,9 @@ export function validateVillageDeploymentConfig(
       if (modules.tdfTransferPolicy) {
         throw new Error('communityToken.transferPolicy cannot be set when the deployed TDFTransferPolicy is selected');
       }
+    }
+    if (config.deploymentProfile === 'tdf' && maxSupply !== TDF_COMMUNITY_TOKEN_MAX_SUPPLY) {
+      throw new Error(`tdf requires communityToken.maxSupply ${TDF_COMMUNITY_TOKEN_MAX_SUPPLY}`);
     }
   }
   if (modules.presenceToken && config.presenceToken?.decayRatePerDay === undefined) {
@@ -508,6 +568,66 @@ export function validateVillageDeploymentConfig(
     normalizeAddress(config.tdfTransferPolicy?.treasury, 'tdfTransferPolicy.treasury');
     for (const account of config.tdfTransferPolicy?.allowedCounterparties ?? []) {
       normalizeAddress(account, 'tdfTransferPolicy.allowedCounterparties');
+    }
+  }
+  if (modules.dynamicPriceSale) {
+    const sale = config.dynamicPriceSale;
+    if (!sale) throw new Error('dynamicPriceSale configuration is required when the module is selected');
+    normalizeAddress(sale.quoteToken, 'dynamicPriceSale.quoteToken');
+    normalizeAddress(sale.villageTreasury, 'dynamicPriceSale.villageTreasury');
+    normalizeAddress(sale.closerFeeRecipient, 'dynamicPriceSale.closerFeeRecipient');
+    const closerFeeBps = resolvedCloserFeeBps(config);
+    if (!Number.isInteger(closerFeeBps) || closerFeeBps < 0 || closerFeeBps > 10_000) {
+      throw new Error('dynamicPriceSale.closerFeeBps must be an integer from 0 through 10000');
+    }
+    if (config.deploymentProfile === 'tdf') {
+      if (sale.bondingCurve) {
+        throw new Error('tdf deploys TDFV1BondingCurve automatically; dynamicPriceSale.bondingCurve must be omitted');
+      }
+    } else {
+      normalizeAddress(sale.bondingCurve, 'dynamicPriceSale.bondingCurve');
+    }
+
+    const saleCap = BigInt(sale.saleCap);
+    const minimumPurchase = BigInt(sale.minimumPurchase);
+    const maximumPurchase = BigInt(sale.maximumPurchase);
+    const purchaseGranularity = BigInt(sale.purchaseGranularity);
+    const maximumRecipientBalance = BigInt(sale.maximumRecipientBalance);
+    const initialSupply = BigInt(config.communityToken?.initialSupply ?? 0);
+    const maxSupply = BigInt(config.communityToken!.maxSupply!);
+    if (saleCap <= 0n || saleCap > maxSupply) {
+      throw new Error(
+        'dynamicPriceSale.saleCap must be greater than zero and no greater than communityToken.maxSupply',
+      );
+    }
+    if (
+      minimumPurchase <= 0n ||
+      maximumPurchase < minimumPurchase ||
+      purchaseGranularity <= 0n ||
+      minimumPurchase % purchaseGranularity !== 0n ||
+      maximumPurchase % purchaseGranularity !== 0n ||
+      maximumRecipientBalance < minimumPurchase
+    ) {
+      throw new Error('dynamicPriceSale purchase limits are inconsistent');
+    }
+    if (initialSupply > saleCap || minimumPurchase > saleCap - initialSupply) {
+      throw new Error('dynamicPriceSale launch supply does not leave room for the minimum purchase');
+    }
+    if (config.deploymentProfile === 'tdf') {
+      if (
+        saleCap !== TDF_DYNAMIC_PRICE_SALE_CAP ||
+        minimumPurchase !== TDF_MINIMUM_PURCHASE ||
+        maximumPurchase !== TDF_MAXIMUM_PURCHASE ||
+        purchaseGranularity !== TDF_PURCHASE_GRANULARITY ||
+        maximumRecipientBalance !== TDF_MAXIMUM_RECIPIENT_BALANCE
+      ) {
+        throw new Error('tdf dynamicPriceSale limits must match the locked TDF launch configuration');
+      }
+      if (initialSupply < TDF_MINIMUM_OPERATING_SUPPLY) {
+        throw new Error(
+          `tdf initial supply must be at least ${TDF_MINIMUM_OPERATING_SUPPLY} so every configured purchase can be quoted`,
+        );
+      }
     }
   }
   const initialRoleGrants = deriveInitialRoleGrants(config, modules);
@@ -595,11 +715,11 @@ export async function deployVillage(
   }
 
   const manifest: VillageDeploymentManifest = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     deploymentKind: deploymentKind(config.deploymentProfile),
     villageSlug: config.villageSlug,
     chainId: config.chainId,
-    configSchemaVersion: 3,
+    configSchemaVersion: 4,
     configHash,
     sourceRevision: process.env.GITHUB_SHA ?? process.env.SOURCE_REVISION,
     network: context.networkName,
@@ -711,6 +831,20 @@ function buildDeploymentOwnerActions(
   instances: Record<string, any>,
 ): PendingOwnerAction[] {
   const actions: PendingOwnerAction[] = [];
+  if (modules.dynamicPriceSale) {
+    const access = instances.VillageAccess;
+    actions.push(
+      buildOwnerAction(
+        access,
+        contracts.VillageAccess.address,
+        'VillageAccess',
+        'grantRole',
+        [ROLE_IDS.MINTER_ROLE, contracts.DynamicPriceSale.address],
+        'Grant the DynamicPriceSale permission to mint CommunityToken',
+      ),
+    );
+  }
+
   const policy = instances.TDFTransferPolicy;
   if (!policy) return actions;
   for (const account of config.tdfTransferPolicy?.allowedCounterparties ?? []) {
@@ -790,7 +924,7 @@ async function initiateOwnershipHandoff(
 ): Promise<ManualAction[]> {
   const actions: ManualAction[] = [];
   for (const [name, record] of Object.entries(contracts)) {
-    if (name === 'VillageAccess') continue;
+    if (name === 'VillageAccess' || record.authority === 'ownerless') continue;
     const ownable = await context.ethers.getContractAt(OWNABLE_ABI, record.address, deployer);
     const owner = getAddress(await ownable.owner());
     const pending = getAddress(await ownable.pendingOwner());
@@ -861,6 +995,7 @@ async function verifyExpectedHandoffState(
   const {deployer, finalOwner} = manifest.ownership;
   const finalAddress = getAddress(finalOwner.address);
   for (const [name, record] of Object.entries(manifest.contracts)) {
+    if (record.authority === 'ownerless') continue;
     if (name === 'VillageAccess') {
       const access = await context.ethers.getContractAt(ACCESS_ADMIN_ABI, record.address);
       const current = getAddress(await access.defaultAdmin());
@@ -887,6 +1022,7 @@ async function verifyDirectAuthority(
 ): Promise<void> {
   const expected = getAddress(finalOwner);
   for (const [name, record] of Object.entries(contracts)) {
+    if (record.authority === 'ownerless') continue;
     if (name === 'VillageAccess') {
       const access = await context.ethers.getContractAt(ACCESS_ADMIN_ABI, record.address);
       if (getAddress(await access.defaultAdmin()) !== expected) throw new Error('VillageAccess final admin changed');
@@ -982,6 +1118,12 @@ async function verifyCompleteWiring(
     contracts.TDFTransferPolicy?.address ?? config.communityToken?.transferPolicy ?? ZeroAddress,
     config,
   );
+  if (contracts.DynamicPriceSale) {
+    const access = await context.ethers.getContractAt(ACCESS_ADMIN_ABI, contracts.VillageAccess.address);
+    if (!(await access.hasRole(ROLE_IDS.MINTER_ROLE, contracts.DynamicPriceSale.address))) {
+      throw new Error('DynamicPriceSale is missing CommunityToken MINTER_ROLE');
+    }
+  }
   if (contracts.TDFTransferPolicy) {
     const policy = await context.ethers.getContractAt(
       [
@@ -1011,12 +1153,19 @@ async function verifyModuleWiring(
   const accessAddress = contracts.VillageAccess?.address ?? ZeroAddress;
   if (contracts.CommunityToken) {
     const token = await context.ethers.getContractAt(
-      ['function roleAuthority() view returns (address)', 'function transferPolicy() view returns (address)'],
+      [
+        'function roleAuthority() view returns (address)',
+        'function transferPolicy() view returns (address)',
+        'function maxSupply() view returns (uint256)',
+      ],
       contracts.CommunityToken.address,
     );
     if (getAddress(await token.roleAuthority()) !== accessAddress) throw new Error('CommunityToken authority mismatch');
     if (getAddress(await token.transferPolicy()) !== getAddress(expectedPolicy))
       throw new Error('CommunityToken policy mismatch');
+    if ((await token.maxSupply()) !== BigInt(config.communityToken!.maxSupply!)) {
+      throw new Error('CommunityToken max supply mismatch');
+    }
   }
   for (const name of ['VillagePresenceToken', 'VillageSweatToken']) {
     if (!contracts[name]) continue;
@@ -1042,6 +1191,33 @@ async function verifyModuleWiring(
     );
     if (getAddress(await policy.treasury()) !== getAddress(config.tdfTransferPolicy!.treasury)) {
       throw new Error('TDF treasury mismatch');
+    }
+  }
+  if (contracts.DynamicPriceSale) {
+    const sale = await context.ethers.getContractAt('DynamicPriceSale', contracts.DynamicPriceSale.address);
+    const actual = await sale.saleConfiguration();
+    const expected = config.dynamicPriceSale!;
+    const expectedCurve = contracts.TDFV1BondingCurve?.address ?? getAddress(expected.bondingCurve!);
+    const addressFields: Array<[string, string, string]> = [
+      ['community token', actual.communityToken, contracts.CommunityToken.address],
+      ['quote token', actual.quoteToken, expected.quoteToken],
+      ['bonding curve', actual.bondingCurve, expectedCurve],
+      ['village treasury', actual.villageTreasury, expected.villageTreasury],
+      ['Closer fee recipient', actual.closerFeeRecipient, expected.closerFeeRecipient],
+    ];
+    for (const [label, value, wanted] of addressFields) {
+      if (getAddress(value) !== getAddress(wanted)) throw new Error(`DynamicPriceSale ${label} mismatch`);
+    }
+    const uintFields: Array<[string, bigint, bigint]> = [
+      ['sale cap', actual.saleCap, BigInt(expected.saleCap)],
+      ['minimum purchase', actual.minimumPurchase, BigInt(expected.minimumPurchase)],
+      ['maximum purchase', actual.maximumPurchase, BigInt(expected.maximumPurchase)],
+      ['purchase granularity', actual.purchaseGranularity, BigInt(expected.purchaseGranularity)],
+      ['maximum recipient balance', actual.maximumRecipientBalance, BigInt(expected.maximumRecipientBalance)],
+      ['Closer fee', actual.closerFeeBps, BigInt(resolvedCloserFeeBps(config))],
+    ];
+    for (const [label, value, wanted] of uintFields) {
+      if (value !== wanted) throw new Error(`DynamicPriceSale ${label} mismatch`);
     }
   }
 }
@@ -1077,6 +1253,13 @@ async function isOwnerActionComplete(action: PendingOwnerAction, context: Villag
   if (action.functionName === 'setTransferPolicy') {
     const target = await context.ethers.getContractAt(['function transferPolicy() view returns (address)'], action.to);
     return getAddress(await target.transferPolicy()) === getAddress(action.args[0] as string);
+  }
+  if (action.functionName === 'grantRole') {
+    const target = await context.ethers.getContractAt(
+      ['function hasRole(bytes32,address) view returns (bool)'],
+      action.to,
+    );
+    return target.hasRole(action.args[0], action.args[1]);
   }
   if (action.functionName === 'upgradeToAndCall') {
     const raw = await context.ethers.provider.getStorage(action.to, IMPLEMENTATION_SLOT);

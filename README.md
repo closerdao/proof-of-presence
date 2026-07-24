@@ -21,7 +21,7 @@ The complete test suite currently contains Solidity fuzz/invariant tests and Typ
 ## Repository structure
 
 - `src/village/` — reusable access, token, booking, proxy, interface, and library contracts.
-- `src/profiles/tdf/` — TDF-specific policy contracts composed with the generic village contracts.
+- `src/profiles/tdf/` — TDF-specific transfer policy and historical pricing curve.
 - `ignition/modules/` — the only supported deployment graphs.
 - `scripts/deployment/` — strict config/manifest validation and deployment reconciliation.
 - `test/solidity/` — Solidity unit, fuzz, and invariant tests.
@@ -54,9 +54,9 @@ Hardhat Ignition owns transaction journaling and resumption. A strict deployment
 on-chain state for operators and downstream systems; it does not duplicate the Ignition journal. Consumer exports are
 derived from manifests and contain only stable addresses, ABIs, aliases, and routing metadata.
 
-- Deployment config: `schemaVersion: 3`.
-- Deployment manifest: `schemaVersion: 3`, with `configSchemaVersion: 3`.
-- Consumer export: `schemaVersion: 2`.
+- Deployment config: `schemaVersion: 4`.
+- Deployment manifest: `schemaVersion: 4`, with `configSchemaVersion: 4`.
+- Consumer export: `schemaVersion: 3`.
 
 `schemaVersion` identifies the JSON wire format. It is not a contract version, proxy storage version, or Ignition
 journal version. The value is required and checked with an exact schema literal, so unsupported or ambiguous files

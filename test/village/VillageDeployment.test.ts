@@ -5,7 +5,7 @@ import {expect} from 'chai';
 import hre from 'hardhat';
 import {upgrades as createUpgradesApi} from '@openzeppelin/hardhat-upgrades';
 import {OperationType} from '@safe-global/types-kit';
-import {parseEther, ZeroAddress} from 'ethers';
+import {MaxUint256, parseEther, ZeroAddress} from 'ethers';
 import {connection, ethers} from '../hardhat.js';
 import {runChildProcess, runTsxWorker} from '../helpers/child-process.js';
 import {exportVillageCommand} from '../../scripts/deployment/commands/export-village.js';
@@ -37,16 +37,21 @@ function baseConfig(
   apiOperator: string,
   overrides: Partial<VillageDeploymentConfig> = {},
 ): VillageDeploymentConfig {
-  return {
-    schemaVersion: 3,
+  const config: VillageDeploymentConfig = {
+    schemaVersion: 4,
     villageSlug: slug,
     chainId: 31337,
     deploymentProfile: 'minimal-village',
     ownership: {mode: 'direct', finalOwner: {type: 'eoa', address: owner}},
     modules: [],
     apiOperator,
+    communityToken: {maxSupply: MaxUint256.toString()},
     ...overrides,
   };
+  if (overrides.communityToken) {
+    config.communityToken = {maxSupply: MaxUint256.toString(), ...overrides.communityToken};
+  }
+  return config;
 }
 
 describe('Village deployment entrypoint', function () {
@@ -63,8 +68,8 @@ describe('Village deployment entrypoint', function () {
     const access = await ethers.getContractAt('VillageAccess', result.manifest.contracts.VillageAccess.address);
 
     expect(result.manifest.status).to.equal('complete');
-    expect(result.manifest.schemaVersion).to.equal(3);
-    expect(result.manifest.configSchemaVersion).to.equal(3);
+    expect(result.manifest.schemaVersion).to.equal(4);
+    expect(result.manifest.configSchemaVersion).to.equal(4);
     expect(result.manifest.deploymentKind).to.equal('village');
     expect(result.manifest.ownership).to.include({mode: 'direct', initialOwner: owner.address});
     expect(await access.defaultAdmin()).to.equal(owner.address);
@@ -78,7 +83,7 @@ describe('Village deployment entrypoint', function () {
     expect(() =>
       parseVillageDeploymentManifest({...result.manifest, unexpectedOuterJournal: {step: 'complete'}}),
     ).to.throw('Unrecognized key');
-    expect(() => parseVillageDeploymentManifest({...result.manifest, schemaVersion: 2})).to.throw();
+    expect(() => parseVillageDeploymentManifest({...result.manifest, schemaVersion: 3})).to.throw();
     const {deploymentKind: _deploymentKind, ...withoutDeploymentKind} = result.manifest;
     expect(() => parseVillageDeploymentManifest({...withoutDeploymentKind, generation: 'village'})).to.throw();
   });
@@ -132,7 +137,7 @@ describe('Village deployment entrypoint', function () {
 
     await exportVillageCommand({manifestPath: result.manifestPath, outPath: exportPath});
     const exported = JSON.parse(await readFile(exportPath, 'utf8'));
-    expect(exported.schemaVersion).to.equal(2);
+    expect(exported.schemaVersion).to.equal(3);
     expect(exported.deploymentKind).to.equal('village');
     expect(exported).not.to.have.property('generation');
     expect(exported.contracts.VillageAccess.abi).to.be.an('array').and.not.empty;
@@ -214,7 +219,52 @@ describe('Village deployment entrypoint', function () {
     expect(result.manifest.status).to.equal('complete');
     expect(result.manifest.ownerActions).to.be.empty;
     expect(await token.transferPolicy()).to.equal(await policy.getAddress());
-    expect(result.manifest.contracts.CommunityToken.initializerArgs?.[5]).to.equal(await policy.getAddress());
+    expect(result.manifest.contracts.CommunityToken.initializerArgs?.[6]).to.equal(await policy.getAddress());
+  });
+
+  it('deploys a generic DynamicPriceSale and reconciles its post-deployment minter grant', async function () {
+    const [, owner, apiOperator, payer, recipient, villageTreasury, closerFeeRecipient] = await ethers.getSigners();
+    const quoteToken = await ethers.deployContract('QuoteTokenMock', [18]);
+    const curve = await ethers.deployContract('BondingCurveMock', [18, parseEther('2')]);
+    await Promise.all([quoteToken.waitForDeployment(), curve.waitForDeployment()]);
+    const config = baseConfig('generic-dynamic-sale', owner.address, apiOperator.address, {
+      chainId: await chainId(),
+      modules: ['communityToken', 'dynamicPriceSale'],
+      communityToken: {maxSupply: parseEther('1000').toString()},
+      dynamicPriceSale: {
+        quoteToken: await quoteToken.getAddress(),
+        bondingCurve: await curve.getAddress(),
+        villageTreasury: villageTreasury.address,
+        closerFeeRecipient: closerFeeRecipient.address,
+        closerFeeBps: 250,
+        saleCap: parseEther('900').toString(),
+        minimumPurchase: parseEther('1').toString(),
+        maximumPurchase: parseEther('100').toString(),
+        purchaseGranularity: parseEther('1').toString(),
+        maximumRecipientBalance: parseEther('200').toString(),
+      },
+    });
+    const context = deploymentContext(await outputRoot());
+    const result = await deployVillage(config, context);
+
+    expect(result.manifest.status).to.equal('pending-owner-actions');
+    expect(result.manifest.ownerActions.map(({functionName}) => functionName)).to.deep.equal(['grantRole']);
+    expect(result.manifest.contracts).not.to.have.property('TDFV1BondingCurve');
+    const completed = await submitDeploymentOwnerActions(result.manifest, context);
+    expect(completed.status).to.equal('complete');
+
+    const sale = await ethers.getContractAt('DynamicPriceSale', completed.contracts.DynamicPriceSale.address);
+    const token = await ethers.getContractAt('CommunityToken', completed.contracts.CommunityToken.address);
+    const amount = parseEther('5');
+    const totalPayment = parseEther('10');
+    await quoteToken.mint(payer.address, totalPayment);
+    const payerQuoteToken = await ethers.getContractAt('QuoteTokenMock', await quoteToken.getAddress(), payer);
+    await payerQuoteToken.approve(await sale.getAddress(), totalPayment);
+    await sale.connect(payer).buy(amount, recipient.address, totalPayment, MaxUint256);
+
+    expect(await token.balanceOf(recipient.address)).to.equal(amount);
+    expect(await quoteToken.balanceOf(closerFeeRecipient.address)).to.equal(parseEther('0.25'));
+    expect(await quoteToken.balanceOf(villageTreasury.address)).to.equal(parseEther('9.75'));
   });
 
   it('keeps a custom internally wired TDF token restricted until its explicit enable action', async function () {
@@ -252,31 +302,45 @@ describe('Village deployment entrypoint', function () {
   });
 
   it('deploys and completes the direct-owner TDF flow through the public entrypoint', async function () {
-    const [, owner, apiOperator, treasury, member, other] = await ethers.getSigners();
+    const [, owner, apiOperator, treasury, member, other, closerFeeRecipient] = await ethers.getSigners();
+    const quoteToken = await ethers.deployContract('QuoteTokenMock', [18]);
+    await quoteToken.waitForDeployment();
     const config = baseConfig('direct-owner-actions', owner.address, apiOperator.address, {
       chainId: await chainId(),
       deploymentProfile: 'tdf',
       communityToken: {
         name: 'TDF Community',
         symbol: 'TDFC',
-        initialSupply: parseEther('10').toString(),
+        initialSupply: parseEther('5381').toString(),
+        maxSupply: parseEther('18600').toString(),
         initialRecipient: member.address,
         apiOperatorCanMint: true,
       },
       presenceToken: {decayRatePerDay: 288_617},
       sweatToken: {decayRatePerDay: 288_617},
       tdfTransferPolicy: {treasury: treasury.address},
+      dynamicPriceSale: {
+        quoteToken: await quoteToken.getAddress(),
+        villageTreasury: treasury.address,
+        closerFeeRecipient: closerFeeRecipient.address,
+        saleCap: parseEther('15097.5').toString(),
+        minimumPurchase: parseEther('1').toString(),
+        maximumPurchase: parseEther('100').toString(),
+        purchaseGranularity: parseEther('1').toString(),
+        maximumRecipientBalance: parseEther('915').toString(),
+      },
     });
     const context = deploymentContext(await outputRoot());
     const result = await deployVillage(config, context);
     expect(result.manifest.status).to.equal('pending-owner-actions');
     expect(result.manifest.ownerActions.map(({functionName}) => functionName)).to.deep.equal([
+      'grantRole',
       'setAllowedCounterparty',
     ]);
     const token = await ethers.getContractAt('CommunityToken', result.manifest.contracts.CommunityToken.address);
     const policy = await ethers.getContractAt('TDFTransferPolicy', result.manifest.contracts.TDFTransferPolicy.address);
     expect(await token.transferPolicy()).to.equal(await policy.getAddress());
-    expect(result.manifest.contracts.CommunityToken.initializerArgs?.[5]).to.equal(await policy.getAddress());
+    expect(result.manifest.contracts.CommunityToken.initializerArgs?.[6]).to.equal(await policy.getAddress());
     expect(await policy.transfersRestricted()).to.equal(true);
     await expect(token.connect(member).transfer(other.address, 1)).to.be.revertedWithCustomError(
       token,
@@ -297,6 +361,23 @@ describe('Village deployment entrypoint', function () {
     expect(await token.transferPolicy()).to.equal(completed.contracts.TDFTransferPolicy.address);
     expect(await policy.transfersRestricted()).to.equal(true);
     expect(await policy.allowedCounterparty(await stays.getAddress())).to.equal(true);
+    expect(
+      await (
+        await ethers.getContractAt('VillageAccess', completed.contracts.VillageAccess.address)
+      ).hasRole(ROLE_IDS.MINTER_ROLE, completed.contracts.DynamicPriceSale.address),
+    ).to.equal(true);
+    expect(completed.contracts.TDFV1BondingCurve.authority).to.equal('ownerless');
+    const sale = await ethers.getContractAt('DynamicPriceSale', completed.contracts.DynamicPriceSale.address);
+    const saleConfiguration = await sale.saleConfiguration();
+    expect(saleConfiguration.communityToken).to.equal(await token.getAddress());
+    expect(saleConfiguration.quoteToken).to.equal(await quoteToken.getAddress());
+    expect(saleConfiguration.bondingCurve).to.equal(completed.contracts.TDFV1BondingCurve.address);
+    expect(saleConfiguration.closerFeeBps).to.equal(500n);
+
+    expect(await policy.MINIMUM_OPERATING_SUPPLY()).to.equal(parseEther('5381'));
+    await expect(token.connect(member).burn(1)).to.be.revertedWithCustomError(token, 'TransferBlockedByPolicy');
+    await token.connect(apiOperator).mint(member.address, 1);
+    await token.connect(member).burn(1);
 
     await expect(token.connect(member).transfer(other.address, 1)).to.be.revertedWithCustomError(
       token,
@@ -319,7 +400,7 @@ describe('Village deployment entrypoint', function () {
     await stays.connect(member).cancelBookings([{year, dayOfYear}]);
     await stays.connect(member).withdrawMax();
     expect(await stays.depositedBalanceOf(member.address)).to.equal(0n);
-    expect(await token.balanceOf(member.address)).to.equal(parseEther('10'));
+    expect(await token.balanceOf(member.address)).to.equal(parseEther('5381'));
 
     await presence.connect(apiOperator).mint(member.address, parseEther('1'), 0);
     await sweat.connect(apiOperator).mint(member.address, parseEther('2'), 0);
@@ -396,21 +477,39 @@ describe('Village deployment entrypoint', function () {
   });
 
   it('completes deployer handoff after configuration and records manual acceptance calls', async function () {
-    const [deployer, finalOwner, apiOperator, treasury] = await ethers.getSigners();
+    const [deployer, finalOwner, apiOperator, treasury, member, closerFeeRecipient] = await ethers.getSigners();
+    const quoteToken = await ethers.deployContract('QuoteTokenMock', [18]);
+    await quoteToken.waitForDeployment();
     const config = baseConfig('handoff-full', finalOwner.address, apiOperator.address, {
       chainId: await chainId(),
       deploymentProfile: 'tdf',
       ownership: {mode: 'deployer-handoff', finalOwner: {type: 'eoa', address: finalOwner.address}},
-      communityToken: {name: 'Handoff TDF', symbol: 'HTDF'},
+      communityToken: {
+        name: 'Handoff TDF',
+        symbol: 'HTDF',
+        initialSupply: parseEther('5381').toString(),
+        maxSupply: parseEther('18600').toString(),
+        initialRecipient: member.address,
+      },
       presenceToken: {decayRatePerDay: 288_617},
       sweatToken: {decayRatePerDay: 288_617},
       tdfTransferPolicy: {treasury: treasury.address},
+      dynamicPriceSale: {
+        quoteToken: await quoteToken.getAddress(),
+        villageTreasury: treasury.address,
+        closerFeeRecipient: closerFeeRecipient.address,
+        saleCap: parseEther('15097.5').toString(),
+        minimumPurchase: parseEther('1').toString(),
+        maximumPurchase: parseEther('100').toString(),
+        purchaseGranularity: parseEther('1').toString(),
+        maximumRecipientBalance: parseEther('915').toString(),
+      },
     });
     const result = await deployVillage(config, deploymentContext(await outputRoot()));
 
     expect(result.manifest.status).to.equal('complete');
     expect(result.manifest.ownerActions).to.be.empty;
-    expect(result.manifest.manualActions).to.have.length(6);
+    expect(result.manifest.manualActions).to.have.length(7);
     expect(result.manifest.manualActions.map(({functionName}) => functionName)).to.include.members([
       'acceptOwnership',
       'acceptDefaultAdminTransfer',

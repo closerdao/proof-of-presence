@@ -19,6 +19,7 @@ const UUPS_CONTRACTS = new Set([
   'VillagePresenceToken',
   'VillageSweatToken',
   'TokenizedStays',
+  'DynamicPriceSale',
 ]);
 
 export interface PrepareUpgradeOptions {

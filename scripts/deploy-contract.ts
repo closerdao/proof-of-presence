@@ -14,6 +14,7 @@ const CONTRACT_MODULES = {
   VillageSweatToken: ['sweatToken'],
   TokenizedStays: ['communityToken', 'tokenizedStays'],
   TDFTransferPolicy: ['tdfTransferPolicy'],
+  DynamicPriceSale: ['communityToken', 'dynamicPriceSale'],
 } as const satisfies Record<string, readonly string[]>;
 
 type ContractModuleName = keyof typeof CONTRACT_MODULES;

@@ -41,6 +41,8 @@ contract CommunityToken is
         IAccessControl roleAuthority;
         /// @dev Optional policy called before each ERC-20 balance update; zero means no policy checks.
         ITransferPolicy transferPolicy;
+        /// @dev Owner-governed ceiling enforced for every minting path.
+        uint256 maxSupply;
     }
 
     /// @notice Emitted when the external village role registry changes.
@@ -51,11 +53,18 @@ contract CommunityToken is
     /// @param oldPolicy Previously configured policy, or the zero address.
     /// @param newPolicy Newly configured policy, or the zero address.
     event TransferPolicyChanged(address indexed oldPolicy, address indexed newPolicy);
+    /// @notice Emitted when the token-wide minting ceiling changes.
+    /// @param oldMaxSupply Previously configured maximum supply.
+    /// @param newMaxSupply Newly configured maximum supply.
+    event MaxSupplyChanged(uint256 oldMaxSupply, uint256 newMaxSupply);
 
     error InvalidRoleAuthority(address roleAuthority);
     error InvalidTransferPolicy(address transferPolicy);
     error InvalidOwner(address owner);
     error InvalidInitialRecipient(address recipient);
+    error InvalidMaxSupply(uint256 maxSupply);
+    error MaxSupplyBelowCurrentSupply(uint256 maxSupply, uint256 currentSupply);
+    error MaxSupplyExceeded(uint256 currentSupply, uint256 mintAmount, uint256 maxSupply);
     error Unauthorized(address sender, bytes32 role);
     error TransferBlockedByPolicy(address operator, address from, address to, uint256 amount);
 
@@ -71,6 +80,7 @@ contract CommunityToken is
     /// @param name_ ERC-20 name and EIP-712 signing-domain name.
     /// @param symbol_ ERC-20 symbol.
     /// @param initialSupply Amount minted during initialization, in the token's smallest unit.
+    /// @param maxSupply_ Initial token-wide minting ceiling, in the token's smallest unit.
     /// @param initialRecipient Recipient of `initialSupply`; may be zero only when the supply is zero.
     /// @param roleAuthority_ VillageAccess-compatible contract queried for operational roles.
     /// @param transferPolicy_ Optional ITransferPolicy implementation, or the zero address for unrestricted updates.
@@ -79,6 +89,7 @@ contract CommunityToken is
         string memory name_,
         string memory symbol_,
         uint256 initialSupply,
+        uint256 maxSupply_,
         address initialRecipient,
         address roleAuthority_,
         address transferPolicy_,
@@ -91,6 +102,8 @@ contract CommunityToken is
         if (initialSupply > 0 && initialRecipient == address(0)) {
             revert InvalidInitialRecipient(initialRecipient);
         }
+        if (maxSupply_ == 0) revert InvalidMaxSupply(maxSupply_);
+        if (initialSupply > maxSupply_) revert MaxSupplyExceeded(0, initialSupply, maxSupply_);
 
         __ERC20_init(name_, symbol_);
         __ERC20Permit_init(name_);
@@ -100,6 +113,7 @@ contract CommunityToken is
 
         CommunityTokenStorage storage $ = _getCommunityTokenStorage();
         $.roleAuthority = IAccessControl(roleAuthority_);
+        _setMaxSupply($, maxSupply_);
         _setTransferPolicy($, transferPolicy_);
 
         if (initialSupply > 0) {
@@ -139,6 +153,21 @@ contract CommunityToken is
     /// @notice Returns the active transfer policy, or the zero-address interface when checks are disabled.
     function transferPolicy() public view returns (ITransferPolicy) {
         return _getCommunityTokenStorage().transferPolicy;
+    }
+
+    /// @notice Returns the owner-governed ceiling enforced for the token's total supply.
+    /// @dev A zero storage value can exist only on proxies upgraded from the pre-cap implementation and is treated
+    /// as unlimited until the owner explicitly configures a ceiling. New proxies must initialize a nonzero ceiling.
+    function maxSupply() public view returns (uint256) {
+        uint256 configuredMaxSupply = _getCommunityTokenStorage().maxSupply;
+        return configuredMaxSupply == 0 ? type(uint256).max : configuredMaxSupply;
+    }
+
+    /// @notice Changes the token-wide minting ceiling.
+    /// @dev The ceiling may be raised or lowered, but never to zero or below the current total supply.
+    /// @param newMaxSupply New supply ceiling in the token's smallest unit.
+    function setMaxSupply(uint256 newMaxSupply) external onlyOwner {
+        _setMaxSupply(_getCommunityTokenStorage(), newMaxSupply);
     }
 
     /// @notice Mints tokens to an account under MINTER_ROLE authorization.
@@ -211,6 +240,14 @@ contract CommunityToken is
         address to,
         uint256 amount
     ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) {
+        if (from == address(0)) {
+            uint256 currentSupply = totalSupply();
+            uint256 configuredMaxSupply = maxSupply();
+            if (amount > configuredMaxSupply - currentSupply) {
+                revert MaxSupplyExceeded(currentSupply, amount, configuredMaxSupply);
+            }
+        }
+
         ITransferPolicy policy = transferPolicy();
         if (address(policy) != address(0) && !policy.isTransferAllowed(address(this), _msgSender(), from, to, amount)) {
             revert TransferBlockedByPolicy(_msgSender(), from, to, amount);
@@ -230,6 +267,15 @@ contract CommunityToken is
         address oldPolicy = address($.transferPolicy);
         $.transferPolicy = ITransferPolicy(newPolicy);
         emit TransferPolicyChanged(oldPolicy, newPolicy);
+    }
+
+    function _setMaxSupply(CommunityTokenStorage storage $, uint256 newMaxSupply) internal {
+        if (newMaxSupply == 0) revert InvalidMaxSupply(newMaxSupply);
+        uint256 currentSupply = totalSupply();
+        if (newMaxSupply < currentSupply) revert MaxSupplyBelowCurrentSupply(newMaxSupply, currentSupply);
+        uint256 oldMaxSupply = $.maxSupply;
+        $.maxSupply = newMaxSupply;
+        emit MaxSupplyChanged(oldMaxSupply, newMaxSupply);
     }
 
     function _getCommunityTokenStorage() private pure returns (CommunityTokenStorage storage $) {

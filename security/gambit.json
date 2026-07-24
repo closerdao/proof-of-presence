@@ -89,5 +89,35 @@
     "num_mutants": 2,
     "seed": 20260718,
     "mutations": ["binary-op-mutation", "assignment-mutation", "if-statement-mutation"]
+  },
+  {
+    "filename": "../src/village/sales/DynamicPriceSale.sol",
+    "sourceroot": "..",
+    "contract": "DynamicPriceSale",
+    "solc": "./scripts/security/gambit-solc.js",
+    "solc_evm_version": "cancun",
+    "solc_base_path": "..",
+    "solc_include_path": "../node_modules",
+    "solc_remappings": ["@openzeppelin=../node_modules/@openzeppelin"],
+    "solc_optimize": true,
+    "outdir": "../security-reports/gambit",
+    "num_mutants": 2,
+    "seed": 20260718,
+    "mutations": ["binary-op-mutation", "assignment-mutation", "if-statement-mutation"]
+  },
+  {
+    "filename": "../src/profiles/tdf/TDFV1BondingCurve.sol",
+    "sourceroot": "..",
+    "contract": "TDFV1BondingCurve",
+    "solc": "./scripts/security/gambit-solc.js",
+    "solc_evm_version": "cancun",
+    "solc_base_path": "..",
+    "solc_include_path": "../node_modules",
+    "solc_remappings": ["@openzeppelin=../node_modules/@openzeppelin"],
+    "solc_optimize": true,
+    "outdir": "../security-reports/gambit",
+    "num_mutants": 2,
+    "seed": 20260718,
+    "mutations": ["binary-op-mutation", "assignment-mutation", "if-statement-mutation"]
   }
 ]

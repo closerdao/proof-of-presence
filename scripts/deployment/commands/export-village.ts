@@ -41,7 +41,7 @@ export async function exportVillageCommand(options: ExportVillageOptions): Promi
     exportPath,
     `${JSON.stringify(
       {
-        schemaVersion: 2,
+        schemaVersion: 3,
         sourceManifest: path.relative(cwd, manifestPath),
         deploymentKind: manifest.deploymentKind,
         deploymentProfile: manifest.deploymentProfile,

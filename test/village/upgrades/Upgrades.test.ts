@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {id, parseEther, ZeroAddress, ZeroHash} from 'ethers';
+import {id, MaxUint256, parseEther, ZeroAddress, ZeroHash} from 'ethers';
 import hre from 'hardhat';
 import {upgrades} from '@openzeppelin/hardhat-upgrades';
 import {connection, ethers, type RuntimeContract} from '../../hardhat.js';
@@ -52,15 +52,34 @@ describe('Upgrades', function () {
     const accessAddress = await access.getAddress();
     const token = await deployProxy(
       'CommunityToken',
-      ['Token', 'TOK', 0, ZeroAddress, accessAddress, ZeroAddress, owner.address],
+      ['Token', 'TOK', 0, MaxUint256, ZeroAddress, accessAddress, ZeroAddress, owner.address],
       deployer,
     );
     const cases: Array<[string, unknown[]]> = [
       ['VillageAccess', [owner.address, []]],
-      ['CommunityToken', ['Token', 'TOK', 0, ZeroAddress, accessAddress, ZeroAddress, owner.address]],
+      ['CommunityToken', ['Token', 'TOK', 0, MaxUint256, ZeroAddress, accessAddress, ZeroAddress, owner.address]],
       ['VillagePresenceToken', ['Presence', 'PRES', accessAddress, 288_617, owner.address]],
       ['VillageSweatToken', ['Sweat', 'SWT', accessAddress, 288_617, owner.address]],
       ['TokenizedStays', [await token.getAddress(), accessAddress, owner.address]],
+      [
+        'DynamicPriceSale',
+        [
+          {
+            communityToken: ZeroAddress,
+            quoteToken: ZeroAddress,
+            bondingCurve: ZeroAddress,
+            villageTreasury: ZeroAddress,
+            closerFeeRecipient: ZeroAddress,
+            saleCap: 0,
+            minimumPurchase: 0,
+            maximumPurchase: 0,
+            purchaseGranularity: 0,
+            maximumRecipientBalance: 0,
+            closerFeeBps: 0,
+          },
+          owner.address,
+        ],
+      ],
     ];
 
     for (const [name, args] of cases) {
@@ -105,7 +124,7 @@ describe('Upgrades', function () {
     const policy = await deployImplementation('TransferPolicyMock', deployer);
     const token = await deployProxy(
       'CommunityToken',
-      ['Token', 'TOK', 0, ZeroAddress, await access.getAddress(), ZeroAddress, owner.address],
+      ['Token', 'TOK', 0, MaxUint256, ZeroAddress, await access.getAddress(), ZeroAddress, owner.address],
       deployer,
     );
     await token.connect(minter).mint(member.address, parseEther('10'));
@@ -122,6 +141,7 @@ describe('Upgrades', function () {
     expect(await upgraded.balanceOf(member.address)).to.equal(parseEther('10'));
     expect(await upgraded.roleAuthority()).to.equal(await access.getAddress());
     expect(await upgraded.transferPolicy()).to.equal(await policy.getAddress());
+    expect(await upgraded.maxSupply()).to.equal(MaxUint256);
     expect(await upgraded.upgradeValue()).to.equal(42n);
     await expect(upgraded.initializeUpgrade(43, false)).to.be.revertedWithCustomError(
       upgraded,
@@ -133,7 +153,7 @@ describe('Upgrades', function () {
     const {access, deployer, owner} = await setupVillageAccess();
     const token = await deployProxy(
       'CommunityToken',
-      ['Fresh', 'FRH', 0, ZeroAddress, await access.getAddress(), ZeroAddress, owner.address],
+      ['Fresh', 'FRH', 0, MaxUint256, ZeroAddress, await access.getAddress(), ZeroAddress, owner.address],
       deployer,
     );
     const next = await deployImplementation('CommunityTokenUpgradeMock', deployer);
@@ -179,7 +199,7 @@ describe('Upgrades', function () {
     const {access, deployer, owner, minter, member} = await setupVillageAccess();
     const token = await deployProxy(
       'CommunityToken',
-      ['Token', 'TOK', 0, ZeroAddress, await access.getAddress(), ZeroAddress, owner.address],
+      ['Token', 'TOK', 0, MaxUint256, ZeroAddress, await access.getAddress(), ZeroAddress, owner.address],
       deployer,
     );
     await token.connect(minter).mint(member.address, parseEther('10'));
@@ -219,7 +239,16 @@ describe('Upgrades', function () {
     await safe.setup([safeOwner.address], 1, ZeroAddress, '0x', ZeroAddress, ZeroAddress, 0, ZeroAddress);
     const token = await deployProxy(
       'CommunityToken',
-      ['Safe Token', 'SAFE', 0, ZeroAddress, await access.getAddress(), ZeroAddress, await safe.getAddress()],
+      [
+        'Safe Token',
+        'SAFE',
+        0,
+        MaxUint256,
+        ZeroAddress,
+        await access.getAddress(),
+        ZeroAddress,
+        await safe.getAddress(),
+      ],
       deployer,
     );
     await token.connect(minter).mint(member.address, 7n);
@@ -234,6 +263,53 @@ describe('Upgrades', function () {
     )) as Contract;
     expect(await upgraded.version()).to.equal('community-token-upgrade-mock');
     expect(await upgraded.balanceOf(member.address)).to.equal(7n);
+  });
+
+  it('preserves DynamicPriceSale configuration and pause state across an owner-authorized upgrade', async function () {
+    const {access, deployer, owner, member, other} = await setupVillageAccess();
+    const token = await deployProxy(
+      'CommunityToken',
+      ['Token', 'TOK', 0, parseEther('1000'), ZeroAddress, await access.getAddress(), ZeroAddress, owner.address],
+      deployer,
+    );
+    const quoteToken = await ethers.deployContract('QuoteTokenMock', [18]);
+    const curve = await ethers.deployContract('BondingCurveMock', [18, parseEther('2')]);
+    await Promise.all([quoteToken.waitForDeployment(), curve.waitForDeployment()]);
+    const configuration = {
+      communityToken: await token.getAddress(),
+      quoteToken: await quoteToken.getAddress(),
+      bondingCurve: await curve.getAddress(),
+      villageTreasury: member.address,
+      closerFeeRecipient: other.address,
+      saleCap: parseEther('900'),
+      minimumPurchase: parseEther('1'),
+      maximumPurchase: parseEther('100'),
+      purchaseGranularity: parseEther('1'),
+      maximumRecipientBalance: parseEther('200'),
+      closerFeeBps: 500,
+    };
+    const sale = await deployProxy('DynamicPriceSale', [configuration, owner.address], deployer);
+    await sale.connect(owner).pause();
+    const next = await deployImplementation('DynamicPriceSaleUpgradeMock', deployer);
+
+    await expect(sale.connect(other).upgradeToAndCall(await next.getAddress(), '0x'))
+      .to.be.revertedWithCustomError(sale, 'OwnableUnauthorizedAccount')
+      .withArgs(other.address);
+    await sale.connect(owner).upgradeToAndCall(await next.getAddress(), '0x');
+
+    const upgraded = (await ethers.getContractAt(
+      'DynamicPriceSaleUpgradeMock',
+      await sale.getAddress(),
+      owner,
+    )) as Contract;
+    const stored = await upgraded.saleConfiguration();
+    expect(await upgraded.version()).to.equal('dynamic-price-sale-upgrade-mock');
+    expect(await upgraded.paused()).to.equal(true);
+    expect(stored.communityToken).to.equal(configuration.communityToken);
+    expect(stored.quoteToken).to.equal(configuration.quoteToken);
+    expect(stored.bondingCurve).to.equal(configuration.bondingCurve);
+    expect(stored.saleCap).to.equal(configuration.saleCap);
+    expect(stored.closerFeeBps).to.equal(500n);
   });
 
   it('detects a type mutation in the production CommunityToken ERC-7201 namespace', async function () {

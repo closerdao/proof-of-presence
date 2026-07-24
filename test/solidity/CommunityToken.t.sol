@@ -22,11 +22,18 @@ contract CommunityTokenTest is TestBase {
         authority.grantRole(VillageRoles.MINTER_ROLE, minter);
         authority.grantRole(bytes32(0), roleAdmin);
         policy = new ConfigurableTransferPolicy();
-        token = _deployToken(address(authority), address(0), address(this), 0, address(0));
+        token = _deployToken(address(authority), address(0), address(this), 0, type(uint256).max, address(0));
     }
 
     function test_InitializesCustomStateAndInitialSupply() public {
-        CommunityToken initialized = _deployToken(address(authority), address(policy), address(this), 25 ether, holder);
+        CommunityToken initialized = _deployToken(
+            address(authority),
+            address(policy),
+            address(this),
+            25 ether,
+            100 ether,
+            holder
+        );
 
         assertEq(initialized.name(), "Community");
         assertEq(initialized.symbol(), "COM");
@@ -34,6 +41,7 @@ contract CommunityTokenTest is TestBase {
         assertEq(address(initialized.roleAuthority()), address(authority));
         assertEq(address(initialized.transferPolicy()), address(policy));
         assertEq(initialized.balanceOf(holder), 25 ether);
+        assertEq(initialized.maxSupply(), 100 ether);
     }
 
     function test_RejectsInvalidCustomInitializerInputs() public {
@@ -44,7 +52,7 @@ contract CommunityTokenTest is TestBase {
             address(implementation),
             abi.encodeCall(
                 CommunityToken.initialize,
-                ("Community", "COM", 0, address(0), address(authority), address(0), address(0))
+                ("Community", "COM", 0, 100 ether, address(0), address(authority), address(0), address(0))
             )
         );
 
@@ -53,7 +61,7 @@ contract CommunityTokenTest is TestBase {
             address(implementation),
             abi.encodeCall(
                 CommunityToken.initialize,
-                ("Community", "COM", 0, address(0), outsider, address(0), address(this))
+                ("Community", "COM", 0, 100 ether, address(0), outsider, address(0), address(this))
             )
         );
 
@@ -62,9 +70,75 @@ contract CommunityTokenTest is TestBase {
             address(implementation),
             abi.encodeCall(
                 CommunityToken.initialize,
-                ("Community", "COM", 1, address(0), address(authority), address(0), address(this))
+                ("Community", "COM", 1, 100 ether, address(0), address(authority), address(0), address(this))
             )
         );
+
+        vm.expectRevert(abi.encodeWithSelector(CommunityToken.InvalidMaxSupply.selector, 0));
+        _proxy(
+            address(implementation),
+            abi.encodeCall(
+                CommunityToken.initialize,
+                ("Community", "COM", 0, 0, address(0), address(authority), address(0), address(this))
+            )
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(CommunityToken.MaxSupplyExceeded.selector, 0, 101 ether, 100 ether));
+        _proxy(
+            address(implementation),
+            abi.encodeCall(
+                CommunityToken.initialize,
+                ("Community", "COM", 101 ether, 100 ether, holder, address(authority), address(0), address(this))
+            )
+        );
+    }
+
+    function test_OwnerCanRaiseAndSafelyLowerMaxSupply() public {
+        vm.prank(minter);
+        token.mint(holder, 10 ether);
+
+        vm.expectEmit(false, false, false, true, address(token));
+        emit CommunityToken.MaxSupplyChanged(type(uint256).max, 20 ether);
+        token.setMaxSupply(20 ether);
+        assertEq(token.maxSupply(), 20 ether);
+
+        vm.prank(minter);
+        token.mint(holder, 10 ether);
+        assertEq(token.totalSupply(), 20 ether);
+
+        vm.prank(minter);
+        vm.expectRevert(abi.encodeWithSelector(CommunityToken.MaxSupplyExceeded.selector, 20 ether, 1, 20 ether));
+        token.mint(holder, 1);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(CommunityToken.MaxSupplyBelowCurrentSupply.selector, 19 ether, 20 ether)
+        );
+        token.setMaxSupply(19 ether);
+
+        token.setMaxSupply(25 ether);
+        vm.prank(holder);
+        token.burn(5 ether);
+        token.setMaxSupply(15 ether);
+        assertEq(token.maxSupply(), 15 ether);
+    }
+
+    function test_OnlyOwnerCanChangeMaxSupply() public {
+        vm.prank(outsider);
+        vm.expectRevert();
+        token.setMaxSupply(1 ether);
+    }
+
+    function test_LegacyUnsetMaxSupplyRemainsUnlimitedUntilConfigured() public {
+        uint256 maxSupplySlot = erc7201("closer.storage.CommunityToken") + 2;
+        vm.store(address(token), bytes32(maxSupplySlot), bytes32(0));
+
+        assertEq(token.maxSupply(), type(uint256).max);
+        vm.prank(minter);
+        token.mint(holder, 10 ether);
+        assertEq(token.totalSupply(), 10 ether);
+
+        token.setMaxSupply(20 ether);
+        assertEq(token.maxSupply(), 20 ether);
     }
 
     function test_RoleCanMintAndBurnForAnotherAccount() public {
@@ -180,6 +254,7 @@ contract CommunityTokenTest is TestBase {
         address transferPolicy,
         address owner,
         uint256 initialSupply,
+        uint256 maxSupply,
         address initialRecipient
     ) private returns (CommunityToken) {
         CommunityToken implementation = new CommunityToken();
@@ -189,7 +264,16 @@ contract CommunityTokenTest is TestBase {
                     address(implementation),
                     abi.encodeCall(
                         CommunityToken.initialize,
-                        ("Community", "COM", initialSupply, initialRecipient, roleAuthority, transferPolicy, owner)
+                        (
+                            "Community",
+                            "COM",
+                            initialSupply,
+                            maxSupply,
+                            initialRecipient,
+                            roleAuthority,
+                            transferPolicy,
+                            owner
+                        )
                     )
                 )
             );

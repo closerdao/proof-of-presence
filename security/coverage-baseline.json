@@ -23,6 +23,11 @@
       "found": 18,
       "percent": 100
     },
+    "src/profiles/tdf/TDFV1BondingCurve.sol": {
+      "hit": 22,
+      "found": 22,
+      "percent": 100
+    },
     "src/village/access/VillageAccess.sol": {
       "hit": 15,
       "found": 22,
@@ -32,6 +37,11 @@
       "hit": 150,
       "found": 158,
       "percent": 94.94
+    },
+    "src/village/sales/DynamicPriceSale.sol": {
+      "hit": 163,
+      "found": 163,
+      "percent": 100
     },
     "src/village/tokens/VillagePresenceToken.sol": {
       "hit": 1,
@@ -49,9 +59,9 @@
       "percent": 96.85
     },
     "src/village/tokens/CommunityToken.sol": {
-      "hit": 55,
-      "found": 59,
-      "percent": 93.22
+      "hit": 72,
+      "found": 76,
+      "percent": 94.74
     }
   }
 }

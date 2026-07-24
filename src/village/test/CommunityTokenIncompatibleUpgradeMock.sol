@@ -25,6 +25,7 @@ contract CommunityTokenIncompatibleUpgradeMock is
     struct IncompatibleCommunityTokenStorage {
         uint256 roleAuthority;
         address transferPolicy;
+        uint256 maxSupply;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
