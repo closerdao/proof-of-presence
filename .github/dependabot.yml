@@ -1,0 +1,42 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Prague
+    open-pull-requests-limit: 5
+    groups:
+      hardhat-toolchain:
+        patterns:
+          - hardhat
+          - '@nomicfoundation/*'
+          - '@openzeppelin/hardhat-upgrades'
+          - ethers
+      openzeppelin-v5:
+        patterns:
+          - '@openzeppelin/contracts'
+          - '@openzeppelin/contracts-upgradeable'
+      safe-sdk:
+        patterns:
+          - '@safe-global/*'
+      development-tooling:
+        patterns:
+          - mocha
+          - prettier
+          - 'prettier-plugin-solidity'
+          - solhint
+          - tsx
+    ignore:
+      # Deliberately deferred major migrations.
+      - dependency-name: typescript
+        versions: ['>=6']
+      - dependency-name: eslint
+        versions: ['>=10']
+      - dependency-name: chai
+        versions: ['>=6']
+      - dependency-name: dotenv
+        versions: ['>=17']

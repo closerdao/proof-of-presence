@@ -1,0 +1,30 @@
+[compiler.solc]
+target_version = "0.8.35"
+evm_version = "cancun"
+include_paths = ["node_modules"]
+exclude_paths = [
+  "node_modules",
+  "venv",
+  ".venv",
+  "lib",
+  "script",
+  "test",
+  "src/village/test",
+  "security/smt",
+  "security-reports",
+]
+
+[compiler.solc.optimizer]
+enabled = true
+runs = 2000
+
+[detectors]
+ignore_paths = [
+  "venv",
+  ".venv",
+  "test",
+  "src/village/test",
+  "security/smt",
+  "security-reports",
+]
+exclude_paths = ["node_modules", "lib", "script", "security-reports"]

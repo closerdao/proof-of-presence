@@ -1,0 +1,23 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: prettier
+      glob: "*.{js,ts,sol}"
+      run: yarn prettier --check {staged_files}
+
+    - name: eslint
+      glob: "*.{js,ts}"
+      run: yarn eslint {staged_files}
+
+    - name: solhint
+      glob: "src/{village,profiles}/**/*.sol"
+      run: yarn solhint --max-warnings 0 --disc --noPoster {staged_files}
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: typecheck
+      run: yarn typecheck
+
+    - name: compile
+      run: yarn hardhat compile
