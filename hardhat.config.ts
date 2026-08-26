@@ -47,8 +47,7 @@ const namedAccounts = {
   TDFMultisig: {
     default: 0,
     hardhat: 1,
-    // note: on celoSepolia so far this is not our multisig, but microHoffman's deployer address!
-    celoSepolia: '0x4410c9De0B7523b48B6EF4190eEb439aACC5F4D3',
+    celoSepolia: '0x34A1a828cD862f703858F27ec7805D5E21f94687',
     // alfajores: '0xBD9658A4286459DD599Ab8b02bDa6167d750A288',
     celo: '0x5E810b93c51981eccA16e030Ea1cE8D8b1DEB83b',
   },
@@ -232,7 +231,9 @@ task('transfer-ownership', 'Transfer ownership of TDFDiamond to a new address')
     }
 
     console.log(`Transferring ownership to: ${newOwner}`);
-    const tx = await diamond.transferOwnership(newOwner);
+    const tx = await diamond.transferOwnership(newOwner, {
+      maxPriorityFeePerGas: '10',
+    });
     await tx.wait();
 
     const newContractOwner = await diamond.owner();

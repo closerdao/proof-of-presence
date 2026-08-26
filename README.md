@@ -13,7 +13,7 @@ For previewing and interacting with the TDFDiamond, it's best to use [louper.dev
 | TDFDiamond | [`0x475398EeE0E22cb6fe5403ffA294Fb10Ad989e17`](https://celoscan.io/address/0x475398EeE0E22cb6fe5403ffA294Fb10Ad989e17) |
 | TDFToken | [`0x10CB7F49389787A99b59B2f87dfDd3bba141559f`](https://celoscan.io/address/0x10CB7F49389787A99b59B2f87dfDd3bba141559f) |
 | PresenceToken | [`0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9`](https://celoscan.io/address/0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9) |
-| SweatToken | [`0xa2898Dd4628eD626bf841530f87c9F1ebA837c87`](https://celoscan.io/address/0xa2898Dd4628eD626bf841530f87c9F1ebA837c87) |
+| SweatToken | [`0x5D2870B37aB72AB9Cc3F46878373EeCc1312FA6e`](https://celoscan.io/address/0x5D2870B37aB72AB9Cc3F46878373EeCc1312FA6e) |
 | DynamicSale | [`0xEaa00a0e0D29D1F883485E8f98A0E8FfD75B23FB`](https://celoscan.io/address/0xEaa00a0e0D29D1F883485E8f98A0E8FfD75B23FB) |
 
 ### Celo Sepolia Testnet
@@ -22,8 +22,8 @@ For previewing and interacting with the TDFDiamond, it's best to use [louper.dev
 |----------|---------|
 | TDFDiamond | [`0x5D2870B37aB72AB9Cc3F46878373EeCc1312FA6e`](https://sepolia.celoscan.io/address/0x5D2870B37aB72AB9Cc3F46878373EeCc1312FA6e) |
 | TDFToken | [`0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9`](https://sepolia.celoscan.io/address/0x5Bc8e45E6c0019F12bE2979De614AF3cc63538e9) |
-| PresenceToken | [`0xBA72D0644F465D78e5076284ea3480f4dBc006F6`](https://sepolia.celoscan.io/address/0xBA72D0644F465D78e5076284ea3480f4dBc006F6) |
-| SweatToken | [`0x913d4e87A54A89DaCB80279d263aFd6a500889b5`](https://sepolia.celoscan.io/address/0x913d4e87A54A89DaCB80279d263aFd6a500889b5) |
+| PresenceToken | [`0x6f2d2FBbC461dd023C33Ee3844132ffE0d275a18`](https://sepolia.celoscan.io/address/0x6f2d2FBbC461dd023C33Ee3844132ffE0d275a18) |
+| SweatToken | [`0x520Bf26a5C98fc146e7813eC7816d0a0dC62c522`](https://sepolia.celoscan.io/address/0x520Bf26a5C98fc146e7813eC7816d0a0dC62c522) |
 | DynamicSale | [`0x076F0Ba89A33A6b268F164ddb2cC61df75Ee0168`](https://sepolia.celoscan.io/address/0x076F0Ba89A33A6b268F164ddb2cC61df75Ee0168) |
 | Crowdsale | [`0xdD5FCC4992C5C8795c557B2865B2ceE6c2CF6316`](https://sepolia.celoscan.io/address/0xdD5FCC4992C5C8795c557B2865B2ceE6c2CF6316) |
 
