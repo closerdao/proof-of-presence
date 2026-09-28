@@ -8,4 +8,8 @@ import "./IERC2612Standalone.sol";
 // solhint-disable-next-line no-empty-blocks
 interface ITDFToken is IERC20 {
     function mint(address account, uint256 amount) external;
+
+    function burnFrom(address account, uint256 amount) external;
+
+    function getDAOContract() external view returns (address);
 }

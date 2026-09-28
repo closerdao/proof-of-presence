@@ -103,6 +103,9 @@ npx hardhat diamond:mint --address [ADDRESS] --amount [amount] --network celoSep
 
 ## TEST
 
+The one-time 41-TDF burn correction, fork rehearsal, and Safe preparation procedure
+are documented in [docs/tdf-burn-correction.md](docs/tdf-burn-correction.md).
+
 - One using hardhat that can leverage hardhat-deploy to reuse deployment procedures and named accounts:
 
 ```bash
