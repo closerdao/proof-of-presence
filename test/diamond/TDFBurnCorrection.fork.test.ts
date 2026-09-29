@@ -5,6 +5,8 @@ import {Contract, ContractFactory} from 'ethers';
 import {readFileSync} from 'fs';
 import {resolve} from 'path';
 import {ROLES} from '../../utils';
+import {verifyBurnInitializer} from '../../utils/tdfBurnArtifacts';
+import {BURN_SAFE_ABI, burnSafeBatch, readBurnSafe, verifyBurnExecution} from '../../utils/tdfBurnSafe';
 import {
   TDF_BURN,
   burnCorrectionTransaction,
@@ -56,7 +58,7 @@ describeFork('TDFBurnCorrection Celo fork', function () {
       const factory = new ContractFactory(initializerArtifact.abi, initializerArtifact.bytecode, fork.getSigner(0));
       const initializer = await factory.deploy(TDF_BURN.diamond, TDF_BURN.token);
       await initializer.deployed();
-      expect(await fork.getCode(initializer.address)).not.to.eq('0x');
+      await verifyBurnInitializer(fork, artifacts, initializer.address);
 
       await fork.send('anvil_setBalance', [TDF_BURN.safe, '0x56BC75E2D63100000']);
       await fork.send('anvil_impersonateAccount', [TDF_BURN.safe]);
@@ -86,13 +88,54 @@ describeFork('TDFBurnCorrection Celo fork', function () {
       const preserved = await preservedState();
       const {operation, ...transaction} = burnCorrectionTransaction(initializer.address);
       expect(operation).to.eq(0);
+      // Exercise the exact raw transaction exported for the Safe app.
+      expect(burnSafeBatch(initializer.address).transactions[0]).to.deep.eq(transaction);
       await diamond
         .connect(safe)
         .callStatic.diamondCut([], initializer.address, initializer.interface.encodeFunctionData('execute'));
-      const receipt = await (
-        await safe.sendTransaction({...transaction, value: ethers.BigNumber.from(transaction.value)})
-      ).wait();
+      const ownerSafe = new Contract(
+        TDF_BURN.safe,
+        [
+          ...BURN_SAFE_ABI,
+          'function getTransactionHash(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,uint256) view returns (bytes32)',
+          'function approveHash(bytes32)',
+        ],
+        fork.getSigner(0)
+      );
+      const safeState = await readBurnSafe(fork, 'latest');
+      const safeArgs = [
+        transaction.to,
+        transaction.value,
+        transaction.data,
+        operation,
+        0,
+        0,
+        0,
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero,
+      ];
+      const safeHash = await ownerSafe.getTransactionHash(...safeArgs, safeState.nonce);
+      const approvingOwners = safeState.owners
+        .map((owner) => owner.toLowerCase())
+        .sort()
+        .slice(0, safeState.threshold);
+      // Local-only owner approvals allow rehearsal without real signatures or owner keys.
+      for (const owner of approvingOwners) {
+        await fork.send('anvil_setBalance', [owner, '0x56BC75E2D63100000']);
+        await fork.send('anvil_impersonateAccount', [owner]);
+        await (await ownerSafe.connect(fork.getSigner(owner)).approveHash(safeHash)).wait();
+      }
+      const signatures = ethers.utils.hexConcat(
+        approvingOwners.map((owner) =>
+          ethers.utils.hexConcat([ethers.utils.hexZeroPad(owner, 32), ethers.utils.hexZeroPad('0x00', 32), '0x01'])
+        )
+      );
+      const receipt = await (await ownerSafe.execTransaction(...safeArgs, signatures)).wait();
       expect(receipt.status).to.eq(1);
+      const verified = await verifyBurnExecution(fork, artifacts, receipt.transactionHash);
+      expect(verified.initializer).to.eq(initializer.address);
+      expect(verified.safeTransactionHash).to.eq(safeHash);
+      expect(await ownerSafe.nonce()).to.eq(ethers.BigNumber.from(safeState.nonce).add(1));
       const transfers = tdfTransfers(receipt);
       expect(transfers).to.have.lengthOf(4);
       for (let i = 0; i < TDF_BURN.targets.length; i++) {

@@ -72,11 +72,24 @@ TDF_BURN_FORK=1 TDF_BURN_FORK_BLOCK=latest corepack yarn mocha --no-config --req
 
 The default pinned block is 78,468,345. Optional `TDF_BURN_FORK_RPC` selects another
 Celo archival RPC, and `TDF_BURN_FORK_NODE` selects a dedicated loopback Anvil URL.
-The test resets that local node before and after the rehearsal and impersonates the
-Safe only locally. Stop Anvil afterward. Do not set `HARDHAT_DEPLOY_FIXTURE` or use
+The test resets that local node before and after the rehearsal, simulates owner
+approvals locally, and executes through the deployed Safe's `execTransaction`.
+It checks the exported payload, bytecode verification, and execution verifier in
+addition to accounting and replay protection. No real owner keys are needed.
+Stop Anvil afterward. Do not set `HARDHAT_DEPLOY_FIXTURE` or use
 `yarn fork:test`, which would run the normal deployment fixtures over the fork.
 
-## Prepare the Safe call
+## Prepare and execute in the Safe app
+
+The same script handles compilation, preflight, explicit initializer deployment,
+bytecode verification, Safe file export, and post-execution verification. It never
+signs, proposes, or sends the Safe burn transaction.
+
+The deployment wallet can be any account funded with CELO. Configure its
+`PRIVATE_KEY` locally using the existing environment setup. Safe owners keep their
+wallets in the Safe app; their private keys are not needed by the script. The
+Diamond call must come from the owner Safe, and the script prints its current
+owners and signature threshold in the review manifest.
 
 First perform a read-only preflight:
 
@@ -84,10 +97,12 @@ First perform a read-only preflight:
 corepack yarn execute celo scripts/prepareTdfBurnCorrection.ts
 ```
 
-It validates the chain, deployment addresses, both source receipts, current owner,
-token/DAO bindings, decimals, completion flag, pause state, transfer permissions,
-allowances, and balances. Insufficient funds abort preparation; amounts are never
-reduced and recipients are never skipped.
+It compiles the current source and validates the chain, deployment addresses, both
+source receipts, current owner, Safe configuration, token/DAO bindings, decimals,
+completion flag, pause state, transfer permissions, allowances, and balances.
+Insufficient funds abort preparation; amounts are never reduced and recipients
+are never skipped. Historical receipt retrieval can intermittently fail on the
+public RPC; retry the command if it reports `Source receipt unavailable`.
 
 After reviewing the code and successful tests, deploy the initializer explicitly:
 
@@ -99,31 +114,64 @@ This command can broadcast **only the initializer deployment** using the configu
 deployment signer. It does not submit, sign, or execute the Safe transaction. It is
 outside `deploy/`, so ordinary deployments do not trigger it.
 
-The script records the deployment, rechecks current state, simulates the complete
-cut as the owner Safe, estimates gas, and writes `cache/tdf-burn-correction.json`.
-Use `--output <path>` to choose another output. Without `--deploy`, rerunning it
-reuses the recorded initializer and performs only reads and local output writes.
+The script records the deployment, verifies its complete runtime bytecode against
+the compiler output (including both immutable constructor bindings), rechecks
+current state, simulates the complete cut as the owner Safe, and estimates gas.
+It writes two different files:
 
-The JSON is a review manifest with raw Safe-call fields, not a Safe Transaction
-Builder import file. It includes the initializer code hash, source transactions,
-excluded recipients, preflight block/hash, raw amounts and expected balances/supply,
-gas estimate, and the `transaction` object (`to`, `value`, `data`, `operation`).
+- `cache/tdf-burn-correction.json`: review manifest with the initializer code hash,
+  source transactions, excluded recipients, preflight block/hash, exact amounts,
+  expected balances/supply, current Safe owners/threshold/nonce, and raw call fields.
+- `cache/tdf-burn-correction.safe.json`: import this checksummed, version-1.0 JSON
+  into **Safe Transaction Builder**. It contains exactly one raw transaction on
+  chain **42220**, with the Diamond destination, value **0**, and the encoded cut.
+
+Use `--output <path>` to change the manifest path; the Safe file uses the same
+prefix with `.safe.json`. The checksum follows the [official Safe import format](https://github.com/safe-global/safe-react-apps/blob/e8cccfb9a1042fa2954087988bae59c3b8c81780/apps/tx-builder/src/lib/checksum.ts).
 The gas estimate covers the Diamond call; Safe execution overhead is additional.
+The Safe nonce in the manifest is informational, not a reserved queue position.
+Without `--deploy`, rerunning preparation reuses the recorded initializer and
+performs only chain reads and local compilation/output writes.
 
 Before signing:
 
-1. Verify the initializer's source using the repository's explorer verification
-   tooling and constructor arguments above; match the deployed bytecode to the
-   reviewed artifact. Keep the deployment record and review manifest.
+1. Use the reviewed source revision. Preparation automatically matches the deployed
+   bytecode to the current compiled artifact, including constructor bindings. Explorer
+   source publication can additionally be performed using the repository's verification
+   tooling. Keep the deployment record and review manifest.
 2. Run a fresh fork rehearsal and rerun preparation without `--deploy`.
 3. Review the four recipients, total of `41000000000000000000` base units, initializer
    address, and decoded calldata. The cut list must be empty and inner calldata must
    contain only the `execute()` selector.
-4. Create the Safe transaction using the manifest's exact `to`, `data`, and value
-   `0`. The Safe operation must be **CALL (0)** to the Diamond, not DELEGATECALL.
-   Obtain the Safe's required signatures and execute once.
+4. Open the owner Safe above on **Celo**, connect an owner wallet, and open
+   **New transaction / Transaction Builder**. Import the `.safe.json` file.
+   Keep exactly this one transaction; do not combine it with other actions.
+5. Check the Safe transaction uses the manifest's exact `to`, `data`, and value
+   `0`. The operation must be **CALL (0)** to the Diamond. Use zero Safe gas
+   reimbursement (`gasPrice: 0`, zero `gasToken` and `refundReceiver`); the submitting
+   wallet pays the normal network gas. Simulate in Safe if available, collect the
+   required owner signatures, and execute once.
 
 ## Verify execution
+
+Copy the **on-chain execution transaction hash** from Safe, then run:
+
+```sh
+corepack yarn execute celo scripts/prepareTdfBurnCorrection.ts --verify-tx 0xYOUR_EXECUTION_TRANSACTION_HASH
+```
+
+This is read-only on chain. It verifies the direct Safe `execTransaction` calldata,
+zero-value CALL and refund settings, successful inner execution, exactly four
+specified burns, the empty-cut and completion events, matching initializer runtime,
+completion flag, owner/DAO bindings, and absence of an installed `execute()` selector.
+It writes `cache/tdf-burn-correction.execution.json`. This mode does not need a
+deployment signer or local initializer deployment record. Use the chain transaction
+hash, not Safe's off-chain proposal hash. Batched/MultiSend or account-abstraction
+wrappers are deliberately outside this verifier's supported direct-call workflow.
+
+Verification failure is not a reason to execute the burn again: inspect the receipt
+and completion flag first. The verifier proves the specific call and burn evidence;
+it does not claim to audit every storage slot in the execution block.
 
 Confirm the Safe reports successful inner execution (a successful outer receipt
 alone is insufficient). The receipt must contain the Diamond's `DiamondCut` and

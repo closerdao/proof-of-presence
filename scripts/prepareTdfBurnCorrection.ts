@@ -1,7 +1,9 @@
 import assert from 'assert';
 import {mkdirSync, writeFileSync} from 'fs';
 import {dirname, resolve} from 'path';
-import {deployments, ethers, getNamedAccounts, network} from 'hardhat';
+import {artifacts, deployments, ethers, getNamedAccounts, network, run} from 'hardhat';
+import {verifyBurnInitializer} from '../utils/tdfBurnArtifacts';
+import {burnSafeBatch, readBurnSafe, verifyBurnExecution} from '../utils/tdfBurnSafe';
 import {
   TDF_BURN,
   TDF_BURN_DIAMOND_ABI,
@@ -10,21 +12,53 @@ import {
   readBurnPreflight,
 } from '../utils/tdfBurnCorrection';
 
-async function main() {
-  const args = process.argv.slice(2);
+export function parseBurnArguments(argv: string[]) {
+  const args = [...argv];
   let deploy = false;
   let output = resolve('cache/tdf-burn-correction.json');
+  let verifyTx: string | undefined;
+  let help = false;
+  const seen = new Set<string>();
   while (args.length) {
-    const arg = args.shift();
+    const arg = args.shift() as string;
+    assert(!seen.has(arg), `Duplicate argument: ${arg}`);
+    seen.add(arg);
     if (arg === '--deploy') {
       deploy = true;
     } else if (arg === '--output') {
       const filename = args.shift();
       assert(filename && !filename.startsWith('--'), '--output requires a filename');
       output = resolve(filename);
+    } else if (arg === '--verify-tx') {
+      verifyTx = args.shift();
+      assert(verifyTx && ethers.utils.isHexString(verifyTx, 32), '--verify-tx requires an on-chain transaction hash');
+    } else if (arg === '--help') {
+      help = true;
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
+  }
+  assert(!(deploy && verifyTx), '--deploy cannot be combined with --verify-tx');
+  return {deploy, output, verifyTx, help};
+}
+
+function saveJSON(path: string, value: unknown) {
+  mkdirSync(dirname(path), {recursive: true});
+  writeFileSync(path, JSON.stringify(value, null, 2) + '\n');
+}
+
+export async function prepareTdfBurnCorrection(args = process.argv.slice(2)) {
+  const {deploy, output, verifyTx, help} = parseBurnArguments(args);
+  if (help) {
+    console.log(`Usage: corepack yarn execute celo scripts/prepareTdfBurnCorrection.ts [options]
+  (no flags)         Compile and validate; export files if an initializer is recorded.
+  --deploy           Deploy/reuse the initializer, validate it, and export a Safe import file.
+  --verify-tx HASH   Read-only verification of the mined Safe execution transaction.
+  --output PATH      Review manifest path (default: cache/tdf-burn-correction.json).
+                     Safe import: <path without .json>.safe.json
+                     Execution report: <path without .json>.execution.json
+Owners approve and execute only in the Safe app. This script never signs or sends the burn.`);
+    return;
   }
 
   assert(network.name === 'celo', 'Preparation is restricted to --network celo');
@@ -38,8 +72,20 @@ async function main() {
     assert(record.address.toLowerCase() === expected.toLowerCase(), `Unexpected ${name} deployment`);
   }
 
+  await run('compile');
+  const outputPrefix = output.replace(/\.json$/i, '');
+  if (verifyTx) {
+    const report = await verifyBurnExecution(ethers.provider, artifacts, verifyTx);
+    const reportPath = `${outputPrefix}.execution.json`;
+    saveJSON(reportPath, report);
+    console.log('Verified Safe execution:', JSON.stringify(report, null, 2));
+    console.log(`Saved execution report to ${reportPath}`);
+    return;
+  }
+
   const {excludedAccounts} = await fetchBurnSources(ethers.provider);
   let preflight = await readBurnPreflight(ethers.provider);
+  let safeState = await readBurnSafe(ethers.provider, preflight.blockNumber);
   console.log('Validated correction:', JSON.stringify(preflight, null, 2));
 
   let initializer = await deployments.getOrNull('TDFBurnCorrection');
@@ -53,19 +99,19 @@ async function main() {
       log: true,
     });
     preflight = await readBurnPreflight(ethers.provider);
+    safeState = await readBurnSafe(ethers.provider, preflight.blockNumber);
   }
   if (!initializer) {
     console.log('Preflight passed. No initializer is deployed in these records. Use --deploy to deploy it.');
     return;
   }
 
-  const code = await ethers.provider.getCode(initializer.address, preflight.blockNumber);
-  assert(code !== '0x', 'Initializer has no deployed code');
-  const correction = new ethers.Contract(initializer.address, initializer.abi, ethers.provider);
-  const overrides = {blockTag: preflight.blockNumber};
-  assert((await correction.expectedDiamond(overrides)) === TDF_BURN.diamond, 'Wrong initializer Diamond');
-  assert((await correction.expectedToken(overrides)) === TDF_BURN.token, 'Wrong initializer token');
-  assert((await correction.COMPLETION_SLOT(overrides)) === TDF_BURN.completionSlot, 'Wrong completion slot');
+  const {contract: correction, codeHash} = await verifyBurnInitializer(
+    ethers.provider,
+    artifacts,
+    initializer.address,
+    preflight.blockNumber
+  );
 
   const transaction = burnCorrectionTransaction(initializer.address);
   const diamond = new ethers.Contract(TDF_BURN.diamond, TDF_BURN_DIAMOND_ABI, ethers.provider);
@@ -84,8 +130,9 @@ async function main() {
   const payload = {
     chainId,
     safe: preflight.owner,
+    safeState,
     initializer: initializer.address,
-    initializerCodeHash: ethers.utils.keccak256(code),
+    initializerCodeHash: codeHash,
     completionSlot: TDF_BURN.completionSlot,
     sources: TDF_BURN.sources,
     excludedAccounts,
@@ -94,13 +141,24 @@ async function main() {
     gasEstimate: gasEstimate.toString(),
     transaction,
   };
-  mkdirSync(dirname(output), {recursive: true});
-  writeFileSync(output, JSON.stringify(payload, null, 2) + '\n');
+  const safePath = `${outputPrefix}.safe.json`;
+  saveJSON(output, payload);
+  saveJSON(safePath, burnSafeBatch(initializer.address));
   console.log(`Saved reviewed-call data to ${output}`);
+  console.log(`Import ${safePath} into Safe Transaction Builder on Celo for ${TDF_BURN.safe}.`);
+  console.log(
+    `Required owner approvals: ${safeState.threshold} of ${safeState.owners.length}. Current Safe nonce: ${safeState.nonce}.`
+  );
+  console.log(
+    'Keep exactly this one transaction; verify CALL, value 0, and zero Safe gas reimbursement before signing.'
+  );
   console.log('Safe operation: CALL (0). Value: 0. No Safe transaction has been submitted or executed.');
+  return payload;
 }
 
-main().catch((error: Error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  prepareTdfBurnCorrection().catch((error: Error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}
